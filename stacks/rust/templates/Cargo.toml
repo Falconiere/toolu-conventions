@@ -1,0 +1,24 @@
+[package]
+name = "project-name"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+# House lints. CI runs `cargo clippy --all-targets -- -D warnings`, so every
+# `warn` below is a hard failure in CI — code ships clean under all of them.
+# Groups get a negative `priority` so the individual lines beneath them win.
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# CORE rule 9: no unwrap()/expect() outside tests and the `main` bootstrap.
+# Test modules and bootstrap sites opt out explicitly with `#[allow(...)]`.
+unwrap_used = "warn"
+expect_used = "warn"
+# Practical relaxations of the two noisiest pedantic lints.
+module_name_repetitions = "allow"
+must_use_candidate = "allow"

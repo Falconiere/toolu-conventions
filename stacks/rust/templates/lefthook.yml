@@ -1,0 +1,17 @@
+# Lefthook — fast local git gates. The full quality gate lives in CI and in the
+# one command documented in CLAUDE.md; hooks stay fast so commits don't stall.
+#
+# Install after copying this file:  lefthook install   (or: bunx lefthook install)
+
+pre-commit:
+  parallel: true
+  commands:
+    fmt:
+      glob: "*.rs"
+      run: cargo fmt --check
+
+# Clippy compiles the crate, so it runs on push rather than on every commit.
+pre-push:
+  commands:
+    clippy:
+      run: cargo clippy --all-targets -- -D warnings

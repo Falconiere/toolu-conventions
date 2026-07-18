@@ -1,0 +1,103 @@
+# CLAUDE.md — {{APP_NAME}}
+
+{{ONE_LINE_DESCRIPTION}} HTTP service. Bun · Hono · TypeScript (strict) ·
+`bun test` · oxlint + oxfmt. Read this file first — it is the map and the rulebook.
+
+## Repo map
+
+```
+src/app.ts       The Hono app — routes + middleware are mounted here (wiring only)
+src/index.ts     Server entry — Bun.serve(app.fetch) on the validated PORT
+src/routes/      One module per resource — thin HTTP handlers, no business logic
+src/services/    Business logic — framework-agnostic, unit-testable
+src/utilities/   Shared pure helpers (dates, formatters, …)
+src/constants/   env.ts (hand-validated) + enums
+src/types/       Cross-cutting TS types
+.github/workflows/  CI gate (type-check · lint · format · test)
+```
+
+Each `src/*` folder has its own `README.md` listing what lives there — read it
+before adding files, and add a line when you add something notable.
+
+## Tooling
+
+- Use `bun` for everything (`bun install`, `bun run <script>`, `bunx <bin>`,
+  `bun test`). Bun loads `.env` natively — no dotenv.
+- `bun run dev` runs the server with hot reload (`bun --hot src/index.ts`).
+- `bun run check` runs the full gate: type-check + lint + format-check +
+  structure-check + test.
+- `bun run lint:fix` and `bun run fmt` auto-fix.
+- Pre-commit (Lefthook) runs oxlint + oxfmt on staged files.
+- Tests run non-interactively via `bun test` (config in `bunfig.toml`).
+
+## Gate — run before every push
+
+`bun run check` = all five, in order; each must exit 0:
+
+```bash
+bun run type-check      # tsc --noEmit (strict)
+bun run lint            # oxlint --deny-warnings
+bun run fmt:check       # oxfmt --check
+bun run check:structure # bash scripts/check-structure.sh — folder-tree rules
+bun run test            # bun test
+```
+
+## Blocked patterns (the gate rejects these — not just review)
+
+Structure is **machine-enforced**: oxlint carries `no-restricted-imports` (barrel +
+deep-relative imports), `unicorn/filename-case` (kebab-case), and `max-lines`
+(300 code lines); `scripts/check-structure.sh` checks the folder tree itself
+(allowed `src/` dirs, per-folder READMEs, no stray `index.ts`).
+
+- `as any`, `: any`, `as unknown as T` → use `unknown` + type guards.
+- `console.log`, `debugger` → use `console.warn` / `console.error` or the logger.
+- **Barrel files** (an `index.ts` that only re-exports, or importing one) → import
+  the concrete file. Only `src/index.ts` (the server entry) may be named `index.ts`.
+- **Deep relative imports** (`../../x`) → use the `@/` alias.
+- **Unexpected `src/` layout** → only `routes services utilities constants types`
+  (each with a `README.md`) + `app.ts`/`index.ts` at the root. Adding an
+  integration dir (`db`, `middleware`) means adding it to `allowed_dirs` in
+  `scripts/check-structure.sh`.
+- Files over 300 code lines (tests exempt) → split.
+- Tests outside a sibling `__tests__/` (review).
+- Schema libraries app-wide (`zod`, `yup`, …) for env / general parsing → env and
+  external data are validated by hand (type guards on `unknown`).
+
+## Conventions
+
+- **Path alias**: `@/*` → `src/*`. Always import via alias — never deep relative
+  paths like `../../services/x`.
+- **Filenames**: kebab-case, named after the export (`health-service.ts` →
+  `getHealth`; `user-route.ts` → the user router). One primary export per file.
+- **Named exports** everywhere — no default exports.
+- **Routes are thin**: a route module parses the request, calls a service, and
+  shapes the response. No business logic, no direct DB access in routes.
+- **Services hold logic**: framework-agnostic functions in `src/services/`,
+  unit-testable without spinning up the server.
+- **One route module per resource**; mount it in `src/app.ts`.
+- **Validation**: env + external input validated by hand (type guards on
+  `unknown`) — no schema library app-wide. If you opt into request validation,
+  keep it at the boundary (route level) only.
+- **Errors**: never swallow. Propagate or map to an HTTP response; no `any`, no
+  non-null assertions.
+- **Doc line required**: every module and public symbol carries a concise
+  `/** … */` one-liner. Brief, but not optional.
+- **Docs in sync**: a change to any user-facing surface (a route, its behavior,
+  env vars, commands, config) updates the prose that describes it — README,
+  folder READMEs, this file — in the same change.
+- **Commits**: `type(scope): description` (conventional). Push to feature
+  branches; never directly to main.
+
+## Testing
+
+- Colocate tests in a sibling `__tests__/` (`health-service.ts` →
+  `__tests__/health-service.test.ts`); keep the test tree flat.
+- Real data, no mock-data tests. Exercise routes end-to-end with
+  `app.request('/path')` and assert on the real response; test services with real
+  inputs. A test that only proves a mock echoes its own setup is banned.
+
+## Stack additions
+
+Integrations are opt-in (DB client, bearer-token auth middleware, pino logging).
+When you add one, follow `LIBRARIES.md` from the kit and document it under the
+relevant `src/*/README.md`.

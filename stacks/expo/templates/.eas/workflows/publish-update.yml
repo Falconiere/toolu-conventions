@@ -1,0 +1,33 @@
+# EAS Workflow — Publish OTA update
+# Ships a JS/asset-only update over the air to a channel (channels map to build
+# profiles in eas.json: development / staging / production). OTA only delivers
+# changes compatible with the installed native runtime — anything that touches
+# native code (new native module, config plugin, SDK bump) needs a fresh build
+# via production-deploy.yml, not an update here.
+#
+# Manual + explicit on purpose: pick the channel so a prod OTA is never an
+# accident. Copy to `.eas/workflows/publish-update.yml`.
+name: Publish update (OTA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+        required: true
+      message:
+        type: string
+        required: false
+
+jobs:
+  publish_update:
+    name: Publish OTA update
+    type: update
+    params:
+      channel: ${{ inputs.channel }}
+      message: ${{ inputs.message }}
+      platform: all

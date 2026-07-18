@@ -1,0 +1,137 @@
+# CLAUDE.md — <project-name>
+
+<one-line-description> — a React Native app. Expo · TypeScript (strict) · Expo
+Router · bun · Jest · oxlint + oxfmt. Read this file first — it is the map and
+the rulebook.
+
+## Repo map
+
+```
+app/            Expo Router routes — THIN (re-export a feature screen, no logic)
+src/ui/         Design-system primitives (button, text, text-input) + theme/
+src/features/   One folder per feature: screens/ components/ hooks/ api/ types
+src/api/        Cross-feature data layer: clients/ (requests) + queries/ (React Query)
+src/utilities/  Shared pure helpers (dates, formatters, …)
+src/providers/  App-level context providers (mounted in app/_layout.tsx)
+src/constants/  env.ts (hand-validated), enums
+src/types/      Cross-cutting types
+assets/         Images, icons, fonts
+```
+
+Each `src/*` folder has its own `README.md` listing what lives there — read it
+before adding files, and add a line when you add something notable.
+
+## Core rules (non-negotiable)
+
+- **No barrel files.** Never create an `index.ts(x)` whose only job is
+  re-exporting. Import the concrete file (`import { Button } from '@/ui/button'`)
+  so every symbol stays traceable to exactly one file.
+- **Filename ↔ content.** Kebab-case filenames named after the primary export
+  (`shift-card.tsx` → `ShiftCard`, `use-shifts.ts` → `useShifts`). One primary
+  export per file; one responsibility per file.
+- **Size ceiling: 300 code lines per file** (blanks/comments excluded; tests
+  exempt). If a design needs a bigger file, split the design.
+- **Tests colocate + use real data.** Sibling `__tests__/`
+  (`button.tsx` → `__tests__/button.test.tsx`). Exercise real inputs and real
+  integration paths — a test that only proves a mock returns what it was told to
+  return is banned.
+- **Doc line required.** Every module and public symbol carries a concise doc
+  line (leading `/** … */` or `//`). Brief, not optional.
+- **Docs in sync.** A change to any user-facing surface (behavior, public API,
+  config, scripts) updates the prose that describes it — README, the folder's
+  `README.md`, this file — in the same change.
+- **No `any`.** No `as any`, `: any`, `as unknown as T`. Use `unknown` + type
+  guards.
+- **No `console.log` / `debugger`** in committed code. Use `console.warn` /
+  `console.error`.
+
+## Gate
+
+`bun run check` runs the full gate and must be green before advancing — even for
+an unrelated failure:
+
+```bash
+bun run check        # tsc --noEmit + oxlint --deny-warnings + oxfmt --check + check:structure + jest
+```
+
+Individual pieces: `bun run type-check`, `bun run lint` (`lint:fix` to auto-fix),
+`bun run fmt` / `fmt:check`, `bun run check:structure`, `bun run test`. Pre-commit
+(Lefthook) runs oxlint + oxfmt on staged files only. Run tests non-interactively
+(`--watchAll=false`).
+
+The structure rules are **enforced, not doc-only**: oxlint (`no-restricted-imports`
+for barrel/deep-relative/feature-isolation, `unicorn/filename-case`, `max-lines`)
+plus `scripts/check-structure.sh` (allowed `src/` dirs, per-folder READMEs, no
+barrel files, `lefthook.yml`). A violation fails the gate.
+
+## Tooling
+
+- Use `bun` for everything (`bun install`, `bun run <script>`, `bunx <bin>`).
+- Use `bunx expo install <pkg>` for RN-native deps (SDK-compatible versions),
+  `bun add` for pure-JS deps.
+
+## Blocked patterns (pre-commit + CI reject these)
+
+- `as any`, `: any`, `as unknown as T` → use `unknown` + type guards.
+- `console.log`, `debugger` → use `console.warn` / `console.error`.
+- **Barrel files** (an `index.ts` that only re-exports) → import the concrete
+  file. **Sanctioned exception:** `app/**` route files re-export a feature screen
+  as a default export (Expo Router requires it) — that is the only place a
+  re-export + default export is allowed.
+- Tests outside a sibling `__tests__/`; mock-data-only tests.
+- Files over 300 lines (tests exempt) → split.
+
+## Conventions
+
+- **Path aliases**: `@/ui/*`, `@/features/*`, `@/api/*`, `@/utilities/*`,
+  `@/providers/*`, `@/constants/*`, `@/types/*`, `@/assets/*`. Never deep relative
+  imports.
+- **Default exports** only in `app/**` (Expo Router needs them); named exports
+  everywhere else.
+- **Routes are thin**: `app/.../x.tsx` imports a feature screen and re-exports it.
+- **Styling**: `StyleSheet.create` + the `src/ui/theme/*` tokens. No styling
+  library (no unistyles/nativewind). No hardcoded hex / magic numbers — use theme
+  tokens; no inline style object literals for static styles.
+- **Data**: server state → React Query (`src/api`); client state → local state /
+  React Context (no store library — for genuinely-global client state use
+  `createContext` + `useReducer` in `src/providers/`). Never duplicate server data
+  into client state.
+- **Validation**: env + external/parsed data are validated by hand (type guards
+  on `unknown`) — no schema library app-wide. `zod` is allowed **only** inside a
+  form (`react-hook-form` + `zodResolver`), with the schema scoped to that form.
+- **Commits**: `type(scope): description` (conventional). Push to feature
+  branches; never directly to main.
+
+## Style baseline (UI defaults)
+
+Default UI manners for every screen/primitive. Deviate only when the design says
+so, and leave a comment when you do.
+
+- **Hide scroll indicators.** Every `ScrollView` / `FlatList` / `SectionList`
+  sets `showsVerticalScrollIndicator={false}` and
+  `showsHorizontalScrollIndicator={false}`. A visible scrollbar is opt-in.
+- **Compose the primitives** (`@/ui/text`, `@/ui/button`, `@/ui/text-input`)
+  rather than raw `<Text>` / `<Pressable>` / `<TextInput>`.
+- **Respect safe areas** via `react-native-safe-area-context` — never hardcode
+  status-bar / notch padding.
+- **Touchable + accessible**: interactive elements ≥ 44×44pt with an
+  `accessibilityRole` + label.
+- **Right list for the job**: virtualized `FlatList`/`SectionList` for long
+  lists; `ScrollView` only for short, finite content. Use
+  `keyboardShouldPersistTaps="handled"` when a scroll view holds inputs.
+
+## Design notes
+
+<!-- Filled from the setup intake design context. Palette/type live in
+src/ui/theme/*; this section records the direction and the "why" behind it. -->
+
+- **Audience / context:** <who-uses-this-and-when>
+- **Tone / personality:** <how-it-should-feel>
+- **Palette / type direction:** <colors-tone-reference-apps> (values in
+  `src/ui/theme/colors.ts` + `typography.ts`)
+
+## Stack additions
+
+This app is backend-agnostic by default. When you add an integration (API client,
+auth, storage, analytics, etc.), follow the kit's `LIBRARIES.md` and document it
+under the relevant `src/*/README.md`.

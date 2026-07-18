@@ -1,0 +1,12 @@
+# Pre-commit hooks. Install once with: bunx lefthook install
+# Runs only on staged files, in parallel. Keep it fast — the type-check and the
+# full test run belong in CI / `bun run check`, not here.
+pre-commit:
+  parallel: true
+  commands:
+    fmt:
+      glob: '*.{ts,json,md,yaml,yml}'
+      run: bunx oxfmt --check --no-error-on-unmatched-pattern {staged_files}
+    lint:
+      glob: 'src/**/*.ts'
+      run: bunx oxlint --deny-warnings {staged_files}

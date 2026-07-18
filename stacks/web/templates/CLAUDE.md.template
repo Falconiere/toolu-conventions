@@ -1,0 +1,112 @@
+# CLAUDE.md — {{APP_NAME}}
+
+{{ONE_LINE_DESCRIPTION}} Next.js web app. App Router · TypeScript (strict) · bun
+· Vitest + Testing Library · oxlint + oxfmt. Read this file first — it is the map
+and the rulebook.
+
+## Repo map
+
+```
+src/app/        Next.js App Router routes — THIN (re-export a feature screen, no logic)
+src/ui/         Design-system primitives + theme/ (colors · spacing · typography)
+src/features/   One folder per feature: screens/ components/ hooks/ api/ types
+src/api/        Cross-feature data layer: clients/ (requests) + queries/ (React Query)
+src/utilities/  Shared pure helpers (dates, formatters, …)
+src/providers/  App-level context providers ('use client'; mounted in src/app/layout.tsx)
+src/constants/  env.ts (hand-validated), enums
+src/types/      Cross-cutting types
+```
+
+Each `src/*` folder has its own `README.md` listing what lives there — read it
+before adding files, and add a line when you add something notable.
+
+## Tooling
+
+- Use `bun` for everything (`bun install`, `bun run <script>`, `bunx <bin>`).
+- `bun run check` runs the full gate: type-check + lint + fmt +
+  `check:structure` + test (the CORE gate order).
+- Structure rules are **machine-enforced**, not doc-only: oxlint carries
+  `no-restricted-imports` (no barrel imports, no deep relatives, feature
+  isolation), `unicorn/filename-case` (kebab-case), and `max-lines` (300);
+  `scripts/check-structure.sh` checks the folder tree (allowed `src/` dirs,
+  per-folder READMEs, no barrel files).
+- `bun run dev` starts the dev server; `bun run build` produces a production build.
+- `bun run lint:fix` and `bun run fmt` auto-fix.
+- Pre-commit (Lefthook) runs oxlint + oxfmt on staged files.
+- Tests run non-interactively via `vitest run`; never leave watch mode in CI.
+
+## Blocked patterns (pre-commit + CI reject these)
+
+- `as any`, `: any`, `as unknown as T` → use `unknown` + type guards.
+- `console.log`, `debugger` → use `console.warn` / `console.error`.
+- **Barrel files** (an `index.ts` that only re-exports) → import the concrete
+  file. The **one carve-out**: `src/app/**` route files, which thinly re-export a
+  feature screen as their default export (see Conventions).
+- **Default exports outside `src/app/`** → named exports everywhere else.
+  `src/app/**` route files are the sanctioned exception (Next.js requires them).
+- **Deep relative imports** (`../../…`) → use the `@/` alias.
+- **Cross-feature imports** — importing `@/features/*` from anywhere but a
+  `src/app/**` route file → features are isolated; only routes pull in a screen.
+- **Mock-data tests** — a test that only proves a mock returns what the mock was
+  told to return → tests must exercise real inputs and real integration paths.
+- Tests outside a sibling `__tests__/`.
+- Files over 300 lines (tests exempt) → split.
+
+## Conventions
+
+- **Path alias**: `@/*` → `src/*` (e.g. `@/ui/button`, `@/features/home/...`).
+  Never deep relative imports (`../../../ui`).
+- **Filenames**: kebab-case, named after the export (`shift-card.tsx` →
+  `ShiftCard`; `use-shifts.ts` → `useShifts`). One primary export per file.
+- **Default exports** only in `src/app/**` (Next.js requires them for `page` /
+  `layout` / `route` / `error` / `loading`); named exports everywhere else.
+- **Routes are thin**: a file under `src/app/` imports a feature screen and
+  re-exports it — no data fetching, state, or logic in the route file.
+- **Server vs. Client Components**: components are **Server Components by
+  default**. Add `'use client'` only when the file needs interactivity, React
+  state/effects, or browser APIs. Keep the boundary as low in the tree as
+  possible; data fetching prefers Server Components / server actions.
+- **Styling**: theme tokens from `src/ui/theme/*` (CSS Modules or plain CSS
+  referencing the tokens) — no hardcoded hex, no magic numbers.
+- **Data**: server state → React Query (`src/api`) on the client, or fetch in
+  Server Components; client state → local state / React Context (no store
+  library — for genuinely-global client state use `createContext` +
+  `useReducer` in `src/providers/`). Never duplicate server data into client
+  state.
+- **Validation**: env + external/parsed data are validated by hand (type guards
+  on `unknown`) — no schema library app-wide. `zod` is allowed **only** inside a
+  form (`react-hook-form` + `zodResolver`), scoped to that form.
+- **Testing**: co-locate tests in a sibling `__tests__/`, and test with **real
+  data** — exercise real inputs and real integration paths. No mock-only tests
+  that just replay what a mock was told to return; they hide integration breakage.
+- **Doc line required**: every module and public symbol carries a concise
+  `/** … */` doc line — brief, but not optional.
+- **Docs in sync**: a change to a user-facing surface (behavior, public API,
+  routes, config) updates the prose describing it (README, the relevant
+  `src/*/README.md`, `CLAUDE.md`) in the **same** change.
+- **Commits**: `type(scope): description` (conventional). Push to feature
+  branches; never directly to main.
+
+## Design notes
+
+<!-- The setup design-context answers are recorded here: audience, jobs, brand
+tone, palette direction. The theme token files (src/ui/theme/*) hold the
+concrete values. -->
+
+{{DESIGN_NOTES}}
+
+## Tool usage (for agents)
+
+- Read with `Read`, search with `Grep` — not `cat`/`sed`/`bash grep`.
+- Create/modify with `Write`/`Edit` — never `cat <<EOF` heredocs.
+
+## House style (yes, be a little silly)
+
+Agents working in this app keep a bit of a playful, silly attitude — a
+deliberate house rule, not a glitch. Toss in a light joke, a fun aside, a cheeky
+sign-off; don't take yourself too seriously. The catch: **the silliness lives in
+your prose, never in the work.** Code, comments, type names, commit messages,
+and status reports stay clean, precise, and honest. If a gate fails or something
+breaks, say so plainly — being straight with the user always beats being funny.
+Think "sharp engineer who's also a delight in standup." Ship correct first, then
+sprinkle the glitter. ✨

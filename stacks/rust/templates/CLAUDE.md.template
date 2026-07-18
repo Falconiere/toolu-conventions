@@ -1,0 +1,83 @@
+# CLAUDE.md — project-name
+
+Read-first rules for any agent working in this repo. These are enforced by
+`clippy`, `rustfmt`, and Lefthook; treat them as hard constraints, not
+suggestions.
+
+## What this is
+
+`project-name` — a single-crate Rust project. One crate, one `Cargo.toml`; no
+workspace. (Replace this line with a one-sentence description of the program.)
+
+## Quality gate — run before calling anything done
+
+```bash
+cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/check-structure.sh && cargo test
+```
+
+Never advance while any error, warning, or test failure stands — even an
+unrelated one. `-D warnings` means every clippy `warn` (including `missing_docs`
+and the pedantic group) is a hard failure. `scripts/check-structure.sh`
+machine-enforces the structure rules the compiler can't see — snake_case `.rs`
+filenames, the 500 code-line ceiling (tests exempt), and that the lefthook config
+is `.yml`. Fix the code, do not silence the lint.
+
+## Hard conventions
+
+1. **No `mod.rs` barrel modules.** Never create a module whose only job is
+   `pub use` re-exports. Import the concrete path that holds the item. Every
+   symbol stays traceable to exactly one file.
+2. **Filename ↔ content.** `snake_case` filenames named after the file's primary
+   item (`shift_store.rs` → `struct ShiftStore`). One primary item per file.
+3. **One responsibility per file.** Flat until it grows: keep a unit in a single
+   file until it passes the size ceiling or sprouts sub-parts, then promote it to
+   a folder (`foo.rs` → `foo/` with `foo.rs` split into submodules declared from
+   the parent).
+4. **500 code-line ceiling per file** (blanks/comments excluded; tests exempt).
+   If a design implies a bigger file, split the design.
+5. **Tests colocate.** Unit tests live in-file under `#[cfg(test)] mod tests`.
+   Integration tests live in the sibling top-level `tests/` directory, one file
+   per surface. Tests use real inputs and real integration paths — **no mock-data
+   tests** (a test that only proves a mock returned what it was told is banned).
+6. **Doc line on every public item and module.** `///` on every `pub` fn, struct,
+   enum, trait, and field; `//!` at the top of every module. `missing_docs` is on.
+7. **Docs in sync.** A change to a user-facing surface (CLI flags, public API,
+   config) updates the prose that describes it (README, this file) in the same
+   change.
+
+## Blocked patterns
+
+- **No `unsafe`.** `unsafe_code = "forbid"` in `Cargo.toml`. If a crate genuinely
+  needs it, that is a design decision — raise it, don't silently relax the lint.
+- **No `.unwrap()` / `.expect()`** outside tests and the `main` bootstrap. Return
+  `Result` and propagate with `?`. Use `thiserror` for library error types,
+  `anyhow` for the binary's top level.
+  - A test module that needs them opts out at its top:
+    `#![allow(clippy::unwrap_used, clippy::expect_used)]`.
+  - A `main`/startup site that must fail fast annotates the exact call:
+    `#[allow(clippy::expect_used)]` with a comment saying why.
+- **No stray `println!` debugging.** `println!` is for a program's real stdout
+  output only; for diagnostics use `eprintln!` or `tracing`.
+- **No `as` casts that can truncate/wrap silently.** Prefer `TryFrom`/`try_into`
+  and handle the error. (`clippy::pedantic` flags the risky ones.)
+
+## Repo map
+
+```
+project-name/
+├── Cargo.toml            # crate manifest + [lints] table (the house lint set)
+├── rustfmt.toml          # formatting config (stable options only)
+├── lefthook.yml          # pre-commit fmt · pre-push clippy
+├── src/
+│   ├── main.rs           # binary entry point (or lib.rs for a library crate)
+│   └── <module>.rs       # one module per responsibility, snake_case
+├── tests/                # integration tests, one file per surface
+├── scripts/
+│   └── check-structure.sh # structure gate (snake_case · 500-line ceiling · .yml)
+└── .github/workflows/ci.yml
+```
+
+## Design notes
+
+(Record project-specific context here: what the program does, key modules, any
+opt-in integrations wired at setup — clap, axum/tokio, serde. Keep it current.)

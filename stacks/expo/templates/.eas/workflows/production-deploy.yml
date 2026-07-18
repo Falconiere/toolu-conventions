@@ -1,0 +1,46 @@
+# EAS Workflow — Production build + submit
+# Builds store binaries for both platforms (the `production` profile in eas.json)
+# and submits each to its store. Triggered by pushing a release tag (e.g. v1.2.0),
+# or run manually from the dashboard / `eas workflow:run production-deploy.yml`.
+#
+# Requires the store credentials in eas.json `submit.production` to be filled in
+# (Apple ascAppId / appleTeamId, Google service account). Copy to
+# `.eas/workflows/production-deploy.yml`.
+name: Production deploy
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+jobs:
+  build_ios:
+    name: Build iOS (production)
+    type: build
+    params:
+      platform: ios
+      profile: production
+
+  build_android:
+    name: Build Android (production)
+    type: build
+    params:
+      platform: android
+      profile: production
+
+  submit_ios:
+    name: Submit iOS to App Store Connect
+    needs: [build_ios]
+    type: submit
+    params:
+      build_id: ${{ needs.build_ios.outputs.build_id }}
+      profile: production
+
+  submit_android:
+    name: Submit Android to Play Console
+    needs: [build_android]
+    type: submit
+    params:
+      build_id: ${{ needs.build_android.outputs.build_id }}
+      profile: production

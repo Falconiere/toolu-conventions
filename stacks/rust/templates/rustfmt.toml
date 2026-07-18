@@ -1,0 +1,8 @@
+# Stable-only rustfmt options. Nightly-gated knobs (imports_granularity,
+# group_imports, wrap_comments, …) are omitted so `cargo fmt` is deterministic
+# on the stable toolchain CI uses.
+edition = "2024"
+max_width = 100
+tab_spaces = 4
+newline_style = "Unix"
+use_small_heuristics = "Default"

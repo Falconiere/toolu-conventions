@@ -1,0 +1,25 @@
+# EAS Workflow — Development build
+# Internal-distribution dev clients for iOS + Android (the `development` profile
+# in eas.json). Run on demand from the dashboard or:
+#   eas workflow:run development-build.yml
+#
+# Copy to `.eas/workflows/development-build.yml`.
+name: Development build
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build_ios:
+    name: Build iOS (development)
+    type: build
+    params:
+      platform: ios
+      profile: development
+
+  build_android:
+    name: Build Android (development)
+    type: build
+    params:
+      platform: android
+      profile: development
