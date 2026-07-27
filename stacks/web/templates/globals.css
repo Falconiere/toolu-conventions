@@ -1,0 +1,137 @@
+/* Tone seam + baseline reset — "Spec Sheet" design language.
+ *
+ * FOR NON-TAILWIND SCAFFOLDS. If you ran create-next-app with --tailwind, use
+ * globals.tailwind.css instead — this file has no @import and would drop every
+ * utility class. Rationale for every value: the kit's DESIGN.md.
+ *
+ * Copy to src/app/globals.css, replacing the generated file wholesale, and keep
+ * it imported from src/app/layout.tsx.
+ *
+ * The --tone-* values mirror src/ui/theme/colors.ts: `colors` (night) on :root,
+ * `colorsLight` (paper) on .on-light. Keep the two in lockstep — the token file
+ * is the source of truth and this is its CSS projection. A light section is
+ * <section className="on-light">; nothing else changes.
+ */
+
+/* Reset. Tailwind's Preflight covers this on the other path. */
+*,
+::before,
+::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Pairs with the `padding: 0` above — without it markers paint at negative x and
+   silently disappear. Preflight does the same on the Tailwind path. */
+ol,
+ul,
+menu {
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* `font: inherit` also pins 16px, which suppresses iOS focus-zoom on inputs. */
+button,
+input,
+select,
+optgroup,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* The single owner of the palette. :root and .on-light are the only places a
+ * --tone-* value is ever declared; components read them, never redefine them.
+ */
+:root {
+  /* Night is unconditional, so tell the UA — otherwise scrollbars, <select>
+     popups, date pickers, and autofill render light over #1a1a1a. */
+  color-scheme: dark;
+
+  --tone-background: #1a1a1a;
+  --tone-background-deep: #0f0f0f;
+  --tone-surface: #1f1f1f;
+  --tone-surface-muted: #262626;
+
+  --tone-text: #fafafa;
+  --tone-text-muted: #b7b7b7;
+  --tone-text-soft: #8a8a8a;
+  --tone-text-inverse: #1f1f1f;
+
+  --tone-primary: #fafafa;
+  --tone-primary-hover: #e5e5e5;
+  --tone-on-primary: #1f1f1f;
+
+  --tone-accent: #3a8f6f;
+  --tone-accent-soft: rgba(58, 143, 111, 0.16);
+  --tone-accent-line: rgba(58, 143, 111, 0.36);
+  --tone-accent-glow: rgba(58, 143, 111, 0.08);
+
+  --tone-danger: #f87171;
+  --tone-danger-hover: #fecaca;
+  --tone-on-danger: #1f1f1f;
+  --tone-success: #3a8f6f;
+  --tone-warning: #f59e0b;
+
+  --tone-border: rgba(255, 255, 255, 0.08);
+  --tone-border-strong: rgba(255, 255, 255, 0.18);
+  --tone-focus-ring: rgba(58, 143, 111, 0.16);
+  --tone-grid: rgba(255, 255, 255, 0.035);
+
+  --tone-disabled-fill: #262626;
+  --tone-disabled-text: #737373;
+}
+
+.on-light {
+  color-scheme: light;
+
+  --tone-background: #e8e8e8;
+  --tone-background-deep: #e5e5e5;
+  --tone-surface: #fafafa;
+  --tone-surface-muted: #f4f4f4;
+
+  --tone-text: #1f1f1f;
+  --tone-text-muted: #525252;
+  --tone-text-soft: #737373;
+  --tone-text-inverse: #fafafa;
+
+  --tone-primary: #1f1f1f;
+  --tone-primary-hover: #262626;
+  --tone-on-primary: #fafafa;
+
+  --tone-accent: #3a8f6f;
+  --tone-accent-soft: rgba(58, 143, 111, 0.16);
+  --tone-accent-line: rgba(58, 143, 111, 0.36);
+  --tone-accent-glow: rgba(58, 143, 111, 0.08);
+
+  --tone-danger: #b91c1c;
+  --tone-danger-hover: #7f1d1d;
+  --tone-on-danger: #fafafa;
+  --tone-success: #3a8f6f;
+  --tone-warning: #f59e0b;
+
+  --tone-border: #d4d4d4;
+  --tone-border-strong: #a3a3a3;
+  --tone-focus-ring: rgba(58, 143, 111, 0.16);
+  --tone-grid: rgba(0, 0, 0, 0.04);
+
+  --tone-disabled-fill: #e5e5e5;
+  --tone-disabled-text: #a3a3a3;
+
+  /* Re-apply, or the element keeps the night surface it inherited from body and
+     only its descendants' var() lookups flip — ink text on a night background.
+     Custom properties declared here are usable in this same block. */
+  background-color: var(--tone-background);
+  color: var(--tone-text);
+}
+
+body {
+  background-color: var(--tone-background);
+  color: var(--tone-text);
+  font-family: var(--font-sans); /* set by next/font in layout.tsx */
+}

@@ -13,8 +13,9 @@ library set in [`LIBRARIES.md`](./LIBRARIES.md) · the house rules in
 [`../../CORE.md`](../../CORE.md). The app is **backend-agnostic** by default —
 only wire API/auth/storage if the intake says to.
 
-Read [`STRUCTURE.md`](./STRUCTURE.md), [`LIBRARIES.md`](./LIBRARIES.md), and
-[`../../CORE.md`](../../CORE.md) before you start.
+Read [`STRUCTURE.md`](./STRUCTURE.md), [`LIBRARIES.md`](./LIBRARIES.md),
+[`../../CORE.md`](../../CORE.md), and [`../../DESIGN.md`](../../DESIGN.md) before
+you start — the theme tokens copied in Phase 3 already implement DESIGN.md.
 
 ---
 
@@ -269,7 +270,11 @@ Then:
 1. Copy the theme tokens:
    `templates/theme/colors.ts` → `src/ui/theme/colors.ts`,
    `templates/theme/spacing.ts` → `src/ui/theme/spacing.ts`,
-   `templates/theme/typography.ts` → `src/ui/theme/typography.ts`.
+   `templates/theme/typography.ts` → `src/ui/theme/typography.ts`,
+   `templates/theme/motion.ts` → `src/ui/theme/motion.ts`.
+   They ship pre-filled with the house design language
+   ([`../../DESIGN.md`](../../DESIGN.md)) — real values, not placeholders. Phase 7
+   only changes them if the intake asked for a different brand.
 2. Copy the primitives:
    `templates/ui/button.tsx` → `src/ui/button.tsx`,
    `templates/ui/text.tsx` → `src/ui/text.tsx`,
@@ -343,6 +348,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
+import { colors } from '@/ui/theme/colors';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 2 } },
@@ -353,7 +359,10 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <Stack />
+          {/* The theme tokens are night-first, so set the surface here — React
+              Navigation's default card is white and the primitives' paper text
+              would be invisible on it. */}
+          <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background } }} />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -415,17 +424,87 @@ Validate locally with `eas workflow:validate` (or commit and let EAS lint them).
 
 ---
 
-## Phase 7 — Design pass (apply the intake design context)
+## Phase 7 — Design pass (wire the fonts, then apply the intake context)
 
-Translate the Phase 0.1 design context into the theme and record it:
+Read [`../../DESIGN.md`](../../DESIGN.md) — the house design language. The theme
+tokens copied in Phase 3 already implement it, so the app starts on-language.
 
-1. Fill real values in `src/ui/theme/colors.ts` and `src/ui/theme/typography.ts`
-   from the described palette/tone (keep the token names; replace the placeholder
-   values). Avoid pure `#000` / `#fff` — tint neutrals toward the brand hue.
-2. Refine the baseline primitives (`button.tsx`, `text.tsx`, `text-input.tsx`)
+**7.1 Load the fonts (always — the tokens name them).** The type scale references
+`Geist-*` / `GeistMono-*` family keys; until the files ship, RN silently falls
+back to the system face.
+
+```bash
+bunx expo install expo-font
+```
+
+Vendor the **static** Geist + Geist Mono `.ttf` files (SIL Open Font License).
+The npm `geist` package ships them; Google Fonts does **not** (it publishes only
+the variable `Geist[wght].ttf`, whose single family key is `Geist-Regular` — the
+`Geist-Medium` / `Geist-SemiBold` keys in `typography.ts` would resolve to
+nothing):
+
+```bash
+bun add -d geist
+mkdir -p assets/fonts
+cp node_modules/geist/dist/fonts/geist-sans/Geist-{Regular,Medium,SemiBold}.ttf assets/fonts/
+cp node_modules/geist/dist/fonts/geist-mono/GeistMono-{Regular,Medium}.ttf assets/fonts/
+```
+
+Then register them in `app.config.ts` via the `expo-font` config plugin so they
+are embedded at build time. **Extend the existing `plugins` array — do not
+replace it**; dropping `'expo-router'` breaks every route:
+
+```ts
+plugins: [
+  'expo-router', // keep — the router plugin already in app.config.ts
+  [
+    'expo-font',
+    {
+      fonts: [
+        './assets/fonts/Geist-Regular.ttf',
+        './assets/fonts/Geist-Medium.ttf',
+        './assets/fonts/Geist-SemiBold.ttf',
+        './assets/fonts/GeistMono-Regular.ttf',
+        './assets/fonts/GeistMono-Medium.ttf',
+      ],
+    },
+  ],
+],
+```
+
+The family key RN resolves is the filename stem on Android and the font's
+PostScript name on iOS — Geist ships them identical, so keep the names in
+`src/ui/theme/typography.ts`, the filenames, and the PostScript names in
+lockstep. If a face renders as the system font on one platform only, that's the
+mismatch.
+
+**The config plugin embeds fonts at native build time — Expo Go will never show
+them.** After editing `app.config.ts`, regenerate the native projects and run a
+dev build; otherwise every face silently stays the system fallback and Phase 10
+goes green on a design that was never applied:
+
+```bash
+bunx expo prebuild --clean
+bunx expo run:ios     # or: bunx expo run:android
+```
+
+**7.2 Apply the intake design context.**
+
+1. If the intake described a **different** brand, replace the values in
+   `src/ui/theme/colors.ts` / `typography.ts` — but keep the *structure*: one
+   neutral scale, one accent, two tones (`colors` + `colorsLight`), the mono meta
+   layer, hairline depth. Never pure `#000` / `#fff` on a surface.
+2. If it did not, keep the house tokens as shipped and say so in the design notes.
+3. Refine the baseline primitives (`button.tsx`, `text.tsx`, `text-input.tsx`)
    only if the direction calls for it — keep them token-driven.
-3. Record the direction in the `## Design notes` section of `CLAUDE.md` (audience,
-   tone, palette/type rationale) so future agents inherit the "why".
+   **Tone note:** the shipped primitives import `colors` (night) statically, so
+   they are single-tone as delivered. If the app needs the paper tone too, add a
+   `src/providers/theme-provider.tsx` that exposes `colors | colorsLight` through
+   context and switch the primitives to read it via a hook — do that *before*
+   building screens, not after.
+4. Record the direction in the `## Design notes` section of `CLAUDE.md` (audience,
+   tone, palette/type rationale, and any deviation from `DESIGN.md`) so future
+   agents inherit the "why".
 
 > Optional: if the `/impeccable` or `/design` skill is installed, use it to
 > generate a fuller design spec (`docs/design.md`) and refine the tokens — it's a
@@ -479,6 +558,10 @@ bun run fmt          # auto-format so fmt:check is clean
 bun run check        # tsc --noEmit + oxlint --deny-warnings + oxfmt --check + jest
 bunx expo start      # app boots in Expo Go / dev client
 ```
+
+If Phase 7.1 registered the fonts, verify in a **dev build** (`bunx expo run:ios`
+/ `run:android`), not Expo Go — the config plugin only embeds faces during a
+native build, so Expo Go renders the system fallback and tells you nothing.
 
 `bun run check` must exit 0 — the sample `button.test.tsx` must pass. Report the
 results honestly; do not mark setup complete with any part of `bun run check`

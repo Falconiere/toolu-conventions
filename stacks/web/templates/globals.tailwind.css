@@ -1,0 +1,176 @@
+/* Tone seam — "Spec Sheet" design language.
+ *
+ * FOR TAILWIND SCAFFOLDS (create-next-app --tailwind). If you scaffolded without
+ * Tailwind, use globals.css instead. Rationale for every value: the kit's
+ * DESIGN.md.
+ *
+ * Copy to src/app/globals.css, replacing the generated file wholesale, and keep
+ * it imported from src/app/layout.tsx. No reset here — Preflight covers it.
+ *
+ * The --tone-* values mirror src/ui/theme/colors.ts: `colors` (night) on :root,
+ * `colorsLight` (paper) on .on-light. Keep the two in lockstep — the token file
+ * is the source of truth and this is its CSS projection. A light section is
+ * <section className="on-light">; nothing else changes.
+ *
+ * TWO RULES WHEN WRITING COMPONENTS:
+ *
+ * 1. Never use the `dark:` variant. It compiles to
+ *    @media (prefers-color-scheme: dark), which keys off the OS — but night is
+ *    unconditional here and tone is class-driven, so `dark:` fires independently
+ *    of the actual tone and inverts inside .on-light.
+ *
+ * 2. Never reference a --color-* name directly — not in an arbitrary value
+ *    (bg-[var(--color-…)]), not in the bg-(--color-…) shorthand, not in an
+ *    inline style, not in hand-written CSS. Under @theme inline those names
+ *    exist only as build-time utility names and emit no custom property;
+ *    naming one makes Tailwind re-emit it frozen at the :root values, so it
+ *    stops following the tone. Use the generated utility (bg-background,
+ *    text-accent) — it compiles to var(--tone-*) and flips correctly. In
+ *    hand-written CSS, read var(--tone-*) directly.
+ *
+ *    Note the ellipses above are deliberate: Tailwind's theme-variable scan
+ *    reads this file including its comments, so spelling a complete --color-*
+ *    name here would itself emit the frozen variable. Never write one out.
+ */
+
+@import "tailwindcss";
+
+/* :root, .on-light and body are layered together on purpose. Tailwind puts
+ * utilities in @layer utilities, and an unlayered declaration beats any layered
+ * one regardless of specificity — unlayered rules here would silently override
+ * bg-* / text-* on the same element. All three go in together: leaving :root
+ * outside would make it unbeatable by the layered .on-light, so a tone class on
+ * <html> would never flip.
+ *
+ * :root and .on-light are the only places a --tone-* value is ever declared;
+ * components read them, never redefine them.
+ */
+@layer base {
+  :root {
+    /* Night is unconditional, so tell the UA — otherwise scrollbars, <select>
+       popups, date pickers, and autofill render light over #1a1a1a. */
+    color-scheme: dark;
+
+    --tone-background: #1a1a1a;
+    --tone-background-deep: #0f0f0f;
+    --tone-surface: #1f1f1f;
+    --tone-surface-muted: #262626;
+
+    --tone-text: #fafafa;
+    --tone-text-muted: #b7b7b7;
+    --tone-text-soft: #8a8a8a;
+    --tone-text-inverse: #1f1f1f;
+
+    --tone-primary: #fafafa;
+    --tone-primary-hover: #e5e5e5;
+    --tone-on-primary: #1f1f1f;
+
+    --tone-accent: #3a8f6f;
+    --tone-accent-soft: rgba(58, 143, 111, 0.16);
+    --tone-accent-line: rgba(58, 143, 111, 0.36);
+    --tone-accent-glow: rgba(58, 143, 111, 0.08);
+
+    --tone-danger: #f87171;
+    --tone-danger-hover: #fecaca;
+    --tone-on-danger: #1f1f1f;
+    --tone-success: #3a8f6f;
+    --tone-warning: #f59e0b;
+
+    --tone-border: rgba(255, 255, 255, 0.08);
+    --tone-border-strong: rgba(255, 255, 255, 0.18);
+    --tone-focus-ring: rgba(58, 143, 111, 0.16);
+    --tone-grid: rgba(255, 255, 255, 0.035);
+
+    --tone-disabled-fill: #262626;
+    --tone-disabled-text: #737373;
+  }
+
+  .on-light {
+    color-scheme: light;
+
+    --tone-background: #e8e8e8;
+    --tone-background-deep: #e5e5e5;
+    --tone-surface: #fafafa;
+    --tone-surface-muted: #f4f4f4;
+
+    --tone-text: #1f1f1f;
+    --tone-text-muted: #525252;
+    --tone-text-soft: #737373;
+    --tone-text-inverse: #fafafa;
+
+    --tone-primary: #1f1f1f;
+    --tone-primary-hover: #262626;
+    --tone-on-primary: #fafafa;
+
+    --tone-accent: #3a8f6f;
+    --tone-accent-soft: rgba(58, 143, 111, 0.16);
+    --tone-accent-line: rgba(58, 143, 111, 0.36);
+    --tone-accent-glow: rgba(58, 143, 111, 0.08);
+
+    --tone-danger: #b91c1c;
+    --tone-danger-hover: #7f1d1d;
+    --tone-on-danger: #fafafa;
+    --tone-success: #3a8f6f;
+    --tone-warning: #f59e0b;
+
+    --tone-border: #d4d4d4;
+    --tone-border-strong: #a3a3a3;
+    --tone-focus-ring: rgba(58, 143, 111, 0.16);
+    --tone-grid: rgba(0, 0, 0, 0.04);
+
+    --tone-disabled-fill: #e5e5e5;
+    --tone-disabled-text: #a3a3a3;
+
+    /* Re-apply, or the element keeps the night surface it inherited from body
+       and only its descendants' var() lookups flip — ink text on a night
+       background. Custom properties declared here are usable in this block. */
+    background-color: var(--tone-background);
+    color: var(--tone-text);
+  }
+
+  body {
+    background-color: var(--tone-background);
+    color: var(--tone-text);
+    font-family: var(--font-sans); /* set by next/font in layout.tsx */
+  }
+}
+
+/* Aliases the utility namespace onto the tone variables so bg-background /
+ * text-accent follow the active tone. `inline` is required: plain @theme would
+ * freeze the utilities at the :root values and they would not flip inside
+ * .on-light. Forward only — never restate a hex here.
+ */
+@theme inline {
+  --color-background: var(--tone-background);
+  --color-background-deep: var(--tone-background-deep);
+  --color-surface: var(--tone-surface);
+  --color-surface-muted: var(--tone-surface-muted);
+
+  --color-text: var(--tone-text);
+  --color-text-muted: var(--tone-text-muted);
+  --color-text-soft: var(--tone-text-soft);
+  --color-text-inverse: var(--tone-text-inverse);
+
+  --color-primary: var(--tone-primary);
+  --color-primary-hover: var(--tone-primary-hover);
+  --color-on-primary: var(--tone-on-primary);
+
+  --color-accent: var(--tone-accent);
+  --color-accent-soft: var(--tone-accent-soft);
+  --color-accent-line: var(--tone-accent-line);
+  --color-accent-glow: var(--tone-accent-glow);
+
+  --color-danger: var(--tone-danger);
+  --color-danger-hover: var(--tone-danger-hover);
+  --color-on-danger: var(--tone-on-danger);
+  --color-success: var(--tone-success);
+  --color-warning: var(--tone-warning);
+
+  --color-border: var(--tone-border);
+  --color-border-strong: var(--tone-border-strong);
+  --color-focus-ring: var(--tone-focus-ring);
+  --color-grid: var(--tone-grid);
+
+  --color-disabled-fill: var(--tone-disabled-fill);
+  --color-disabled-text: var(--tone-disabled-text);
+}

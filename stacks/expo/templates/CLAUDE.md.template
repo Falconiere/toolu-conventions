@@ -125,10 +125,29 @@ so, and leave a comment when you do.
 <!-- Filled from the setup intake design context. Palette/type live in
 src/ui/theme/*; this section records the direction and the "why" behind it. -->
 
+<!-- If setup overrode the house brand (SETUP.md Phase 7.2.1), rewrite the
+paragraph below to describe THIS app's actual tokens and fill in the deviation
+bullet. Leaving it unedited would misstate the tokens to every future agent. -->
+
+The app follows the house **"Spec Sheet"** design language: one neutral scale +
+one chromatic accent (spruce `#3a8f6f`, reserved for state/focus/locators), Geist
+Sans for display and body at weight 500 with tight negative tracking, Geist Mono
+for every label/index/chip/dimension, hairline depth (1px lines, low radii, no
+heavy shadows), and two tones (`colors` night + `colorsLight` paper) that every
+primitive must read correctly in. No italic, no second hue, no glassmorphism.
+
+**Hard rules:** no hardcoded hex or magic numbers in components — tokens only
+(`colors` · `spacing`/`radii`/`borderWidth`/`layout` · `typography` · `duration`).
+Focus is always visible and spruce — the accent border plus a `layout.focusRing`
+(4pt) `colors.focusRing` halo. Numbers are tabular (`fontVariant`). Press
+feedback is a tint or a hairline, never a shadow. Reveals render in their final
+state when `AccessibilityInfo.isReduceMotionEnabled()` is true.
+
 - **Audience / context:** <who-uses-this-and-when>
 - **Tone / personality:** <how-it-should-feel>
 - **Palette / type direction:** <colors-tone-reference-apps> (values in
   `src/ui/theme/colors.ts` + `typography.ts`)
+- **Deviations from the house language:** <none | what-and-why>
 
 ## Stack additions
 

@@ -8,7 +8,7 @@ and the rulebook.
 
 ```
 src/app/        Next.js App Router routes — THIN (re-export a feature screen, no logic)
-src/ui/         Design-system primitives + theme/ (colors · spacing · typography)
+src/ui/         Design-system primitives + theme/ (colors · spacing · typography · motion)
 src/features/   One folder per feature: screens/ components/ hooks/ api/ types
 src/api/        Cross-feature data layer: clients/ (requests) + queries/ (React Query)
 src/utilities/  Shared pure helpers (dates, formatters, …)
@@ -92,6 +92,28 @@ before adding files, and add a line when you add something notable.
 <!-- The setup design-context answers are recorded here: audience, jobs, brand
 tone, palette direction. The theme token files (src/ui/theme/*) hold the
 concrete values. -->
+
+<!-- If setup overrode the house brand (SETUP.md Phase 7.2.1), rewrite the
+paragraph below to describe THIS app's actual tokens and fill in the deviation
+bullet. Leaving it unedited would misstate the tokens to every future agent. -->
+
+The app follows the house **"Spec Sheet"** design language: one neutral scale +
+one chromatic accent (spruce `#3a8f6f`, reserved for state/focus/locators), Geist
+Sans for display and body at weight 500 with tight negative tracking, Geist Mono
+for every label/index/chip/dimension, hairline depth (1px lines, low radii, no
+heavy shadows), and two tones (`colors` night + `colorsLight` paper) that every
+primitive must read correctly in. No italic, no second hue, no glassmorphism.
+
+**Hard rules:** no hardcoded hex or magic numbers in components — tokens only
+(`colors` · `spacing`/`radii`/`borderWidth`/`layout` · `typography` ·
+`easing`/`duration`). Focus is always visible and spruce — the accent border plus
+a `layout.focusRing` `colors.focusRing` halo. Numbers in readouts are tabular.
+Hover adds a hairline or a `-1px` lift, never a shadow. Reveals flatten under
+`prefers-reduced-motion: reduce`. Tone is a CSS-variable seam: `:root` carries
+`colors`, `.on-light` overrides with `colorsLight`, and primitives read the
+variables — never import one map directly.
+
+- **Deviations from the house language:** <none | what-and-why>
 
 {{DESIGN_NOTES}}
 

@@ -1,9 +1,15 @@
 // TextInput primitive — labeled input with focus + error states.
 import { useState } from 'react';
-import { StyleSheet, TextInput as RNTextInput, type TextInputProps as RNTextInputProps, View } from 'react-native';
+import {
+  StyleSheet,
+  TextInput as RNTextInput,
+  type TextInputProps as RNTextInputProps,
+  View,
+} from 'react-native';
 import { Text } from '@/ui/text';
 import { colors } from '@/ui/theme/colors';
-import { radii, spacing } from '@/ui/theme/spacing';
+import { borderWidth, layout, radii, spacing } from '@/ui/theme/spacing';
+import { fontFamily, typography } from '@/ui/theme/typography';
 
 interface TextInputProps extends RNTextInputProps {
   label?: string;
@@ -16,28 +22,33 @@ interface TextInputProps extends RNTextInputProps {
  */
 export function TextInput({ label, error, style, onFocus, onBlur, ...rest }: TextInputProps) {
   const [focused, setFocused] = useState(false);
-  const borderColor = error !== undefined ? colors.danger : focused ? colors.primary : colors.border;
+  // Focus is spruce — the accent always marks state, never decoration.
+  const borderColor = error !== undefined ? colors.danger : focused ? colors.accent : colors.border;
 
   return (
     <View style={styles.container}>
       {label !== undefined && (
-        <Text variant="caption" color="textMuted" style={styles.label}>
+        <Text variant="label" color="textSoft" style={styles.label}>
           {label}
         </Text>
       )}
-      <RNTextInput
-        placeholderTextColor={colors.textMuted}
-        style={[styles.input, { borderColor }, style]}
-        onFocus={(e) => {
-          setFocused(true);
-          onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setFocused(false);
-          onBlur?.(e);
-        }}
-        {...rest}
-      />
+      {/* Focus is the accent border PLUS a soft ring; the ring is always laid
+          out (transparent when idle) so focusing never shifts the layout. */}
+      <View style={[styles.ring, { borderColor: focused ? colors.focusRing : 'transparent' }]}>
+        <RNTextInput
+          placeholderTextColor={colors.textMuted}
+          style={[styles.input, { borderColor }, style]}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+          {...rest}
+        />
+      </View>
       {error !== undefined && (
         <Text variant="caption" color="danger" style={styles.error}>
           {error}
@@ -50,14 +61,19 @@ export function TextInput({ label, error, style, onFocus, onBlur, ...rest }: Tex
 const styles = StyleSheet.create({
   container: { gap: spacing.xs },
   label: { marginLeft: spacing.xs },
+  ring: {
+    borderWidth: layout.focusRing,
+    borderRadius: radii.md + layout.focusRing,
+  },
   input: {
-    minHeight: 44,
-    borderWidth: 1,
+    minHeight: layout.minTouchTarget,
+    borderWidth: borderWidth.hairline,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
     color: colors.text,
     backgroundColor: colors.surface,
-    fontSize: 16,
+    fontFamily: fontFamily.regular,
+    fontSize: typography.body.fontSize,
   },
   error: { marginLeft: spacing.xs },
 });

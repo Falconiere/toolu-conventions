@@ -20,7 +20,7 @@ bun run start        # serve the production build
 | Path | What |
 | --- | --- |
 | `src/app/` | App Router routes (thin — each re-exports a feature screen). |
-| `src/ui/` | Design-system primitives + `theme/` tokens (colors, spacing, typography). |
+| `src/ui/` | Design-system primitives + `theme/` tokens (colors, spacing, typography, motion). |
 | `src/features/` | Feature modules — one folder each (`screens/`, `components/`, `hooks/`, …). |
 | `src/api/` | Data layer: `clients/` (requests) + `queries/` (React Query hooks). |
 | `src/utilities/` | Shared pure helpers. |

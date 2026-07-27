@@ -16,7 +16,8 @@ gh --version           # optional — repo creation
 ```
 
 Read [`CORE.md`](./CORE.md) now. Every rule in it binds the project you are
-about to create.
+about to create. If the stack is `expo` or `web`, read [`DESIGN.md`](./DESIGN.md)
+too — the theme tokens ship pre-filled with that language.
 
 ## 1. Intake questions (fixed order — ask all up front, don't trickle)
 
@@ -36,9 +37,12 @@ about to create.
    | rust | CLI parsing (`clap`) · HTTP service (`axum` + `tokio`) · serialization (`serde`/`serde_json`) |
 
 5. **Design context** — `expo` and `web` only: free-text brand/look description
-   (colors, tone, reference apps). Feed it into the theme token templates
-   (`colors.ts`/`typography.ts` values) and record it in the generated
-   `CLAUDE.md` design-notes section.
+   (colors, tone, reference apps). The theme tokens already ship the house
+   language ([`DESIGN.md`](./DESIGN.md)); ask whether to **keep it as-is**
+   (default) or override it. If overridden, feed the description into the token
+   templates (`colors.ts`/`typography.ts` values) keeping their structure, and
+   record the direction — and the deviation — in the generated `CLAUDE.md`
+   design-notes section.
 
 ## 2. Dispatch
 
