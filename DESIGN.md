@@ -1,24 +1,24 @@
 # Design Language — CodaSignal "Signal"
 
 House UI/UX language for **every app and web surface we build**. Imported from the
-CodaSignal design system (`v.03`, 2026-07). Binds every kit under `stacks/`
-alongside [`CORE.md`](./CORE.md); a stack's `STRUCTURE.md` may add rules, never
-relax one.
+CodaSignal design system (`v.03`, 2026-07). Rules here bind; a project or stack
+may add rules, never relax one.
 
-**Values are not in this file.** They live in `stacks/<stack>/templates/theme/`
-and are copied to `src/ui/theme/` at scaffold time. This file is the rules; those
-files are the numbers. Read both.
-
-This file itself is copied verbatim to `docs/design-language.md` in every
-scaffolded project — the kit is not on disk there, so that copy is the only one
-its agents can read. Edit it here; projects pick the change up at their next
-scaffold or by re-copying.
+**Values are not in this file.** They live in the theme token files. This file is
+the rules; those files are the numbers. Read both.
 
 | Need | Read |
 | --- | --- |
 | A colour, size, radius, duration, icon path | `theme/{colors,spacing,typography,motion,icons}.ts` |
 | Whether a thing is allowed, and which token it takes | this file |
-| The CSS band seam | `templates/globals.css` header |
+| The CSS band seam | the `globals.css` header comment |
+
+This file lives twice, verbatim: `DESIGN.md` in the conventions kit, and
+`docs/design-language.md` inside every project scaffolded from it (the kit is not
+on disk there, so that copy is the only one a project's agents can read). It is
+therefore written to be path-neutral — **edit it in the kit**, and projects pick
+the change up at their next scaffold or by re-copying. In the kit it sits
+alongside `CORE.md` and each stack's `STRUCTURE.md`.
 
 ---
 
