@@ -36,7 +36,7 @@ export const borderWidth = {
 export const breakpoints = {
   /** Full system: 1360 content, 48 gutter, display 68. */
   xl: 1400,
-  /** Gutter 40. Three-up rows become two-up. */
+  /** Three-up rows become two-up; index rows keep the spec column. Not a gutter step. */
   lg: 1120,
   /** Bands go single column. Index rows drop the spec column. */
   md: 860,
