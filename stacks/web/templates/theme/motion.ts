@@ -1,37 +1,46 @@
-/** Motion tokens — "Spec Sheet" language. Import: import { easing, duration } from '@/ui/theme/motion'. */
+/** Motion tokens — CodaSignal "Signal" language. Import: import { easing, duration } from '@/ui/theme/motion'. */
 
-// `spec` is the house curve: fast out, long settle. Rationale: the kit's DESIGN.md.
-// Hover NEVER adds a shadow — it adds a hairline, a spruce tint, or a -1px lift.
+// Motion measures; it never performs. Nothing bounces, nothing shimmers, nothing
+// spins. Hover changes colour or border in 140ms, disclosure opens in 220ms, live
+// dots blink in steps, and press is a 1px nudge — that is the whole tactile
+// vocabulary. Rationale: the kit's DESIGN.md.
 
 export const easing = {
-  spec: 'cubic-bezier(0.16, 1, 0.3, 1)',
-  standard: 'ease',
-  inOut: 'ease-in-out', // status-dot pulse
-  blink: 'steps(2, end)', // cursor block
+  /** The house curve, used everywhere. There is no second easing. */
+  signal: 'cubic-bezier(0.2, 0, 0, 1)',
+  /** Live dots and the terminal cursor — a hard on/off, not a fade. */
+  blink: 'steps(1, end)',
 } as const;
 
 /** Milliseconds. */
 export const duration = {
-  fast: 200, // color, border, opacity
-  base: 300, // buttons, transforms, surfaces
-  reveal: 700, // viewport stagger items
-  revealSlow: 800, // viewport fade-in-up
-  pulse: 2400, // status dot halo
-  blink: 1050, // cursor block
+  /** Hover and focus. Colour and border only — never size, never shadow. */
+  hover: 140,
+  /** Disclosure rows, panel swap, toggle knob. */
+  disclosure: 220,
+  /** A progress bar moving to a new real value. */
+  progress: 800,
+  /** Live dot / cursor blink cycle. */
+  blink: 1800,
+  /** A toast holds this long, then leaves. No progress bar on it. */
+  toast: 4000,
 } as const;
-
-/** Per-item delay step for staggered viewport reveals. */
-export const staggerStep = 120;
 
 /** Ready-made CSS `transition` values for the common cases. */
 export const transition = {
-  color: `color ${duration.fast}ms ${easing.standard}, border-color ${duration.fast}ms ${easing.standard}`,
-  surface: `background-color ${duration.base}ms ${easing.spec}, transform ${duration.base}ms ${easing.spec}`,
-  reveal: `opacity ${duration.revealSlow}ms ${easing.spec}, transform ${duration.revealSlow}ms ${easing.spec}`,
+  hover: `color ${duration.hover}ms ${easing.signal}, border-color ${duration.hover}ms ${easing.signal}, background-color ${duration.hover}ms ${easing.signal}`,
+  /** Primary buttons dip opacity instead of swapping a fill. */
+  opacity: `opacity ${duration.hover}ms ${easing.signal}`,
+  disclosure: `transform ${duration.disclosure}ms ${easing.signal}, opacity ${duration.disclosure}ms ${easing.signal}`,
+  progress: `width ${duration.progress}ms ${easing.signal}`,
 } as const;
 
-/** Lift applied on hover instead of a shadow. */
-export const hoverLift = '-1px';
+/** Primary-button hover: the fill dips rather than changing colour. */
+export const hoverOpacity = 0.86;
 
-// Every reveal must flatten to its final state under
-// `@media (prefers-reduced-motion: reduce)` — no opacity ramp, no transform.
+/** Press feedback. A 1px nudge down — never a shadow, never a scale. */
+export const pressOffset = '1px';
+
+// Honour `@media (prefers-reduced-motion: reduce)`: the blink becomes static (the
+// dot stays at full opacity), the progress bar jumps to its value, and disclosure
+// opens without a transition.

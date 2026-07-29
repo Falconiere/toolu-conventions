@@ -1,11 +1,15 @@
-// Type scale — "Spec Sheet" language. Plain TS with no runtime/type dependency
-// so it validates on its own. Import directly:
+// Type scale — CodaSignal "Signal" language. Plain TS with no runtime/type
+// dependency so it validates on its own. Import directly:
 //   import { typography } from '@/ui/theme/typography';
 //
-// Geist Sans for display + body, Geist Mono for every label, index, chip,
-// coordinate, dimension, and numeric readout. No italic anywhere. Display weight
-// is Medium (500) — size carries emphasis, weight stays calm. Rationale: the
-// kit's DESIGN.md.
+// One grotesk, two sizes of mono label. Archivo carries every heading, every
+// number and all prose; JetBrains Mono carries labels, data, tags, glyphs and
+// code — never a paragraph. No serif and no italic anywhere in the system.
+// Rationale: the kit's DESIGN.md.
+//
+// Native compresses the display and title steps (`displayLg`…`subhead`) —
+// everything from `body` down, including the whole mono meta layer, is identical
+// to the web kit, so a component reads the same on both.
 //
 // The `fontFamily` names below are the keys registered with expo-font in
 // app.config (SETUP.md Phase 7). Until the font files ship, RN falls back to the
@@ -26,68 +30,115 @@ interface TypeToken {
 }
 
 export const fontFamily = {
-  regular: 'Geist-Regular',
-  medium: 'Geist-Medium',
-  semibold: 'Geist-SemiBold',
-  mono: 'GeistMono-Regular',
-  monoMedium: 'GeistMono-Medium',
+  regular: 'Archivo-Regular',
+  medium: 'Archivo-Medium',
+  semibold: 'Archivo-SemiBold',
+  mono: 'JetBrainsMono-Regular',
+  monoMedium: 'JetBrainsMono-Medium',
 } as const;
 
 type Variant =
   | 'displayLg'
   | 'display'
-  | 'title'
-  | 'subtitle'
-  | 'lead'
+  | 'statLg'
+  | 'stat'
+  | 'quote'
+  | 'subhead'
   | 'body'
-  | 'bodyStrong'
-  | 'caption'
-  | 'button'
+  | 'bodySm'
+  | 'marker'
   | 'label'
-  | 'chip'
-  | 'dimension';
+  | 'tag'
+  | 'data'
+  | 'meta'
+  | 'code'
+  | 'button';
 
 export const typography: Record<Variant, TypeToken> = {
-  // Display — Medium, tight tracking (-0.035em), near-solid leading.
-  displayLg: { fontFamily: fontFamily.medium, fontSize: 48, lineHeight: 49, letterSpacing: -1.68 },
-  display: { fontFamily: fontFamily.medium, fontSize: 40, lineHeight: 42, letterSpacing: -1.4 },
-  title: { fontFamily: fontFamily.medium, fontSize: 28, lineHeight: 29, letterSpacing: -0.98 },
-  subtitle: { fontFamily: fontFamily.medium, fontSize: 18, lineHeight: 25, letterSpacing: -0.18 },
+  // Display — Archivo 600, tight tracking, near-solid leading. Headings break in
+  // two lines and only the SECOND line takes the signal colour.
+  displayLg: {
+    fontFamily: fontFamily.semibold,
+    fontSize: 40,
+    lineHeight: 41,
+    letterSpacing: -1.52,
+  },
+  display: { fontFamily: fontFamily.semibold, fontSize: 32, lineHeight: 33, letterSpacing: -1.12 },
 
-  // Prose.
-  lead: { fontFamily: fontFamily.regular, fontSize: 18, lineHeight: 28, letterSpacing: 0 },
-  body: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 26, letterSpacing: 0 },
-  bodyStrong: { fontFamily: fontFamily.semibold, fontSize: 16, lineHeight: 26, letterSpacing: 0 },
-  caption: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 23, letterSpacing: 0 },
-  button: {
-    fontFamily: fontFamily.medium,
-    fontSize: 14,
-    lineHeight: 18,
-    letterSpacing: 0.28,
-    textTransform: 'uppercase',
-  },
-
-  // Mono meta layer — labels, sigils, chips, dimensions. Never prose.
-  label: {
-    fontFamily: fontFamily.monoMedium,
-    fontSize: 11,
-    lineHeight: 17,
-    letterSpacing: 1.76,
-    textTransform: 'uppercase',
-  },
-  chip: {
-    fontFamily: fontFamily.monoMedium,
-    fontSize: 11,
-    lineHeight: 17,
-    letterSpacing: 0.66,
-    textTransform: 'uppercase',
-  },
-  dimension: {
-    fontFamily: fontFamily.mono,
-    fontSize: 14,
-    lineHeight: 21,
-    letterSpacing: 0.28,
+  // Figures. Every claim gets a number beside it, so numbers are a type role.
+  statLg: {
+    fontFamily: fontFamily.semibold,
+    fontSize: 44,
+    lineHeight: 40,
+    letterSpacing: -1.98,
     fontVariant: ['tabular-nums'],
+  },
+  stat: {
+    fontFamily: fontFamily.semibold,
+    fontSize: 32,
+    lineHeight: 32,
+    letterSpacing: -1.28,
+    fontVariant: ['tabular-nums'],
+  },
+
+  // Titles. No quotation marks on a quote, no photo beside it.
+  quote: { fontFamily: fontFamily.medium, fontSize: 22, lineHeight: 31, letterSpacing: -0.53 },
+  subhead: { fontFamily: fontFamily.medium, fontSize: 19, lineHeight: 25, letterSpacing: -0.42 },
+
+  // Prose. The workhorse, never wider than 52 characters, never a serif.
+  body: { fontFamily: fontFamily.regular, fontSize: 15, lineHeight: 26, letterSpacing: 0 },
+  bodySm: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 22, letterSpacing: 0 },
+
+  // Mono meta layer. Labels, data, tags, code — never prose. 9px is the floor.
+  marker: {
+    fontFamily: fontFamily.mono,
+    fontSize: 9.5,
+    lineHeight: 14,
+    letterSpacing: 2.28, // 0.24em — section markers, once per section
+    textTransform: 'uppercase',
+  },
+  label: {
+    fontFamily: fontFamily.mono,
+    fontSize: 9.5,
+    lineHeight: 14,
+    letterSpacing: 1.9, // 0.2em — panel and field labels
+    textTransform: 'uppercase',
+  },
+  tag: {
+    fontFamily: fontFamily.mono,
+    fontSize: 9,
+    lineHeight: 14,
+    letterSpacing: 1.44, // 0.16em
+    textTransform: 'uppercase',
+  },
+  data: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10.5,
+    lineHeight: 16,
+    letterSpacing: 1.68, // 0.16em — `FROM $40K · 6–12 WEEKS`
+    textTransform: 'uppercase',
+    fontVariant: ['tabular-nums'],
+  },
+  meta: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10,
+    lineHeight: 16,
+    letterSpacing: 0.6, // 0.06em — rail lines `├─ … ─┤`. Not uppercase.
+    fontVariant: ['tabular-nums'],
+  },
+  code: {
+    fontFamily: fontFamily.mono,
+    fontSize: 12,
+    lineHeight: 21,
+    letterSpacing: 0,
+    fontVariant: ['tabular-nums'],
+  },
+  button: {
+    fontFamily: fontFamily.mono,
+    fontSize: 9.5,
+    lineHeight: 12,
+    letterSpacing: 1.71, // 0.18em
+    textTransform: 'uppercase',
   },
 };
 

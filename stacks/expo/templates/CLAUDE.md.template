@@ -129,19 +129,23 @@ src/ui/theme/*; this section records the direction and the "why" behind it. -->
 paragraph below to describe THIS app's actual tokens and fill in the deviation
 bullet. Leaving it unedited would misstate the tokens to every future agent. -->
 
-The app follows the house **"Spec Sheet"** design language: one neutral scale +
-one chromatic accent (spruce `#3a8f6f`, reserved for state/focus/locators), Geist
-Sans for display and body at weight 500 with tight negative tracking, Geist Mono
-for every label/index/chip/dimension, hairline depth (1px lines, low radii, no
-heavy shadows), and two tones (`colors` night + `colorsLight` paper) that every
-primitive must read correctly in. No italic, no second hue, no glassmorphism.
+The app follows the house **CodaSignal "Signal"** design language: full-bleed
+bands that alternate dark (`#0e0f0d`) and light (`#f2f2ee`), one chromatic signal
+in four temperatures (Jade is the default) that only ever marks the second line
+of a heading, live data, or a list number, fixed status colours that never theme
+(degraded `#c99a3a`, incident `#c9553a`, idle = faint ink), Archivo at 600/500
+with tight negative tracking for everything readable, and JetBrains Mono for
+every label/tag/data/glyph/code line. Depth is a hairline; a panel adds one soft
+shadow on a light band and none on a dark one. No serif, no italic, no second
+hue, no gradients, no icon library.
 
 **Hard rules:** no hardcoded hex or magic numbers in components — tokens only
-(`colors` · `spacing`/`radii`/`borderWidth`/`layout` · `typography` · `duration`).
-Focus is always visible and spruce — the accent border plus a `layout.focusRing`
-(4pt) `colors.focusRing` halo. Numbers are tabular (`fontVariant`). Press
-feedback is a tint or a hairline, never a shadow. Reveals render in their final
-state when `AccessibilityInfo.isReduceMotionEnabled()` is true.
+(`colors` · `spacing`/`radii`/`borderWidth`/`layout` · `typography` · `duration` ·
+`icons`/`glyphs`). The signal never fills a button. Focus is always visible: a
+1pt `colors.accent` border plus a `layout.focusRing` (3pt) `colors.focusRing`
+wash. Numbers are tabular (`fontVariant`). Press feedback is a colour move or a
+1pt nudge, never a shadow. Motion renders in its final state when
+`AccessibilityInfo.isReduceMotionEnabled()` is true.
 
 - **Audience / context:** <who-uses-this-and-when>
 - **Tone / personality:** <how-it-should-feel>

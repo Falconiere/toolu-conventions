@@ -14,7 +14,7 @@ plus copy-ready templates. No CLI, no generator.
 | --- | --- |
 | [`SETUP.md`](./SETUP.md) | ★ Entry point. Router: prereq checks → intake questions → dispatch to a stack kit. |
 | [`CORE.md`](./CORE.md) | Stack-agnostic house rules every stack inherits (no barrels, colocated real-data tests, size ceilings, quality gate). |
-| [`DESIGN.md`](./DESIGN.md) | Stack-agnostic UI/UX language ("Spec Sheet") the `expo`/`web` theme tokens ship pre-filled with. |
+| [`DESIGN.md`](./DESIGN.md) | Stack-agnostic UI/UX language (CodaSignal "Signal") the `expo`/`web` theme tokens ship pre-filled with. |
 | `stacks/expo/` | Expo (latest SDK) · TypeScript strict · Expo Router · bun · Jest. |
 | `stacks/web/` | Next.js (App Router) · TypeScript strict · bun · Vitest. |
 | `stacks/backend-ts/` | Bun + Hono · TypeScript strict · bun test. |

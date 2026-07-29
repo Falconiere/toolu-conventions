@@ -1,41 +1,54 @@
-/** Type scale — "Spec Sheet" language. Plain CSS-ready tokens, no styling library. Import: import { typography, fontFamily } from '@/ui/theme/typography'. */
+/** Type scale — CodaSignal "Signal" language. Plain CSS-ready tokens, no styling library. Import: import { typography, fontFamily } from '@/ui/theme/typography'. */
 
-// Geist Sans for display + body, Geist Mono for every label, index, chip,
-// coordinate, dimension, and numeric readout. No italic anywhere — emphasis is a
-// mono uppercase token or a spruce underline. Rationale: the kit's DESIGN.md.
+// One grotesk, two sizes of mono label. Archivo carries every heading, every
+// number and all prose; JetBrains Mono carries labels, data, tags, glyphs and
+// code — never a paragraph. No serif and no italic anywhere in the system.
+// Rationale: the kit's DESIGN.md.
 //
 // `family` values reference CSS custom properties set by next/font (or a plain
 // @font-face) with a full fallback stack, so tokens work before fonts load.
 
 export const fontFamily = {
-  sans: 'var(--font-sans, "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif)',
-  mono: 'var(--font-mono, "Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace)',
+  sans: 'var(--font-sans, Archivo, Helvetica, -apple-system, BlinkMacSystemFont, sans-serif)',
+  mono: 'var(--font-mono, "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace)',
 } as const;
 
-/** 500 is the display weight — size carries emphasis, weight stays calm. 700 is banned. */
+/** 600 is the display weight, 500 the title weight. 700 is banned — size carries emphasis. */
 export const fontWeight = {
   regular: 400,
   medium: 500,
   semibold: 600,
 } as const;
 
-/** Negative tracking scales with size; the mono meta layer tracks wide and positive. */
+/**
+ * Negative tracking on the grotesk, positive on the mono meta layer. The four
+ * mono steps are not interchangeable: they encode what the text is.
+ */
 export const letterSpacing = {
+  displayLg: '-0.038em',
   display: '-0.035em',
-  heading: '-0.025em',
-  tight: '-0.01em',
+  stat: '-0.04em',
+  statLg: '-0.045em',
+  quote: '-0.024em',
+  title: '-0.022em',
   normal: '0em',
-  button: '0.02em',
-  chip: '0.06em',
-  link: '0.12em',
-  label: '0.16em',
+  /** Rail lines, dimension brackets, credential facts. */
+  meta: '0.06em',
+  /** Tags, pagination, inline chips. */
+  tag: '0.16em',
+  /** Buttons and bracket links. */
+  button: '0.18em',
+  /** Panel and field labels. */
+  label: '0.2em',
+  /** Section markers — `— §04 · speed`. The widest step, used once per section. */
+  marker: '0.24em',
 } as const;
 
 interface TypeStyle {
   fontFamily: string;
-  /** `clamp()` on display sizes — they scale with the viewport; body does not. */
+  /** `clamp()` on display sizes — they step down at 860 and 600. Prose does not scale. */
   fontSize: string;
-  /** Unitless: display is nearly solid (1.02–1.05), prose breathes (1.55–1.65). */
+  /** Unitless: display is near-solid (0.9–1.05), prose breathes (1.6–1.7). */
   lineHeight: string;
   fontWeight: number;
   letterSpacing: string;
@@ -47,119 +60,145 @@ interface TypeStyle {
 type Variant =
   | 'displayLg'
   | 'display'
-  | 'title'
-  | 'subtitle'
-  | 'lead'
+  | 'statLg'
+  | 'stat'
+  | 'quote'
+  | 'subhead'
   | 'body'
-  | 'bodyStrong'
-  | 'caption'
-  | 'button'
+  | 'bodySm'
+  | 'marker'
   | 'label'
-  | 'chip'
-  | 'dimension'
-  | 'code';
+  | 'tag'
+  | 'data'
+  | 'meta'
+  | 'code'
+  | 'button';
 
 export const typography: Record<Variant, TypeStyle> = {
-  // Display — sans, weight 500, tight tracking, near-solid leading.
+  // Display — Archivo 600, tight tracking, near-solid leading. Headings break in
+  // two lines and only the SECOND line takes the signal colour.
   displayLg: {
     fontFamily: fontFamily.sans,
-    fontSize: 'clamp(2.75rem, 6.5vw, 5.5rem)',
-    lineHeight: '1.02',
-    fontWeight: fontWeight.medium,
-    letterSpacing: letterSpacing.display,
+    fontSize: 'clamp(2.5rem, 4.8vw, 4.25rem)', // 40 → 68
+    lineHeight: '1.03',
+    fontWeight: fontWeight.semibold,
+    letterSpacing: letterSpacing.displayLg,
   },
   display: {
     fontFamily: fontFamily.sans,
-    fontSize: 'clamp(2.5rem, 5.6vw, 5.125rem)',
-    lineHeight: '1.02',
-    fontWeight: fontWeight.medium,
+    fontSize: 'clamp(1.875rem, 3.6vw, 3.125rem)', // 30 → 50
+    lineHeight: '1.04',
+    fontWeight: fontWeight.semibold,
     letterSpacing: letterSpacing.display,
   },
-  title: {
+
+  // Figures. Every claim gets a number beside it, so numbers are a type role.
+  statLg: {
     fontFamily: fontFamily.sans,
-    fontSize: 'clamp(2rem, 3.6vw, 3.2rem)',
-    lineHeight: '1.05',
-    fontWeight: fontWeight.medium,
-    letterSpacing: letterSpacing.display,
+    fontSize: 'clamp(2.75rem, 5vw, 4.125rem)', // 44 → 66
+    lineHeight: '0.9',
+    fontWeight: fontWeight.semibold,
+    letterSpacing: letterSpacing.statLg,
+    fontVariantNumeric: 'tabular-nums',
   },
-  subtitle: {
+  stat: {
     fontFamily: fontFamily.sans,
-    fontSize: '1.125rem',
+    fontSize: 'clamp(2rem, 3vw, 2.5rem)', // 32 → 40
+    lineHeight: '1',
+    fontWeight: fontWeight.semibold,
+    letterSpacing: letterSpacing.stat,
+    fontVariantNumeric: 'tabular-nums',
+  },
+
+  // Titles. No quotation marks on a quote, no photo beside it.
+  quote: {
+    fontFamily: fontFamily.sans,
+    fontSize: '1.625rem', // 26
     lineHeight: '1.4',
     fontWeight: fontWeight.medium,
-    letterSpacing: letterSpacing.tight,
+    letterSpacing: letterSpacing.quote,
+  },
+  subhead: {
+    fontFamily: fontFamily.sans,
+    fontSize: '1.3125rem', // 21 — card titles, row titles
+    lineHeight: '1.3',
+    fontWeight: fontWeight.medium,
+    letterSpacing: letterSpacing.title,
   },
 
-  // Prose.
-  lead: {
-    fontFamily: fontFamily.sans,
-    fontSize: '1.125rem',
-    lineHeight: '1.55',
-    fontWeight: fontWeight.regular,
-    letterSpacing: letterSpacing.normal,
-  },
+  // Prose. The workhorse, never wider than 52 characters, never a serif.
   body: {
     fontFamily: fontFamily.sans,
-    fontSize: '1rem',
-    lineHeight: '1.65',
+    fontSize: '0.9375rem', // 15
+    lineHeight: '1.7',
     fontWeight: fontWeight.regular,
     letterSpacing: letterSpacing.normal,
   },
-  bodyStrong: {
+  bodySm: {
     fontFamily: fontFamily.sans,
-    fontSize: '1rem',
-    lineHeight: '1.65',
-    fontWeight: fontWeight.semibold,
-    letterSpacing: letterSpacing.normal,
-  },
-  caption: {
-    fontFamily: fontFamily.sans,
-    fontSize: '0.875rem',
-    lineHeight: '1.65',
+    fontSize: '0.875rem', // 14 — captions under a panel, row sub-copy
+    lineHeight: '1.6',
     fontWeight: fontWeight.regular,
     letterSpacing: letterSpacing.normal,
-  },
-  button: {
-    fontFamily: fontFamily.sans,
-    fontSize: '0.875rem',
-    lineHeight: '1.25',
-    fontWeight: fontWeight.medium,
-    letterSpacing: letterSpacing.button,
-    textTransform: 'uppercase',
   },
 
-  // Mono meta layer — labels, sigils, chips, dimensions. Never prose.
+  // Mono meta layer. Labels, data, tags, code — never prose. 9px is the floor.
+  marker: {
+    fontFamily: fontFamily.mono,
+    fontSize: '0.59375rem', // 9.5 — `— §04 · speed`, once per section
+    lineHeight: '1.5',
+    fontWeight: fontWeight.regular,
+    letterSpacing: letterSpacing.marker,
+    textTransform: 'uppercase',
+  },
   label: {
     fontFamily: fontFamily.mono,
-    fontSize: '0.6875rem',
+    fontSize: '0.59375rem', // 9.5 — panel and field labels
     lineHeight: '1.5',
-    fontWeight: fontWeight.medium,
+    fontWeight: fontWeight.regular,
     letterSpacing: letterSpacing.label,
     textTransform: 'uppercase',
   },
-  chip: {
+  tag: {
     fontFamily: fontFamily.mono,
-    fontSize: '0.6875rem',
-    lineHeight: '1.5',
-    fontWeight: fontWeight.medium,
-    letterSpacing: letterSpacing.chip,
-    textTransform: 'uppercase',
-  },
-  dimension: {
-    fontFamily: fontFamily.mono,
-    fontSize: '0.875rem',
+    fontSize: '0.5625rem', // 9 — the floor. Nothing mono goes below it.
     lineHeight: '1.5',
     fontWeight: fontWeight.regular,
-    letterSpacing: letterSpacing.button,
+    letterSpacing: letterSpacing.tag,
+    textTransform: 'uppercase',
+  },
+  data: {
+    fontFamily: fontFamily.mono,
+    fontSize: '0.65625rem', // 10.5 — `FROM $40K · 6–12 WEEKS`
+    lineHeight: '1.5',
+    fontWeight: fontWeight.regular,
+    letterSpacing: letterSpacing.tag,
+    textTransform: 'uppercase',
+    fontVariantNumeric: 'tabular-nums',
+  },
+  meta: {
+    fontFamily: fontFamily.mono,
+    fontSize: '0.625rem', // 10 — rail lines `├─ … ─┤`, credential facts. Not uppercase.
+    lineHeight: '1.6',
+    fontWeight: fontWeight.regular,
+    letterSpacing: letterSpacing.meta,
     fontVariantNumeric: 'tabular-nums',
   },
   code: {
     fontFamily: fontFamily.mono,
-    fontSize: '0.875rem',
-    lineHeight: '1.6',
+    fontSize: '0.75rem', // 12
+    lineHeight: '1.75',
     fontWeight: fontWeight.regular,
     letterSpacing: letterSpacing.normal,
     fontVariantNumeric: 'tabular-nums',
+  },
+  button: {
+    fontFamily: fontFamily.mono,
+    fontSize: '0.59375rem', // 9.5
+    lineHeight: '1.2',
+    fontWeight: fontWeight.regular,
+    letterSpacing: letterSpacing.button,
+    textTransform: 'uppercase',
   },
 };
 

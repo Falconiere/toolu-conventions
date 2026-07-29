@@ -39,10 +39,12 @@ too — the theme tokens ship pre-filled with that language.
 5. **Design context** — `expo` and `web` only: free-text brand/look description
    (colors, tone, reference apps). The theme tokens already ship the house
    language ([`DESIGN.md`](./DESIGN.md)); ask whether to **keep it as-is**
-   (default) or override it. If overridden, feed the description into the token
-   templates (`colors.ts`/`typography.ts` values) keeping their structure, and
-   record the direction — and the deviation — in the generated `CLAUDE.md`
-   design-notes section.
+   (default), pick a different **signal temperature** (Jade · Blueprint · Ion ·
+   Chalk — a one-line change, nothing else moves), or override the brand
+   outright. If overridden, feed the description into the token templates
+   (`colors.ts`/`typography.ts` values) keeping their structure, and record the
+   direction — and the deviation — in the generated `CLAUDE.md` design-notes
+   section.
 
 ## 2. Dispatch
 

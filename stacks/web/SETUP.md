@@ -184,8 +184,8 @@ mkdir -p src/ui/theme src/features src/api/clients src/api/queries \
 
 Then:
 
-1. Copy `templates/theme/{colors,spacing,typography,motion}.ts` → `src/ui/theme/`.
-   They ship pre-filled with the house design language
+1. Copy `templates/theme/{colors,spacing,typography,motion,icons}.ts` →
+   `src/ui/theme/`. They ship pre-filled with the house design language
    ([`../../DESIGN.md`](../../DESIGN.md)) — real values, not placeholders. Phase 7
    only changes them if the intake asked for a different brand.
 2. Copy `templates/env.ts` → `src/constants/env.ts`. It validates `NEXT_PUBLIC_*`
@@ -326,17 +326,18 @@ tokens copied in Phase 3 already implement it, so the app starts on-language.
 
 **7.1 Bind the fonts (always — the tokens name them).** The type scale reads
 `--font-sans` / `--font-mono`. Phase 5 replaced `layout.tsx` wholesale, so add the
-font imports to it now — `Geist` and `Geist_Mono` are both exported by
-`next/font/google` and are variable fonts, so no `weight` is needed:
+font imports to it now — `Archivo` and `JetBrains_Mono` are both exported by
+`next/font/google` and are variable fonts, so no `weight` is needed. `data-signal`
+picks the signal temperature for the whole product; omit it for Jade:
 
 ```tsx
 import type { ReactNode } from 'react';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Archivo, JetBrains_Mono } from 'next/font/google';
 import { AppProviders } from '@/providers/app-providers';
 import './globals.css';
 
-const sans = Geist({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
-const mono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' });
+const sans = Archivo({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
+const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' });
 
 export const metadata = { title: '{{APP_NAME}}' };
 
@@ -358,29 +359,36 @@ variables. `next/font` self-hosts the files — no Google Fonts request at runti
 
 **7.2 Apply the intake design context.**
 
-1. If Phase 0 described a **different** brand, replace the values in
-   `src/ui/theme/{colors,typography}.ts` — but keep the *structure*: one neutral
-   scale, one accent, two tones (`colors` + `colorsLight`), the mono meta layer,
-   hairline depth. Never pure `#000` / `#fff` on a surface; no glassmorphism, no
-   generic cyan-on-dark.
-2. If it did not, keep the house tokens as shipped and say so in the design notes.
-3. Record the direction (audience, jobs, tone, palette, and any deviation from
+1. If Phase 0 named one of the four house signal temperatures (Jade, Blueprint,
+   Ion, Chalk), set `data-signal` on `<html>` **and** change `defaultSignal` in
+   `src/ui/theme/colors.ts` to the same name. That pair is the whole theming
+   surface — nothing else in either file moves. Setting only `data-signal` leaves
+   `colors.accent` in TS on Jade while the page renders the other temperature.
+2. If Phase 0 described a **different** brand, replace the values in
+   `src/ui/theme/{colors,typography}.ts` — but keep the *structure*: alternating
+   bands (`colors` + `colorsLight`), one signal with four steps, fixed status
+   colours, the mono meta layer, hairline depth. The signal never fills a button;
+   no gradients, no glassmorphism, no generic cyan-on-dark.
+3. If it did neither, keep the house tokens as shipped and say so in the design
+   notes.
+4. Record the direction (audience, jobs, tone, palette, and any deviation from
    `DESIGN.md`) in the `## Design notes` section of `CLAUDE.md` so future agents
    inherit the "why".
-4. If the design called for **Tailwind** and you scaffolded with it, the token
+5. If the design called for **Tailwind** and you scaffolded with it, the token
    files stay the single source of truth — never duplicate hex literals into
    Tailwind config. 7.3 below is the one place the mapping happens.
 
 Do **not** build UI primitives yet — 7.3 introduces the seam they have to read.
 Building them here against `colors` / `colorsLight` directly produces exactly the
-single-tone components 7.3 exists to prevent.
+single-band components 7.3 exists to prevent.
 
-**7.3 Wire the tone seam in `src/app/globals.css`.** Surfaces alternate tone
-section by section, so a primitive that imports one color map directly can only
-ever render one tone. The seam is a set of `--tone-*` custom properties: `:root`
-carries `colors` (night, the default), an `.on-light` class overrides them with
-`colorsLight`, and everything downstream reads the variables. A light section is
-then `<section className="on-light">`.
+**7.3 Wire the band seam in `src/app/globals.css`.** The page alternates dark and
+light bands, so a primitive that imports one color map directly can only ever
+render one band. The seam is a set of `--tone-*` custom properties: `:root`
+carries `colors` (the dark band, the default), a `.band-light` class overrides
+them with `colorsLight`, and everything downstream reads the variables. A light
+band is then `<section className="band band-light">` — `band` paints the ruled
+backdrop, `band-light` flips the tokens.
 
 That stylesheet ships as a template — copy the one matching your scaffold path,
 **replacing the generated `src/app/globals.css` wholesale** (its
@@ -406,9 +414,11 @@ file is the source of truth, the stylesheet is its CSS projection.
 
 **7.4 Build the `src/ui/*` primitives** the screens need, composed from the
 tokens and reading the `--tone-*` variables (never importing `colors` or
-`colorsLight` directly — that pins a component to one tone). Include the
-schematic primitives the language leans on — section sigil, kbd chip, dimension
-bracket, status dot — where the screens use them.
+`colorsLight` directly — that pins a component to one band). Include the
+patterns the language leans on — section marker, fact rail, index row, status
+dot, stat band — where the screens use them, plus one `<Icon>` wrapper over
+`theme/icons.ts` that owns the stroke width, square caps and mitred joins so no
+mark can drift from the construction rules.
 
 ## Phase 8 — CI
 

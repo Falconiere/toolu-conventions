@@ -271,7 +271,8 @@ Then:
    `templates/theme/colors.ts` → `src/ui/theme/colors.ts`,
    `templates/theme/spacing.ts` → `src/ui/theme/spacing.ts`,
    `templates/theme/typography.ts` → `src/ui/theme/typography.ts`,
-   `templates/theme/motion.ts` → `src/ui/theme/motion.ts`.
+   `templates/theme/motion.ts` → `src/ui/theme/motion.ts`,
+   `templates/theme/icons.ts` → `src/ui/theme/icons.ts`.
    They ship pre-filled with the house design language
    ([`../../DESIGN.md`](../../DESIGN.md)) — real values, not placeholders. Phase 7
    only changes them if the intake asked for a different brand.
@@ -359,9 +360,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          {/* The theme tokens are night-first, so set the surface here — React
-              Navigation's default card is white and the primitives' paper text
-              would be invisible on it. */}
+          {/* The theme tokens are dark-band-first, so set the surface here —
+              React Navigation's default card is white and the primitives' paper
+              ink would be invisible on it. */}
           <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background } }} />
         </QueryClientProvider>
       </SafeAreaProvider>
@@ -430,25 +431,42 @@ Read [`../../DESIGN.md`](../../DESIGN.md) — the house design language. The the
 tokens copied in Phase 3 already implement it, so the app starts on-language.
 
 **7.1 Load the fonts (always — the tokens name them).** The type scale references
-`Geist-*` / `GeistMono-*` family keys; until the files ship, RN silently falls
-back to the system face.
+`Archivo-*` / `JetBrainsMono-*` family keys; until the files ship, RN silently
+falls back to the system face.
 
 ```bash
 bunx expo install expo-font
 ```
 
-Vendor the **static** Geist + Geist Mono `.ttf` files (SIL Open Font License).
-The npm `geist` package ships them; Google Fonts does **not** (it publishes only
-the variable `Geist[wght].ttf`, whose single family key is `Geist-Regular` — the
-`Geist-Medium` / `Geist-SemiBold` keys in `typography.ts` would resolve to
-nothing):
+Vendor the **static** Archivo + JetBrains Mono `.ttf` files (SIL Open Font
+License). They must be static: a variable `Archivo[wdth,wght].ttf` exposes a
+single family key, so the `Archivo-Medium` / `Archivo-SemiBold` keys in
+`typography.ts` would resolve to nothing.
+
+The `@expo-google-fonts/*` packages ship the static faces, but under
+weight-suffixed filenames (`Archivo_400Regular.ttf`) whose PostScript name is
+still `Archivo-Regular` — that filename/PostScript split is exactly the
+render-on-one-platform-only bug flagged below. **Rename on copy** so both sides
+agree:
 
 ```bash
-bun add -d geist
+bun add -d @expo-google-fonts/archivo @expo-google-fonts/jetbrains-mono
 mkdir -p assets/fonts
-cp node_modules/geist/dist/fonts/geist-sans/Geist-{Regular,Medium,SemiBold}.ttf assets/fonts/
-cp node_modules/geist/dist/fonts/geist-mono/GeistMono-{Regular,Medium}.ttf assets/fonts/
+find node_modules/@expo-google-fonts/archivo -name 'Archivo_400Regular.ttf' \
+  -exec cp {} assets/fonts/Archivo-Regular.ttf \;
+find node_modules/@expo-google-fonts/archivo -name 'Archivo_500Medium.ttf' \
+  -exec cp {} assets/fonts/Archivo-Medium.ttf \;
+find node_modules/@expo-google-fonts/archivo -name 'Archivo_600SemiBold.ttf' \
+  -exec cp {} assets/fonts/Archivo-SemiBold.ttf \;
+find node_modules/@expo-google-fonts/jetbrains-mono -name 'JetBrainsMono_400Regular.ttf' \
+  -exec cp {} assets/fonts/JetBrainsMono-Regular.ttf \;
+find node_modules/@expo-google-fonts/jetbrains-mono -name 'JetBrainsMono_500Medium.ttf' \
+  -exec cp {} assets/fonts/JetBrainsMono-Medium.ttf \;
 ```
+
+Confirm five files landed in `assets/fonts/` before continuing — `find` prints
+nothing when a package reorganises its layout, and a silently-empty copy ships an
+app on the system font.
 
 Then register them in `app.config.ts` via the `expo-font` config plugin so they
 are embedded at build time. **Extend the existing `plugins` array — do not
@@ -461,11 +479,11 @@ plugins: [
     'expo-font',
     {
       fonts: [
-        './assets/fonts/Geist-Regular.ttf',
-        './assets/fonts/Geist-Medium.ttf',
-        './assets/fonts/Geist-SemiBold.ttf',
-        './assets/fonts/GeistMono-Regular.ttf',
-        './assets/fonts/GeistMono-Medium.ttf',
+        './assets/fonts/Archivo-Regular.ttf',
+        './assets/fonts/Archivo-Medium.ttf',
+        './assets/fonts/Archivo-SemiBold.ttf',
+        './assets/fonts/JetBrainsMono-Regular.ttf',
+        './assets/fonts/JetBrainsMono-Medium.ttf',
       ],
     },
   ],
@@ -473,8 +491,8 @@ plugins: [
 ```
 
 The family key RN resolves is the filename stem on Android and the font's
-PostScript name on iOS — Geist ships them identical, so keep the names in
-`src/ui/theme/typography.ts`, the filenames, and the PostScript names in
+PostScript name on iOS — the rename above makes them identical, so keep the names
+in `src/ui/theme/typography.ts`, the filenames, and the PostScript names in
 lockstep. If a face renders as the system font on one platform only, that's the
 mismatch.
 
@@ -490,19 +508,27 @@ bunx expo run:ios     # or: bunx expo run:android
 
 **7.2 Apply the intake design context.**
 
-1. If the intake described a **different** brand, replace the values in
-   `src/ui/theme/colors.ts` / `typography.ts` — but keep the *structure*: one
-   neutral scale, one accent, two tones (`colors` + `colorsLight`), the mono meta
-   layer, hairline depth. Never pure `#000` / `#fff` on a surface.
-2. If it did not, keep the house tokens as shipped and say so in the design notes.
-3. Refine the baseline primitives (`button.tsx`, `text.tsx`, `text-input.tsx`)
+1. If the intake named one of the four house signal temperatures (Jade,
+   Blueprint, Ion, Chalk), change `defaultSignal` in `src/ui/theme/colors.ts` and
+   stop. That is the whole theming surface — nothing else in the file moves.
+2. If the intake described a **different** brand, replace the values in
+   `src/ui/theme/colors.ts` / `typography.ts` — but keep the *structure*:
+   alternating bands (`colors` + `colorsLight`), one signal with four steps,
+   fixed status colours, the mono meta layer, hairline depth. The signal never
+   fills a button.
+3. If it did neither, keep the house tokens as shipped and say so in the design
+   notes.
+4. Refine the baseline primitives (`button.tsx`, `text.tsx`, `text-input.tsx`)
    only if the direction calls for it — keep them token-driven.
-   **Tone note:** the shipped primitives import `colors` (night) statically, so
-   they are single-tone as delivered. If the app needs the paper tone too, add a
-   `src/providers/theme-provider.tsx` that exposes `colors | colorsLight` through
-   context and switch the primitives to read it via a hook — do that *before*
-   building screens, not after.
-4. Record the direction in the `## Design notes` section of `CLAUDE.md` (audience,
+   **Band note:** the shipped primitives import `colors` (the dark band)
+   statically, so they are single-band as delivered. If the app alternates bands,
+   add a `src/providers/theme-provider.tsx` that exposes `colors | colorsLight`
+   through context and switch the primitives to read it via a hook — do that
+   *before* building screens, not after.
+5. Icons need a renderer: `bunx expo install react-native-svg`, then one
+   `src/ui/icon.tsx` wrapper over `theme/icons.ts` that owns the stroke width,
+   square caps and mitred joins so no mark can drift from the construction rules.
+6. Record the direction in the `## Design notes` section of `CLAUDE.md` (audience,
    tone, palette/type rationale, and any deviation from `DESIGN.md`) so future
    agents inherit the "why".
 

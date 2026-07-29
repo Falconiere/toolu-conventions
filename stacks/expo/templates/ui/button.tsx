@@ -2,10 +2,9 @@
 import { ActivityIndicator, Pressable, type PressableProps, StyleSheet, View } from 'react-native';
 import { Text } from '@/ui/text';
 import { colors, type ColorToken } from '@/ui/theme/colors';
-import { disabledOpacity, pressedOpacity } from '@/ui/theme/motion';
 import { borderWidth, layout, radii, spacing } from '@/ui/theme/spacing';
 
-type Variant = 'primary' | 'secondary' | 'destructive' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'destructive' | 'bracket';
 type Size = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
@@ -16,37 +15,44 @@ interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
   fullWidth?: boolean;
 }
 
+// Controls stay quiet, data does the talking: exactly ONE variant carries a fill,
+// and the signal never fills a button. `destructive` is a border and an ink, not
+// a red block. `bracket` is the quietest step — render its label as `[ Label ]`.
 const FILL: Record<Variant, string> = {
   primary: colors.primary,
-  secondary: colors.surfaceMuted,
+  secondary: 'transparent',
+  destructive: 'transparent',
+  bracket: 'transparent',
+};
+
+const BORDER: Record<Variant, string | undefined> = {
+  primary: undefined,
+  secondary: colors.borderStrong,
   destructive: colors.danger,
-  ghost: 'transparent',
+  bracket: undefined,
 };
 
-const PRESSED_FILL: Record<Variant, string> = {
-  primary: colors.primaryPressed,
-  secondary: colors.surface,
-  destructive: colors.dangerPressed,
-  ghost: colors.surfaceMuted,
-};
-
-// `secondary` sits between two adjacent neutrals, so its fill swap alone is a ~3%
-// delta — imperceptible. It gets an opacity dip on top; the other variants have a
-// real fill change already and would double-signal.
-const PRESS_DIMS: Record<Variant, boolean> = {
-  primary: false,
-  secondary: true,
-  destructive: false,
-  ghost: false,
-};
-
-// Drives both the label and the loading spinner — `onPrimary` is ink on the night
-// tone, so a hardcoded spinner color would vanish on ghost/secondary fills.
 const LABEL_COLOR: Record<Variant, ColorToken> = {
   primary: 'onPrimary',
   secondary: 'text',
-  destructive: 'onDanger',
-  ghost: 'text',
+  destructive: 'danger',
+  bracket: 'textMuted',
+};
+
+// Press is a colour move — never a shadow, never a scale. The filled variant dips
+// its fill; the outlined ones lift a border or tint the row behind them.
+const PRESSED_FILL: Record<Variant, string> = {
+  primary: colors.primaryPressed,
+  secondary: 'transparent',
+  destructive: colors.surfaceHover,
+  bracket: colors.surfaceHover,
+};
+
+const PRESSED_BORDER: Record<Variant, string | undefined> = {
+  primary: undefined,
+  secondary: colors.textSoft,
+  destructive: colors.danger,
+  bracket: undefined,
 };
 
 // `md` is the minimum touch target (44); sm/lg step off it by one spacing unit.
@@ -83,6 +89,10 @@ export function Button({
   ...rest
 }: ButtonProps) {
   const isDisabled = disabled === true || loading;
+  const border = BORDER[variant];
+  // Disabled is a real fill and a real ink, not a dimmed copy of the enabled
+  // state — a washed-out control reads as "still loading" on a dark band.
+  const labelColor: ColorToken = isDisabled ? 'disabledText' : LABEL_COLOR[variant];
 
   return (
     <Pressable
@@ -92,9 +102,10 @@ export function Button({
       hitSlop={hitSlopFor(size)}
       style={({ pressed }) => [
         styles.base,
-        { height: HEIGHT[size], backgroundColor: pressed ? PRESSED_FILL[variant] : FILL[variant] },
-        pressed && PRESS_DIMS[variant] && { opacity: pressedOpacity },
-        variant === 'ghost' && styles.ghostBorder,
+        { height: HEIGHT[size], backgroundColor: FILL[variant] },
+        border !== undefined && { borderWidth: borderWidth.hairline, borderColor: border },
+        pressed && { backgroundColor: PRESSED_FILL[variant] },
+        pressed && border !== undefined && { borderColor: PRESSED_BORDER[variant] },
         fullWidth && styles.fullWidth,
         isDisabled && styles.disabled,
       ]}
@@ -102,9 +113,9 @@ export function Button({
     >
       <View style={styles.content}>
         {loading ? (
-          <ActivityIndicator color={colors[LABEL_COLOR[variant]]} />
+          <ActivityIndicator color={colors[labelColor]} />
         ) : (
-          <Text variant="button" color={LABEL_COLOR[variant]}>
+          <Text variant="button" color={labelColor}>
             {label}
           </Text>
         )}
@@ -115,13 +126,13 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radii.md,
+    // 3pt — the button radius. Never a pill.
+    borderRadius: radii.xs,
     paddingHorizontal: spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  content: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  ghostBorder: { borderWidth: borderWidth.hairline, borderColor: colors.borderStrong },
+  content: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   fullWidth: { alignSelf: 'stretch' },
-  disabled: { opacity: disabledOpacity },
+  disabled: { backgroundColor: colors.disabledFill, borderColor: colors.disabledFill },
 });

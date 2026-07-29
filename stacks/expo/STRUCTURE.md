@@ -17,7 +17,7 @@ import points at the file that holds the thing), and thin route files.
 │   └── ...                   # Each route re-exports a feature screen
 ├── src/
 │   ├── ui/                   # Design system — primitives + theme. README.md
-│   │   ├── theme/            # colors.ts · spacing.ts · typography.ts · motion.ts (plain TS tokens)
+│   │   ├── theme/            # colors.ts · spacing.ts · typography.ts · motion.ts · icons.ts (plain TS tokens)
 │   │   ├── button.tsx        # Primitive: variants + sizes
 │   │   ├── text.tsx          # Primitive: typographic variants
 │   │   ├── text-input.tsx    # Primitive: labeled input + error state

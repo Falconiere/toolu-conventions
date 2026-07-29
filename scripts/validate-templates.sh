@@ -65,14 +65,16 @@ if [ -f "$plain" ] && [ -f "$twind" ]; then
   }
   for f in "$plain" "$twind"; do
     root_keys=$(tone_decls "$f" ':root')
-    light_keys=$(tone_decls "$f" '\.on-light')
+    light_keys=$(tone_decls "$f" '\.band-light')
     # Guard against the selector regex silently matching nothing — "" = "" passes.
     [ -n "$root_keys" ] || bad "no --tone-* declarations found in :root: $f"
-    [ "$root_keys" = "$light_keys" ] || bad "--tone-* keys differ between :root and .on-light: $f"
+    [ -n "$light_keys" ] || bad "no --tone-* declarations found in .band-light: $f"
+    [ "$root_keys" = "$light_keys" ] \
+      || bad "--tone-* keys differ between :root and .band-light: $f"
   done
   # The two stylesheets must ship identical tone blocks — they are one projection
   # rendered for two scaffold paths, not two independent palettes.
-  for sel in ':root' '\.on-light'; do
+  for sel in ':root' '\.band-light'; do
     diff <(sed -n "/^ *$sel {/,/^ *}\$/p" "$plain" | grep -o '^ *--tone-.*;' | tr -d ' ') \
          <(sed -n "/^ *$sel {/,/^ *}\$/p" "$twind" | grep -o '^ *--tone-.*;' | tr -d ' ') \
       >/dev/null || bad "globals.css and globals.tailwind.css disagree on $sel tone values"
@@ -92,7 +94,7 @@ if [ -f "$plain" ] && [ -f "$twind" ]; then
   ' > "$tonetmp/expected.txt" 2>/dev/null || bad "could not evaluate theme/colors.ts"
   if [ -s "$tonetmp/expected.txt" ]; then
     for f in "$plain" "$twind"; do
-      for sel in ':root@1' '\.on-light@2'; do
+      for sel in ':root@1' '\.band-light@2'; do
         selector=${sel%@*}; part=${sel#*@}
         got=$(sed -n "/^ *$selector {/,/^ *}\$/p" "$f" | grep -o '^ *--tone-.*;' | tr -d ' ' | sort -u)
         want=$(awk -v p="$part" 'BEGIN{n=1} /^@@$/{n=2;next} n==p' "$tonetmp/expected.txt")
@@ -106,10 +108,12 @@ fi
 # --- Strict type-check: dependency-free templates only (enumerated) ---
 depfree=(
   stacks/expo/templates/theme/colors.ts
+  stacks/expo/templates/theme/icons.ts
   stacks/expo/templates/theme/motion.ts
   stacks/expo/templates/theme/spacing.ts
   stacks/expo/templates/theme/typography.ts
   stacks/web/templates/theme/colors.ts
+  stacks/web/templates/theme/icons.ts
   stacks/web/templates/theme/motion.ts
   stacks/web/templates/theme/spacing.ts
   stacks/web/templates/theme/typography.ts

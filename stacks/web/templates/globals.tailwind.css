@@ -1,4 +1,4 @@
-/* Tone seam — "Spec Sheet" design language.
+/* Band seam — CodaSignal "Signal" design language.
  *
  * FOR TAILWIND SCAFFOLDS (create-next-app --tailwind). If you scaffolded without
  * Tailwind, use globals.css instead. Rationale for every value: the kit's
@@ -7,24 +7,24 @@
  * Copy to src/app/globals.css, replacing the generated file wholesale, and keep
  * it imported from src/app/layout.tsx. No reset here — Preflight covers it.
  *
- * The --tone-* values mirror src/ui/theme/colors.ts: `colors` (night) on :root,
- * `colorsLight` (paper) on .on-light. Keep the two in lockstep — the token file
- * is the source of truth and this is its CSS projection. A light section is
- * <section className="on-light">; nothing else changes.
+ * The --tone-* values mirror src/ui/theme/colors.ts: `colors` (dark band) on
+ * :root, `colorsLight` (light band) on .band-light. Keep the two in lockstep —
+ * the token file is the source of truth and this is its CSS projection. A light
+ * band is <section class="band band-light">; nothing else changes.
  *
  * TWO RULES WHEN WRITING COMPONENTS:
  *
  * 1. Never use the `dark:` variant. It compiles to
- *    @media (prefers-color-scheme: dark), which keys off the OS — but night is
- *    unconditional here and tone is class-driven, so `dark:` fires independently
- *    of the actual tone and inverts inside .on-light.
+ *    @media (prefers-color-scheme: dark), which keys off the OS — but the dark
+ *    band is unconditional here and the band is class-driven, so `dark:` fires
+ *    independently of the actual band and inverts inside .band-light.
  *
  * 2. Never reference a --color-* name directly — not in an arbitrary value
  *    (bg-[var(--color-…)]), not in the bg-(--color-…) shorthand, not in an
  *    inline style, not in hand-written CSS. Under @theme inline those names
  *    exist only as build-time utility names and emit no custom property;
  *    naming one makes Tailwind re-emit it frozen at the :root values, so it
- *    stops following the tone. Use the generated utility (bg-background,
+ *    stops following the band. Use the generated utility (bg-background,
  *    text-accent) — it compiles to var(--tone-*) and flips correctly. In
  *    hand-written CSS, read var(--tone-*) directly.
  *
@@ -35,97 +35,162 @@
 
 @import "tailwindcss";
 
-/* :root, .on-light and body are layered together on purpose. Tailwind puts
+/* :root, .band-light and body are layered together on purpose. Tailwind puts
  * utilities in @layer utilities, and an unlayered declaration beats any layered
  * one regardless of specificity — unlayered rules here would silently override
  * bg-* / text-* on the same element. All three go in together: leaving :root
- * outside would make it unbeatable by the layered .on-light, so a tone class on
- * <html> would never flip.
+ * outside would make it unbeatable by the layered .band-light, so a band class
+ * on <html> would never flip.
  *
- * :root and .on-light are the only places a --tone-* value is ever declared;
+ * :root and .band-light are the only places a --tone-* value is ever declared;
  * components read them, never redefine them.
  */
 @layer base {
   :root {
-    /* Night is unconditional, so tell the UA — otherwise scrollbars, <select>
-       popups, date pickers, and autofill render light over #1a1a1a. */
+    /* The dark band is the default, so tell the UA — otherwise scrollbars,
+       <select> popups, date pickers, and autofill render light over #0e0f0d. */
     color-scheme: dark;
 
-    --tone-background: #1a1a1a;
-    --tone-background-deep: #0f0f0f;
+    --tone-background: #0e0f0d;
     --tone-surface: #1f1f1f;
-    --tone-surface-muted: #262626;
+    --tone-surface-inset: #0e0f0d;
+    --tone-surface-hover: #131511;
 
-    --tone-text: #fafafa;
-    --tone-text-muted: #b7b7b7;
-    --tone-text-soft: #8a8a8a;
-    --tone-text-inverse: #1f1f1f;
+    --tone-text: #f2f2ef;
+    --tone-text-muted: #8a8d86;
+    --tone-text-soft: #6c6f68;
+    --tone-text-faint: #52554e;
+    --tone-text-inverse: #0e0f0d;
 
-    --tone-primary: #fafafa;
-    --tone-primary-hover: #e5e5e5;
-    --tone-on-primary: #1f1f1f;
+    --tone-primary: #f2f2ef;
+    --tone-primary-hover: #d0d1ce;
+    --tone-on-primary: #0e0f0d;
 
-    --tone-accent: #3a8f6f;
-    --tone-accent-soft: rgba(58, 143, 111, 0.16);
-    --tone-accent-line: rgba(58, 143, 111, 0.36);
-    --tone-accent-glow: rgba(58, 143, 111, 0.08);
+    --tone-accent: #43c98b;
+    --tone-accent-lift: #7be0b0;
+    --tone-accent-wash: #12241c;
 
-    --tone-danger: #f87171;
-    --tone-danger-hover: #fecaca;
-    --tone-on-danger: #1f1f1f;
-    --tone-success: #3a8f6f;
-    --tone-warning: #f59e0b;
+    --tone-success: #43c98b;
+    --tone-warning: #c99a3a;
+    --tone-danger: #c9553a;
+    --tone-on-danger: #0e0f0d;
+    --tone-idle: #52554e;
 
-    --tone-border: rgba(255, 255, 255, 0.08);
-    --tone-border-strong: rgba(255, 255, 255, 0.18);
-    --tone-focus-ring: rgba(58, 143, 111, 0.16);
-    --tone-grid: rgba(255, 255, 255, 0.035);
+    --tone-border: #23251f;
+    --tone-border-inner: #1e201c;
+    --tone-border-strong: #33362e;
+    --tone-grid: #191b17;
+    --tone-seam: #262922;
+    --tone-focus-ring: #12241c;
 
-    --tone-disabled-fill: #262626;
-    --tone-disabled-text: #737373;
+    --tone-disabled-fill: #1a1c18;
+    --tone-disabled-text: #3e4139;
   }
 
-  .on-light {
+  .band-light {
     color-scheme: light;
 
-    --tone-background: #e8e8e8;
-    --tone-background-deep: #e5e5e5;
-    --tone-surface: #fafafa;
-    --tone-surface-muted: #f4f4f4;
+    --tone-background: #f2f2ee;
+    --tone-surface: #ffffff;
+    --tone-surface-inset: #f2f2ee;
+    --tone-surface-hover: #f7f7f3;
 
-    --tone-text: #1f1f1f;
-    --tone-text-muted: #525252;
-    --tone-text-soft: #737373;
-    --tone-text-inverse: #fafafa;
+    --tone-text: #16170f;
+    --tone-text-muted: #55574f;
+    --tone-text-soft: #8c8e85;
+    --tone-text-faint: #b3b5ab;
+    --tone-text-inverse: #f2f2ee;
 
-    --tone-primary: #1f1f1f;
-    --tone-primary-hover: #262626;
-    --tone-on-primary: #fafafa;
+    --tone-primary: #16170f;
+    --tone-primary-hover: #2c2e24;
+    --tone-on-primary: #f2f2ee;
 
-    --tone-accent: #3a8f6f;
-    --tone-accent-soft: rgba(58, 143, 111, 0.16);
-    --tone-accent-line: rgba(58, 143, 111, 0.36);
-    --tone-accent-glow: rgba(58, 143, 111, 0.08);
+    --tone-accent: #2e9c6b;
+    --tone-accent-lift: #43c98b;
+    --tone-accent-wash: #e6f2eb;
 
-    --tone-danger: #b91c1c;
-    --tone-danger-hover: #7f1d1d;
-    --tone-on-danger: #fafafa;
-    --tone-success: #3a8f6f;
-    --tone-warning: #f59e0b;
+    --tone-success: #2e9c6b;
+    --tone-warning: #c99a3a;
+    --tone-danger: #c9553a;
+    --tone-on-danger: #f2f2ee;
+    --tone-idle: #b3b5ab;
 
-    --tone-border: #d4d4d4;
-    --tone-border-strong: #a3a3a3;
-    --tone-focus-ring: rgba(58, 143, 111, 0.16);
-    --tone-grid: rgba(0, 0, 0, 0.04);
+    --tone-border: #e3e3dc;
+    --tone-border-inner: #ecece5;
+    --tone-border-strong: #b3b5ab;
+    --tone-grid: #e6e6df;
+    --tone-seam: #dcdcd4;
+    --tone-focus-ring: #e6f2eb;
 
-    --tone-disabled-fill: #e5e5e5;
-    --tone-disabled-text: #a3a3a3;
+    --tone-disabled-fill: #f7f7f3;
+    --tone-disabled-text: #b3b5ab;
 
-    /* Re-apply, or the element keeps the night surface it inherited from body
-       and only its descendants' var() lookups flip — ink text on a night
+    /* Re-apply, or the element keeps the dark band it inherited from body and
+       only its descendants' var() lookups flip — ink text on a near-black
        background. Custom properties declared here are usable in this block. */
     background-color: var(--tone-background);
     color: var(--tone-text);
+  }
+
+  /* Signal temperature. A theme swaps the four signal steps and NOTHING else, so
+     these blocks may only ever touch the accent and success tones. Set the
+     attribute on <html> once per product: <html data-signal="blueprint">. Jade
+     is the default and is already in the blocks above.
+
+     Each light-band override lists BOTH the descendant and the same-element
+     form. `.band-light` may sit on <html> next to data-signal, and the
+     descendant selector alone would not match there — the dark-band block below
+     would win on source order and paint the dark-band signal onto paper (chalk
+     measures 1.0:1). */
+  [data-signal='blueprint'] {
+    --tone-accent: #45b4cc;
+    --tone-accent-lift: #7ed6e6;
+    --tone-accent-wash: #0f2229;
+    --tone-success: #45b4cc;
+    --tone-focus-ring: #0f2229;
+  }
+
+  [data-signal='blueprint'] .band-light,
+  [data-signal='blueprint'].band-light {
+    --tone-accent: #2c8aa0;
+    --tone-accent-lift: #45b4cc;
+    --tone-accent-wash: #e3eff3;
+    --tone-success: #2c8aa0;
+    --tone-focus-ring: #e3eff3;
+  }
+
+  [data-signal='ion'] {
+    --tone-accent: #9a8cf0;
+    --tone-accent-lift: #c0b6ff;
+    --tone-accent-wash: #17142b;
+    --tone-success: #9a8cf0;
+    --tone-focus-ring: #17142b;
+  }
+
+  [data-signal='ion'] .band-light,
+  [data-signal='ion'].band-light {
+    --tone-accent: #6c5dd0;
+    --tone-accent-lift: #9a8cf0;
+    --tone-accent-wash: #ebe8fa;
+    --tone-success: #6c5dd0;
+    --tone-focus-ring: #ebe8fa;
+  }
+
+  [data-signal='chalk'] {
+    --tone-accent: #f2f2ef;
+    --tone-accent-lift: #ffffff;
+    --tone-accent-wash: #1f211c;
+    --tone-success: #f2f2ef;
+    --tone-focus-ring: #1f211c;
+  }
+
+  [data-signal='chalk'] .band-light,
+  [data-signal='chalk'].band-light {
+    --tone-accent: #16170f;
+    --tone-accent-lift: #f2f2ef;
+    --tone-accent-wash: #e6e6df;
+    --tone-success: #16170f;
+    --tone-focus-ring: #e6e6df;
   }
 
   body {
@@ -133,22 +198,67 @@
     color: var(--tone-text);
     font-family: var(--font-sans); /* set by next/font in layout.tsx */
   }
+
+  ::selection {
+    background-color: var(--tone-accent);
+    color: var(--tone-on-primary);
+  }
+
+  /* The ruled backdrop. Quarter-width vertical rules run through every band; the
+     crosshairs that mark the seams are separate elements (see DESIGN.md). Rules
+     halve at phone width so they still read. */
+  .band {
+    background-color: var(--tone-background);
+    background-image: linear-gradient(90deg, var(--tone-grid) 0 1px, transparent 1px 100%);
+    background-size: 25% 100%;
+    background-position: 48px 0;
+  }
+
+  @media (max-width: 599px) {
+    .band {
+      background-size: 50% 100%;
+      background-position: 24px 0;
+    }
+  }
+
+  /* Live dots and the terminal cursor. A hard on/off, never a fade. */
+  @keyframes signal-blink {
+    0%,
+    60% {
+      opacity: 1;
+    }
+    61%,
+    100% {
+      opacity: 0.2;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 /* Aliases the utility namespace onto the tone variables so bg-background /
- * text-accent follow the active tone. `inline` is required: plain @theme would
+ * text-accent follow the active band. `inline` is required: plain @theme would
  * freeze the utilities at the :root values and they would not flip inside
- * .on-light. Forward only — never restate a hex here.
+ * .band-light. Forward only — never restate a hex here.
  */
 @theme inline {
   --color-background: var(--tone-background);
-  --color-background-deep: var(--tone-background-deep);
   --color-surface: var(--tone-surface);
-  --color-surface-muted: var(--tone-surface-muted);
+  --color-surface-inset: var(--tone-surface-inset);
+  --color-surface-hover: var(--tone-surface-hover);
 
   --color-text: var(--tone-text);
   --color-text-muted: var(--tone-text-muted);
   --color-text-soft: var(--tone-text-soft);
+  --color-text-faint: var(--tone-text-faint);
   --color-text-inverse: var(--tone-text-inverse);
 
   --color-primary: var(--tone-primary);
@@ -156,20 +266,21 @@
   --color-on-primary: var(--tone-on-primary);
 
   --color-accent: var(--tone-accent);
-  --color-accent-soft: var(--tone-accent-soft);
-  --color-accent-line: var(--tone-accent-line);
-  --color-accent-glow: var(--tone-accent-glow);
+  --color-accent-lift: var(--tone-accent-lift);
+  --color-accent-wash: var(--tone-accent-wash);
 
-  --color-danger: var(--tone-danger);
-  --color-danger-hover: var(--tone-danger-hover);
-  --color-on-danger: var(--tone-on-danger);
   --color-success: var(--tone-success);
   --color-warning: var(--tone-warning);
+  --color-danger: var(--tone-danger);
+  --color-on-danger: var(--tone-on-danger);
+  --color-idle: var(--tone-idle);
 
   --color-border: var(--tone-border);
+  --color-border-inner: var(--tone-border-inner);
   --color-border-strong: var(--tone-border-strong);
-  --color-focus-ring: var(--tone-focus-ring);
   --color-grid: var(--tone-grid);
+  --color-seam: var(--tone-seam);
+  --color-focus-ring: var(--tone-focus-ring);
 
   --color-disabled-fill: var(--tone-disabled-fill);
   --color-disabled-text: var(--tone-disabled-text);
