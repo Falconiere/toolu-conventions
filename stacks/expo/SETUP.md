@@ -13,8 +13,9 @@ library set in [`LIBRARIES.md`](./LIBRARIES.md) · the house rules in
 [`../../CORE.md`](../../CORE.md). The app is **backend-agnostic** by default —
 only wire API/auth/storage if the intake says to.
 
-Read [`STRUCTURE.md`](./STRUCTURE.md), [`LIBRARIES.md`](./LIBRARIES.md), and
-[`../../CORE.md`](../../CORE.md) before you start.
+Read [`STRUCTURE.md`](./STRUCTURE.md), [`LIBRARIES.md`](./LIBRARIES.md),
+[`../../CORE.md`](../../CORE.md), and [`../../DESIGN.md`](../../DESIGN.md) before
+you start — the theme tokens copied in Phase 3 already implement DESIGN.md.
 
 ---
 
@@ -269,24 +270,34 @@ Then:
 1. Copy the theme tokens:
    `templates/theme/colors.ts` → `src/ui/theme/colors.ts`,
    `templates/theme/spacing.ts` → `src/ui/theme/spacing.ts`,
-   `templates/theme/typography.ts` → `src/ui/theme/typography.ts`.
-2. Copy the primitives:
+   `templates/theme/typography.ts` → `src/ui/theme/typography.ts`,
+   `templates/theme/motion.ts` → `src/ui/theme/motion.ts`,
+   `templates/theme/icons.ts` → `src/ui/theme/icons.ts`.
+   They ship pre-filled with the house design language
+   ([`../../DESIGN.md`](../../DESIGN.md)) — real values, not placeholders. Phase 7
+   only changes them if the intake asked for a different brand.
+2. Copy [`../../DESIGN.md`](../../DESIGN.md) → `docs/design-language.md`
+   (`mkdir -p docs` first) **verbatim**. The kit is not on disk once this project
+   is scaffolded, so without this copy the design rules — which the token files
+   only carry values for — never reach the agents who build here. `CLAUDE.md`
+   points at it for UI work; keep it out of the always-loaded context.
+3. Copy the primitives:
    `templates/ui/button.tsx` → `src/ui/button.tsx`,
    `templates/ui/text.tsx` → `src/ui/text.tsx`,
    `templates/ui/text-input.tsx` → `src/ui/text-input.tsx`,
    `templates/ui/__tests__/button.test.tsx` → `src/ui/__tests__/button.test.tsx`.
-3. Wire the starter home screen + its route (replaces the Phase 1 placeholder):
+4. Wire the starter home screen + its route (replaces the Phase 1 placeholder):
    `templates/features/home/screens/home-screen.tsx` →
    `src/features/home/screens/home-screen.tsx`, and
    `templates/app/index.tsx` → `app/index.tsx` (**overwrite** the placeholder).
    The route is thin — it just re-exports `HomeScreen`.
-4. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
+5. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
    `src/utilities`, `src/providers`, `src/constants`, `src/types`, and `assets`,
    generated from `templates/folder-README.md` (fill in the folder's purpose + a
    short "what's inside" list — seed it now, keep it updated as you add files).
    Every top-level `src/` directory carries one — `scripts/check-structure.sh`
    enforces it.
-5. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` (drop the `.template`
+6. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` (drop the `.template`
    suffix). Fill in the project name + one-line description. This is the rulebook
    + repo map agents read first.
 
@@ -343,6 +354,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
+import { colors } from '@/ui/theme/colors';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 2 } },
@@ -353,7 +365,10 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <Stack />
+          {/* The theme tokens are dark-band-first, so set the surface here —
+              React Navigation's default card is white and the primitives' paper
+              ink would be invisible on it. */}
+          <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background } }} />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -415,17 +430,112 @@ Validate locally with `eas workflow:validate` (or commit and let EAS lint them).
 
 ---
 
-## Phase 7 — Design pass (apply the intake design context)
+## Phase 7 — Design pass (wire the fonts, then apply the intake context)
 
-Translate the Phase 0.1 design context into the theme and record it:
+Read [`../../DESIGN.md`](../../DESIGN.md) — the house design language. The theme
+tokens copied in Phase 3 already implement it, so the app starts on-language.
 
-1. Fill real values in `src/ui/theme/colors.ts` and `src/ui/theme/typography.ts`
-   from the described palette/tone (keep the token names; replace the placeholder
-   values). Avoid pure `#000` / `#fff` — tint neutrals toward the brand hue.
-2. Refine the baseline primitives (`button.tsx`, `text.tsx`, `text-input.tsx`)
+**7.1 Load the fonts (always — the tokens name them).** The type scale references
+`Archivo-*` / `JetBrainsMono-*` family keys; until the files ship, RN silently
+falls back to the system face.
+
+```bash
+bunx expo install expo-font
+```
+
+Vendor the **static** Archivo + JetBrains Mono `.ttf` files (SIL Open Font
+License). They must be static: a variable `Archivo[wdth,wght].ttf` exposes a
+single family key, so the `Archivo-Medium` / `Archivo-SemiBold` keys in
+`typography.ts` would resolve to nothing.
+
+The `@expo-google-fonts/*` packages ship the static faces, but under
+weight-suffixed filenames (`Archivo_400Regular.ttf`) whose PostScript name is
+still `Archivo-Regular` — that filename/PostScript split is exactly the
+render-on-one-platform-only bug flagged below. **Rename on copy** so both sides
+agree:
+
+```bash
+bun add -d @expo-google-fonts/archivo @expo-google-fonts/jetbrains-mono
+mkdir -p assets/fonts
+find node_modules/@expo-google-fonts/archivo -name 'Archivo_400Regular.ttf' \
+  -exec cp {} assets/fonts/Archivo-Regular.ttf \;
+find node_modules/@expo-google-fonts/archivo -name 'Archivo_500Medium.ttf' \
+  -exec cp {} assets/fonts/Archivo-Medium.ttf \;
+find node_modules/@expo-google-fonts/archivo -name 'Archivo_600SemiBold.ttf' \
+  -exec cp {} assets/fonts/Archivo-SemiBold.ttf \;
+find node_modules/@expo-google-fonts/jetbrains-mono -name 'JetBrainsMono_400Regular.ttf' \
+  -exec cp {} assets/fonts/JetBrainsMono-Regular.ttf \;
+find node_modules/@expo-google-fonts/jetbrains-mono -name 'JetBrainsMono_500Medium.ttf' \
+  -exec cp {} assets/fonts/JetBrainsMono-Medium.ttf \;
+```
+
+Confirm five files landed in `assets/fonts/` before continuing — `find` prints
+nothing when a package reorganises its layout, and a silently-empty copy ships an
+app on the system font.
+
+Then register them in `app.config.ts` via the `expo-font` config plugin so they
+are embedded at build time. **Extend the existing `plugins` array — do not
+replace it**; dropping `'expo-router'` breaks every route:
+
+```ts
+plugins: [
+  'expo-router', // keep — the router plugin already in app.config.ts
+  [
+    'expo-font',
+    {
+      fonts: [
+        './assets/fonts/Archivo-Regular.ttf',
+        './assets/fonts/Archivo-Medium.ttf',
+        './assets/fonts/Archivo-SemiBold.ttf',
+        './assets/fonts/JetBrainsMono-Regular.ttf',
+        './assets/fonts/JetBrainsMono-Medium.ttf',
+      ],
+    },
+  ],
+],
+```
+
+The family key RN resolves is the filename stem on Android and the font's
+PostScript name on iOS — the rename above makes them identical, so keep the names
+in `src/ui/theme/typography.ts`, the filenames, and the PostScript names in
+lockstep. If a face renders as the system font on one platform only, that's the
+mismatch.
+
+**The config plugin embeds fonts at native build time — Expo Go will never show
+them.** After editing `app.config.ts`, regenerate the native projects and run a
+dev build; otherwise every face silently stays the system fallback and Phase 10
+goes green on a design that was never applied:
+
+```bash
+bunx expo prebuild --clean
+bunx expo run:ios     # or: bunx expo run:android
+```
+
+**7.2 Apply the intake design context.**
+
+1. If the intake named one of the four house signal temperatures (Jade,
+   Blueprint, Ion, Chalk), change `defaultSignal` in `src/ui/theme/colors.ts` and
+   stop. That is the whole theming surface — nothing else in the file moves.
+2. If the intake described a **different** brand, replace the values in
+   `src/ui/theme/colors.ts` / `typography.ts` — but keep the *structure*:
+   alternating bands (`colors` + `colorsLight`), one signal with four steps,
+   fixed status colours, the mono meta layer, hairline depth. The signal never
+   fills a button.
+3. If it did neither, keep the house tokens as shipped and say so in the design
+   notes.
+4. Refine the baseline primitives (`button.tsx`, `text.tsx`, `text-input.tsx`)
    only if the direction calls for it — keep them token-driven.
-3. Record the direction in the `## Design notes` section of `CLAUDE.md` (audience,
-   tone, palette/type rationale) so future agents inherit the "why".
+   **Band note:** the shipped primitives import `colors` (the dark band)
+   statically, so they are single-band as delivered. If the app alternates bands,
+   add a `src/providers/theme-provider.tsx` that exposes `colors | colorsLight`
+   through context and switch the primitives to read it via a hook — do that
+   *before* building screens, not after.
+5. Icons need a renderer: `bunx expo install react-native-svg`, then one
+   `src/ui/icon.tsx` wrapper over `theme/icons.ts` that owns the stroke width,
+   square caps and mitred joins so no mark can drift from the construction rules.
+6. Record the direction in the `## Design notes` section of `CLAUDE.md` (audience,
+   tone, palette/type rationale, and any deviation from `DESIGN.md`) so future
+   agents inherit the "why".
 
 > Optional: if the `/impeccable` or `/design` skill is installed, use it to
 > generate a fuller design spec (`docs/design.md`) and refine the tokens — it's a
@@ -479,6 +589,10 @@ bun run fmt          # auto-format so fmt:check is clean
 bun run check        # tsc --noEmit + oxlint --deny-warnings + oxfmt --check + jest
 bunx expo start      # app boots in Expo Go / dev client
 ```
+
+If Phase 7.1 registered the fonts, verify in a **dev build** (`bunx expo run:ios`
+/ `run:android`), not Expo Go — the config plugin only embeds faces during a
+native build, so Expo Go renders the system fallback and tells you nothing.
 
 `bun run check` must exit 0 — the sample `button.test.tsx` must pass. Report the
 results honestly; do not mark setup complete with any part of `bun run check`

@@ -20,7 +20,7 @@ bun run android      # build + run on Android (dev client)
 | Path | What |
 | --- | --- |
 | `app/` | Expo Router routes (thin — each re-exports a feature screen). |
-| `src/ui/` | Design-system primitives (`button`, `text`, `text-input`) + `theme/` tokens. |
+| `src/ui/` | Design-system primitives (`button`, `text`, `text-input`) + `theme/` tokens (colors, spacing, typography, motion, icons). |
 | `src/features/` | Feature modules — one folder each (`screens/`, `components/`, `hooks/`, …). |
 | `src/api/` | Data layer: `clients/` (requests) + `queries/` (React Query hooks). |
 | `src/utilities/` | Shared pure helpers. |
@@ -28,6 +28,7 @@ bun run android      # build + run on Android (dev client)
 | `src/constants/` | `env.ts` (hand-validated env) + enums. |
 | `src/types/` | Cross-cutting types. |
 | `assets/` | Images, icons, fonts. |
+| `docs/` | `design-language.md` — the house UI rules. Read before any UI work. |
 | `.github/workflows/` | GitHub Actions — CI gate (type-check, lint, format, test). |
 | `.eas/workflows/` | EAS Workflows — builds, OTA updates, store submissions. |
 

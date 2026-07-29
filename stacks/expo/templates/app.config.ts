@@ -6,7 +6,8 @@ import type { ExpoConfig } from 'expo/config';
 // `test` variant (development / preview / staging builds) gets a distinct bundle
 // id + display name so it can sit on a device next to the production app.
 // EAS sets APP_VARIANT in the profile's `env`; default to prod when unset.
-const VARIANT = process.env.APP_VARIANT ?? (process.env.EAS_BUILD_PROFILE === 'production' ? 'prod' : 'test');
+const VARIANT =
+  process.env.APP_VARIANT ?? (process.env.EAS_BUILD_PROFILE === 'production' ? 'prod' : 'test');
 const IS_PROD = VARIANT === 'prod';
 
 // ── Identity (fill these in) ─────────────────────────────────────────────────

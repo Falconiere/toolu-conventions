@@ -20,13 +20,14 @@ bun run start        # serve the production build
 | Path | What |
 | --- | --- |
 | `src/app/` | App Router routes (thin — each re-exports a feature screen). |
-| `src/ui/` | Design-system primitives + `theme/` tokens (colors, spacing, typography). |
+| `src/ui/` | Design-system primitives + `theme/` tokens (colors, spacing, typography, motion, icons). |
 | `src/features/` | Feature modules — one folder each (`screens/`, `components/`, `hooks/`, …). |
 | `src/api/` | Data layer: `clients/` (requests) + `queries/` (React Query hooks). |
 | `src/utilities/` | Shared pure helpers. |
 | `src/providers/` | App-level context providers (client components, mounted in `src/app/layout.tsx`). |
 | `src/constants/` | `env.ts` (hand-validated env) + enums. |
 | `src/types/` | Cross-cutting types. |
+| `docs/` | `design-language.md` — the house UI rules. Read before any UI work. |
 | `.github/workflows/` | GitHub Actions — CI gate (type-check, lint, format, test). |
 
 Every `src/*` folder has a `README.md` describing its contents.

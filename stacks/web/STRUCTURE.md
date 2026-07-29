@@ -18,7 +18,7 @@ and thin route files.
 │   │   ├── (marketing)/      # Route group → shared layout, no URL segment
 │   │   └── api/              # Route handlers (route.ts) — server only
 │   ├── ui/                   # Design system — primitives + theme. README.md
-│   │   └── theme/            # colors.ts · spacing.ts · typography.ts (plain TS tokens)
+│   │   └── theme/            # colors.ts · spacing.ts · typography.ts · motion.ts · icons.ts (plain TS tokens)
 │   ├── features/             # One folder per feature. README.md
 │   │   └── <feature>/
 │   │       ├── screens/      # <name>-screen.tsx (rendered by src/app/ routes)
@@ -35,6 +35,7 @@ and thin route files.
 │   ├── constants/            # env.ts (hand-validated), enums
 │   └── types/                # cross-cutting TS types
 ├── public/                   # static assets served at the site root
+├── docs/                     # design-language.md — house UI rules, read before UI work
 ├── scripts/                  # check-structure.sh — folder-tree half of the gate
 ├── next.config.ts            # Next.js config
 ├── tsconfig.json             # strict + `@/*` path alias

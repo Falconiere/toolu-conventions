@@ -13,9 +13,11 @@ the folder structure and conventions in [`STRUCTURE.md`](./STRUCTURE.md) · the
 lean library set in [`LIBRARIES.md`](./LIBRARIES.md). The app is
 **backend-agnostic** by default — only wire API/auth/DB if Phase 0 says to.
 
-Read [`../../CORE.md`](../../CORE.md), then [`STRUCTURE.md`](./STRUCTURE.md) and
-[`LIBRARIES.md`](./LIBRARIES.md) before you start. Every CORE rule binds this
-project; STRUCTURE and LIBRARIES define the layout and the allowed dependencies.
+Read [`../../CORE.md`](../../CORE.md), then [`STRUCTURE.md`](./STRUCTURE.md),
+[`LIBRARIES.md`](./LIBRARIES.md), and [`../../DESIGN.md`](../../DESIGN.md) before
+you start. Every CORE rule binds this project; STRUCTURE and LIBRARIES define the
+layout and the allowed dependencies; DESIGN.md is the language the theme tokens
+copied in Phase 3 already implement.
 
 **A note on vibe:** keep it light and a little silly with the user as you go — a
 fun aside, a cheeky sign-off, the occasional joke. Never at the expense of the
@@ -182,18 +184,28 @@ mkdir -p src/ui/theme src/features src/api/clients src/api/queries \
 
 Then:
 
-1. Copy `templates/theme/{colors,spacing,typography}.ts` → `src/ui/theme/`.
-2. Copy `templates/env.ts` → `src/constants/env.ts`. It validates `NEXT_PUBLIC_*`
+1. Copy `templates/theme/{colors,spacing,typography,motion,icons}.ts` →
+   `src/ui/theme/`. They ship pre-filled with the house design language
+   ([`../../DESIGN.md`](../../DESIGN.md)) — real values, not placeholders. Phase 7
+   only changes them if the intake asked for a different brand.
+2. Copy [`../../DESIGN.md`](../../DESIGN.md) → `docs/design-language.md`
+   (`mkdir -p docs` first) **verbatim**. The kit is not on disk once this project
+   is scaffolded, so without this copy the design rules — which the token files
+   only carry values for — never reach the agents who build here. `CLAUDE.md`
+   points at it for UI work; keep it out of the always-loaded context.
+3. Copy `templates/env.ts` → `src/constants/env.ts`. It validates `NEXT_PUBLIC_*`
    vars by hand (no schema library). **Keep the static member-access pattern** —
    Next.js only inlines `process.env.NEXT_PUBLIC_X` at direct access sites, so a
    loop/dynamic access collapses every var to `undefined` in the production
    bundle. Add a new public var by reading it via its full static path and
    validating it inline.
-3. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
-   `src/utilities`, and `src/providers`, generated from
-   `templates/folder-README.md` (fill in the folder's purpose + a short "what's
-   inside" list — seed it now, keep it updated as you add files).
-4. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the app name +
+4. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
+   `src/utilities`, `src/providers`, `src/constants`, and `src/types`, generated
+   from `templates/folder-README.md` (fill in the folder's purpose + a short
+   "what's inside" list — seed it now, keep it updated as you add files). Every
+   top-level `src/` directory except `src/app` carries one —
+   `scripts/check-structure.sh` fails the gate without it.
+5. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the app name +
    specifics. This is the rulebook + repo map agents read first.
 
 **Conventions reminder while you build:** no barrel files, kebab-case filenames
@@ -241,6 +253,7 @@ Then make `src/app/layout.tsx` the Server Component root that owns `<html>` /
 ```tsx
 import type { ReactNode } from 'react';
 import { AppProviders } from '@/providers/app-providers';
+import './globals.css';
 
 export const metadata = { title: '{{APP_NAME}}' };
 
@@ -254,6 +267,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   );
 }
 ```
+
+Keep `src/app/globals.css` imported here — it is the one global stylesheet, and
+Phase 7.3 replaces its contents with the tone-seam template. Delete
+`src/app/page.module.css` and any other generated demo styles.
 
 Replace the `create-next-app` demo `src/app/page.tsx` with a thin route that
 re-exports a feature screen. Create `src/features/home/screens/home-screen.tsx`
@@ -309,22 +326,104 @@ a default.
 
 ## Phase 7 — Design pass
 
-If Phase 0 supplied design context, apply it now:
+Read [`../../DESIGN.md`](../../DESIGN.md) — the house design language. The theme
+tokens copied in Phase 3 already implement it, so the app starts on-language.
 
-1. Fill real values into `src/ui/theme/{colors,spacing,typography}.ts` from the
-   palette / tone direction (replace the placeholders). Avoid generic
-   cyan-on-dark and glassmorphism-everywhere; build real visual hierarchy.
-2. Record the design direction (audience, jobs, tone, palette) in the
-   `## Design notes` section of `CLAUDE.md` so future agents inherit it.
-3. If the design called for **Tailwind** and you scaffolded with it, keep the
-   token values as the single source of truth (map them into the Tailwind theme
-   rather than duplicating hex literals).
-4. Build the `src/ui/*` primitives the screens need, composed from the tokens.
+**7.1 Bind the fonts (always — the tokens name them).** The type scale reads
+`--font-sans` / `--font-mono`. Phase 5 replaced `layout.tsx` wholesale, so add the
+font imports to it now — `Archivo` and `JetBrains_Mono` are both exported by
+`next/font/google` and are variable fonts, so no `weight` is needed. `data-signal`
+picks the signal temperature for the whole product; omit it for Jade:
 
-If no design context was given, leave the placeholder tokens and note in
-`CLAUDE.md` that the design pass is pending.
+```tsx
+import type { ReactNode } from 'react';
+import { Archivo, JetBrains_Mono } from 'next/font/google';
+import { AppProviders } from '@/providers/app-providers';
+import './globals.css';
 
----
+const sans = Archivo({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
+const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' });
+
+export const metadata = { title: '{{APP_NAME}}' };
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+      <body>
+        <AppProviders>{children}</AppProviders>
+      </body>
+    </html>
+  );
+}
+```
+
+Use the variable names `--font-sans` / `--font-mono` exactly — those are what
+`theme/typography.ts` reads. If a generated file still declares
+`--font-geist-sans` / `--font-geist-mono`, delete it so there is one set of font
+variables. `next/font` self-hosts the files — no Google Fonts request at runtime.
+
+**7.2 Apply the intake design context.**
+
+1. If Phase 0 named one of the four house signal temperatures (Jade, Blueprint,
+   Ion, Chalk), set `data-signal` on `<html>` **and** change `defaultSignal` in
+   `src/ui/theme/colors.ts` to the same name. That pair is the whole theming
+   surface — nothing else in either file moves. Setting only `data-signal` leaves
+   `colors.accent` in TS on Jade while the page renders the other temperature.
+2. If Phase 0 described a **different** brand, replace the values in
+   `src/ui/theme/{colors,typography}.ts` — but keep the *structure*: alternating
+   bands (`colors` + `colorsLight`), one signal with four steps, fixed status
+   colours, the mono meta layer, hairline depth. The signal never fills a button;
+   no gradients, no glassmorphism, no generic cyan-on-dark.
+3. If it did neither, keep the house tokens as shipped and say so in the design
+   notes.
+4. Record the direction (audience, jobs, tone, palette, and any deviation from
+   `DESIGN.md`) in the `## Design notes` section of `CLAUDE.md` so future agents
+   inherit the "why".
+5. If the design called for **Tailwind** and you scaffolded with it, the token
+   files stay the single source of truth — never duplicate hex literals into
+   Tailwind config. 7.3 below is the one place the mapping happens.
+
+Do **not** build UI primitives yet — 7.3 introduces the seam they have to read.
+Building them here against `colors` / `colorsLight` directly produces exactly the
+single-band components 7.3 exists to prevent.
+
+**7.3 Wire the band seam in `src/app/globals.css`.** The page alternates dark and
+light bands, so a primitive that imports one color map directly can only ever
+render one band. The seam is a set of `--tone-*` custom properties: `:root`
+carries `colors` (the dark band, the default), a `.band-light` class overrides
+them with `colorsLight`, and everything downstream reads the variables. A light
+band is then `<section className="band band-light">` — `band` paints the ruled
+backdrop, `band-light` flips the tokens.
+
+That stylesheet ships as a template — copy the one matching your scaffold path,
+**replacing the generated `src/app/globals.css` wholesale** (its
+`--background: #ffffff` and `font-family: Arial, Helvetica, sans-serif` both
+violate the language, and the two `create-next-app` templates ship different
+generated blocks that drift between releases):
+
+| Scaffolded with | Copy |
+| --- | --- |
+| `--no-tailwind` (the Phase 1 default) | `templates/globals.css` |
+| `--tailwind` | `templates/globals.tailwind.css` |
+
+They are not interchangeable. The Tailwind file keeps `@import "tailwindcss";`,
+drops the reset (Preflight covers it), wraps its rules in `@layer base`, and adds
+a forward-only `@theme inline` alias block; the plain file does none of that and
+carries its own reset. Copying the wrong one silently breaks either every utility
+class or every UA default.
+
+Both files carry the full token set inline and document the rules that come with
+the seam — read the header comment of the one you copy before writing components
+against it. Keep the values in lockstep with `src/ui/theme/colors.ts`: the token
+file is the source of truth, the stylesheet is its CSS projection.
+
+**7.4 Build the `src/ui/*` primitives** the screens need, composed from the
+tokens and reading the `--tone-*` variables (never importing `colors` or
+`colorsLight` directly — that pins a component to one band). Include the
+patterns the language leans on — section marker, fact rail, index row, status
+dot, stat band — where the screens use them, plus one `<Icon>` wrapper over
+`theme/icons.ts` that owns the stroke width, square caps and mitred joins so no
+mark can drift from the construction rules.
 
 ## Phase 8 — CI
 

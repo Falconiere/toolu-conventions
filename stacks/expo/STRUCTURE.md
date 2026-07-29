@@ -17,7 +17,7 @@ import points at the file that holds the thing), and thin route files.
 │   └── ...                   # Each route re-exports a feature screen
 ├── src/
 │   ├── ui/                   # Design system — primitives + theme. README.md
-│   │   ├── theme/            # colors.ts · spacing.ts · typography.ts (plain TS tokens)
+│   │   ├── theme/            # colors.ts · spacing.ts · typography.ts · motion.ts · icons.ts (plain TS tokens)
 │   │   ├── button.tsx        # Primitive: variants + sizes
 │   │   ├── text.tsx          # Primitive: typographic variants
 │   │   ├── text-input.tsx    # Primitive: labeled input + error state
@@ -38,6 +38,7 @@ import points at the file that holds the thing), and thin route files.
 │   ├── constants/            # env.ts (hand-validated), enums
 │   └── types/                # cross-cutting TS types
 ├── assets/                   # images, icons, fonts, animations. README.md
+├── docs/                     # design-language.md — house UI rules, read before UI work
 ├── app.config.ts             # variant-aware Expo config (DEV/STAGING/PROD)
 ├── eas.json                  # EAS build/submit profiles
 ├── .eas/workflows/           # EAS Workflows — builds, OTA updates, store submits

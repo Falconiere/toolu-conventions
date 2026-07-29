@@ -27,7 +27,11 @@ const RAW_ENV: string | undefined = process.env.NEXT_PUBLIC_ENV;
 const RAW_API_URL: string | undefined = process.env.NEXT_PUBLIC_API_URL;
 const IS_PROD_BUILD = process.env.NODE_ENV === 'production';
 
-export const APP_ENV: AppEnv = isAppEnv(RAW_ENV) ? RAW_ENV : IS_PROD_BUILD ? 'production' : 'development';
+export const APP_ENV: AppEnv = isAppEnv(RAW_ENV)
+  ? RAW_ENV
+  : IS_PROD_BUILD
+    ? 'production'
+    : 'development';
 export const IS_PROD: boolean = APP_ENV === 'production';
 export const BASE_API_URL: string = requireHttpUrl(
   RAW_API_URL !== undefined && RAW_API_URL.length > 0 ? RAW_API_URL : 'http://localhost:3000',
