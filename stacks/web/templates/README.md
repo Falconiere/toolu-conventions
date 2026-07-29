@@ -27,6 +27,7 @@ bun run start        # serve the production build
 | `src/providers/` | App-level context providers (client components, mounted in `src/app/layout.tsx`). |
 | `src/constants/` | `env.ts` (hand-validated env) + enums. |
 | `src/types/` | Cross-cutting types. |
+| `docs/` | `design-language.md` — the house UI rules. Read before any UI work. |
 | `.github/workflows/` | GitHub Actions — CI gate (type-check, lint, format, test). |
 
 Every `src/*` folder has a `README.md` describing its contents.

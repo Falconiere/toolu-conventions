@@ -35,6 +35,7 @@ and thin route files.
 │   ├── constants/            # env.ts (hand-validated), enums
 │   └── types/                # cross-cutting TS types
 ├── public/                   # static assets served at the site root
+├── docs/                     # design-language.md — house UI rules, read before UI work
 ├── scripts/                  # check-structure.sh — folder-tree half of the gate
 ├── next.config.ts            # Next.js config
 ├── tsconfig.json             # strict + `@/*` path alias

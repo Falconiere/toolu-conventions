@@ -38,6 +38,7 @@ import points at the file that holds the thing), and thin route files.
 │   ├── constants/            # env.ts (hand-validated), enums
 │   └── types/                # cross-cutting TS types
 ├── assets/                   # images, icons, fonts, animations. README.md
+├── docs/                     # design-language.md — house UI rules, read before UI work
 ├── app.config.ts             # variant-aware Expo config (DEV/STAGING/PROD)
 ├── eas.json                  # EAS build/submit profiles
 ├── .eas/workflows/           # EAS Workflows — builds, OTA updates, store submits

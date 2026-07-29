@@ -276,23 +276,28 @@ Then:
    They ship pre-filled with the house design language
    ([`../../DESIGN.md`](../../DESIGN.md)) — real values, not placeholders. Phase 7
    only changes them if the intake asked for a different brand.
-2. Copy the primitives:
+2. Copy [`../../DESIGN.md`](../../DESIGN.md) → `docs/design-language.md`
+   (`mkdir -p docs` first) **verbatim**. The kit is not on disk once this project
+   is scaffolded, so without this copy the design rules — which the token files
+   only carry values for — never reach the agents who build here. `CLAUDE.md`
+   points at it for UI work; keep it out of the always-loaded context.
+3. Copy the primitives:
    `templates/ui/button.tsx` → `src/ui/button.tsx`,
    `templates/ui/text.tsx` → `src/ui/text.tsx`,
    `templates/ui/text-input.tsx` → `src/ui/text-input.tsx`,
    `templates/ui/__tests__/button.test.tsx` → `src/ui/__tests__/button.test.tsx`.
-3. Wire the starter home screen + its route (replaces the Phase 1 placeholder):
+4. Wire the starter home screen + its route (replaces the Phase 1 placeholder):
    `templates/features/home/screens/home-screen.tsx` →
    `src/features/home/screens/home-screen.tsx`, and
    `templates/app/index.tsx` → `app/index.tsx` (**overwrite** the placeholder).
    The route is thin — it just re-exports `HomeScreen`.
-4. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
+5. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
    `src/utilities`, `src/providers`, `src/constants`, `src/types`, and `assets`,
    generated from `templates/folder-README.md` (fill in the folder's purpose + a
    short "what's inside" list — seed it now, keep it updated as you add files).
    Every top-level `src/` directory carries one — `scripts/check-structure.sh`
    enforces it.
-5. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` (drop the `.template`
+6. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` (drop the `.template`
    suffix). Fill in the project name + one-line description. This is the rulebook
    + repo map agents read first.
 

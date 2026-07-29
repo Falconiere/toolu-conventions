@@ -28,6 +28,7 @@ bun run android      # build + run on Android (dev client)
 | `src/constants/` | `env.ts` (hand-validated env) + enums. |
 | `src/types/` | Cross-cutting types. |
 | `assets/` | Images, icons, fonts. |
+| `docs/` | `design-language.md` — the house UI rules. Read before any UI work. |
 | `.github/workflows/` | GitHub Actions — CI gate (type-check, lint, format, test). |
 | `.eas/workflows/` | EAS Workflows — builds, OTA updates, store submissions. |
 

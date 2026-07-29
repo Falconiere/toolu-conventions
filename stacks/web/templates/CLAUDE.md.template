@@ -15,6 +15,7 @@ src/utilities/  Shared pure helpers (dates, formatters, …)
 src/providers/  App-level context providers ('use client'; mounted in src/app/layout.tsx)
 src/constants/  env.ts (hand-validated), enums
 src/types/      Cross-cutting types
+docs/           design-language.md — the house UI rules; read before UI work
 ```
 
 Each `src/*` folder has its own `README.md` listing what lives there — read it
@@ -96,6 +97,11 @@ concrete values. -->
 <!-- If setup overrode the house brand (SETUP.md Phase 7.2.1), rewrite the
 paragraph below to describe THIS app's actual tokens and fill in the deviation
 bullet. Leaving it unedited would misstate the tokens to every future agent. -->
+
+> **Before any UI work, read [`docs/design-language.md`](./docs/design-language.md)** —
+> the full house language (bands, signal, type, motion, glyphs, contrast gate,
+> banned list, and a self-check). It is deliberately not summarised here: this
+> file loads every session, that one loads only when you touch UI.
 
 The app follows the house **CodaSignal "Signal"** design language: full-bleed
 bands that alternate dark (`#0e0f0d`) and light (`#f2f2ee`) with a quarter-width

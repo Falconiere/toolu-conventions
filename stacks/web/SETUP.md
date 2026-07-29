@@ -188,19 +188,24 @@ Then:
    `src/ui/theme/`. They ship pre-filled with the house design language
    ([`../../DESIGN.md`](../../DESIGN.md)) — real values, not placeholders. Phase 7
    only changes them if the intake asked for a different brand.
-2. Copy `templates/env.ts` → `src/constants/env.ts`. It validates `NEXT_PUBLIC_*`
+2. Copy [`../../DESIGN.md`](../../DESIGN.md) → `docs/design-language.md`
+   (`mkdir -p docs` first) **verbatim**. The kit is not on disk once this project
+   is scaffolded, so without this copy the design rules — which the token files
+   only carry values for — never reach the agents who build here. `CLAUDE.md`
+   points at it for UI work; keep it out of the always-loaded context.
+3. Copy `templates/env.ts` → `src/constants/env.ts`. It validates `NEXT_PUBLIC_*`
    vars by hand (no schema library). **Keep the static member-access pattern** —
    Next.js only inlines `process.env.NEXT_PUBLIC_X` at direct access sites, so a
    loop/dynamic access collapses every var to `undefined` in the production
    bundle. Add a new public var by reading it via its full static path and
    validating it inline.
-3. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
+4. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
    `src/utilities`, `src/providers`, `src/constants`, and `src/types`, generated
    from `templates/folder-README.md` (fill in the folder's purpose + a short
    "what's inside" list — seed it now, keep it updated as you add files). Every
    top-level `src/` directory except `src/app` carries one —
    `scripts/check-structure.sh` fails the gate without it.
-4. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the app name +
+5. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the app name +
    specifics. This is the rulebook + repo map agents read first.
 
 **Conventions reminder while you build:** no barrel files, kebab-case filenames
