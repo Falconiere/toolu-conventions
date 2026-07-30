@@ -340,6 +340,14 @@ Worker's `env` — they never touch `src/constants/env.ts`. `src/worker.ts` is a
 new top-level entry: add `worker` handling to `scripts/check-structure.sh` if you
 move it into a folder.
 
+Add a `"cf-typegen": "wrangler types"` script and run it, then commit the
+generated `worker-configuration.d.ts` — it is what types the Worker's `env`, and
+`tsc --noEmit` needs it on a fresh clone. The kit already ships the plumbing for
+that file (it is listed in `.gitattributes`, and excluded from oxlint and the
+Lefthook globs), because those entries are harmless while the file is absent and
+would otherwise be easy to forget once it appears. Nothing generates it until
+you take this path — that is why there is no `cf-typegen` script by default.
+
 For any product integration (Sentry, analytics, Stripe, email), follow
 [`LIBRARIES.md`](./LIBRARIES.md) and add it as its own provider/module — never as
 a default.

@@ -38,9 +38,11 @@ adding files, and add a line when you add something notable.
 - `bun run check` runs the full gate: `astro check` + lint + fmt +
   `check:structure` + `check:unused` (knip) + `check:dupes` (jscpd) + test.
 - **`type-check` is `astro check`, not `tsc`.** It is the only tool that
-  type-checks `.astro` frontmatter and templates. oxlint and oxfmt handle `.ts`
-  files only — they cannot parse Astro's component syntax, so conventions inside
-  a `.astro` file are held up by `astro check` and by review.
+  type-checks an `.astro` file's TEMPLATE body. The split is finer than it
+  looks: oxlint **does** read `.astro` frontmatter, so the import and TypeScript
+  rules apply there; oxfmt handles `.ts`/`.tsx` (JSX included) but cannot parse
+  `.astro` component syntax at all. So a `.astro` file is linted but never
+  formatted, and its template body is `astro check`'s job plus review.
 - Run `bun run sync` (`astro sync`) after changing `src/content.config.ts`, and
   before `astro check` on a fresh clone — it generates the collection types.
 - `bun run dev` starts Astro; `bun run build` produces `dist/`;

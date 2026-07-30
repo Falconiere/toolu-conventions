@@ -47,7 +47,8 @@
             "group": [
               "**/index",
               "**/index.js",
-              "**/index.ts"
+              "**/index.ts",
+              "**/index.tsx"
             ],
             "message": "No barrel imports - import the concrete file"
           },

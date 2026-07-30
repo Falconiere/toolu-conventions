@@ -29,7 +29,7 @@ for name in $allowed; do
 done
 
 # 3. No barrel files anywhere under src/.
-barrels=$(find src -type f \( -name 'index.ts' -o -name 'index.js' \) 2>/dev/null)
+barrels=$(find src -type f \( -name 'index.ts' -o -name 'index.tsx' -o -name 'index.js' \) 2>/dev/null)
 if [ -n "$barrels" ]; then
   echo "STRUCTURE: barrel files not allowed (index.ts/js under src/):"
   echo "$barrels" | sed 's/^/  - /'
