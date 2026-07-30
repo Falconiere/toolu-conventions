@@ -1,12 +1,17 @@
 # Library Reference
 
-The curated toolbox for backend-ts services. The philosophy is **lean**: Bun and
-Hono cover most of what a small service needs, so every extra dependency must earn
-its place, do one job well, and not duplicate the runtime. Reach for Bun's
-built-ins (`Bun.serve`, `bun:sql`, `bun test`, native `.env` loading, `fetch`,
-`crypto`, `Intl`) before adding anything.
+The curated toolbox for backend-ts services. The philosophy is **lean**: Hono and
+the Workers runtime cover most of what a small service needs, so every extra
+dependency must earn its place, do one job well, and not duplicate the platform.
+Reach for the runtime's own APIs (`fetch`, `crypto`, `Intl`, `URL`,
+`AbortController`, Web Streams) before adding anything.
 
-Install pure-JS deps with **`bun add`** (runtime) / **`bun add -d`** (dev).
+**The runtime filter comes first.** This service runs on **workerd**, so a
+dependency has to work there: no native modules, no `fs`, no Node stream
+internals unless `nodejs_compat` genuinely covers them. A package that is perfect
+on Node can be unusable here. Check before you add.
+
+Install with **`bun add`** (runtime) / **`bun add -d`** (dev).
 
 ---
 
@@ -14,29 +19,47 @@ Install pure-JS deps with **`bun add`** (runtime) / **`bun add -d`** (dev).
 
 | Concern | Library | Notes |
 | --- | --- | --- |
-| HTTP framework | `hono` | Tiny, fast, Web-standard `Request`/`Response`. Runs natively on Bun. |
-| Runtime + package manager | `bun` | Also the test runner (`bun test`) and `.env` loader. No Node, no dotenv. |
-| Types | `@types/bun` | Bun globals (`Bun`, `process`) for `tsc`. |
+| HTTP framework | `hono` | Tiny, fast, Web-standard `Request`/`Response`. Built for this runtime; a Hono app *is* a valid Worker handler. |
+| Typed API surface | `@orpc/server` | Procedures with Zod input **and** output schemas, mounted at `/rpc` via the fetch adapter. Our own clients are typed from these declarations. |
+| Validation | `zod` (v4) | Every boundary: bindings, procedure input/output, webhook payloads. Types come from `z.infer`. |
+| Dead code / unused deps | `knip` (dev) | Gate step. Fails on an unused file, export, or dependency. |
+| Copy-paste detection | `jscpd` (dev) | Gate step, `threshold: 0` + `exitCode: 1`. |
+| Runtime + deploy | `wrangler` (dev) | Runs the real runtime locally (`wrangler dev`), generates `Env` types, deploys, and manages secrets. |
+| Package manager | `bun` | Install and script runner. **Not** the runtime and **not** the test runner here — those are workerd and Vitest. |
+| Testing | `vitest` (≥4.1) + `@cloudflare/vitest-pool-workers` | Runs tests inside workerd against the project's real `wrangler.jsonc`. |
+| Database | `@tursodatabase/serverless` | The house database client. `fetch`-only, zero native deps — the package Turso recommends for edge runtimes. |
 | Lint / format | `oxlint` + `oxfmt` (+ `oxlint-tsgolint` for type-aware) | Fast Rust tooling. |
 | Git hooks | `lefthook` | Pre-commit lint + format on staged files. |
 
-`bun test` is the built-in runner — no Jest/Vitest install. It reads `[test]` in
-`bunfig.toml`, supports `describe`/`test`/`expect` out of the box, and runs
-`*.test.ts` files. Exercise routes with Hono's `app.request('/path')` (no socket
-needed) and assert on the real response.
+### Picking the right Turso package
+
+Turso ships several, and only one of them runs here:
+
+| Package | What it is | Use on Workers? |
+| --- | --- | --- |
+| **`@tursodatabase/serverless`** | Remote access over `fetch` | **Yes — this is the one.** |
+| `@tursodatabase/database` | Local/embedded, native or WASM | No |
+| `@tursodatabase/sync` | Local database + cloud sync, native | No |
+| `@libsql/client` | The legacy name | Only via Drizzle, and only the `/web` entry |
+
+A response from the client is data, not a type: validate it into your own shape
+in `src/services/` rather than trusting a row's declared columns.
 
 ---
 
 ## Reach-for-these — add when the service needs them
 
 The **approved** choice for their job. The setup guide asks whether to wire the
-DB, auth, and logging ones; add the rest as features demand.
+auth, logging, and ORM ones; add the rest as features demand.
 
 | Concern | Library | When / why |
 | --- | --- | --- |
-| Structured logging | **`pino`** | Opt-in. When you need JSON logs with levels/redaction for aggregation. Create `src/utilities/logger.ts` exporting one configured instance; log through it in services. Pair with Hono's built-in `logger()` middleware for request lines. Until then, `console.warn`/`console.error` is fine. |
-| SQL / ORM | **`drizzle-orm`** | Opt-in. When you want typed schema + migrations over raw SQL. For simple Postgres access, Bun's built-in **`bun:sql`** (`import { sql } from 'bun:sql'`) needs no dependency at all — start there; reach for Drizzle when the schema and query surface grow. |
-| Dates | `date-fns` **or** `Intl` | `Intl.DateTimeFormat` / `Intl.NumberFormat` (built-in) for formatting; add `date-fns` (tree-shakeable, immutable) only when you need real date math (`differenceInHours`, `addDays`, parsing). |
+| Auth | **`better-auth`** (+ `@libsql/kysely-libsql`) | The house auth. This service owns the **server** half — sessions, providers, and the tables in Turso; the console holds only the client. Needs `nodejs_compat` (already set). Build the instance **per request** from bindings, never at module scope. |
+| ORM / migrations | **`drizzle-orm`** + `@libsql/client/web` (+ `drizzle-kit` dev) | Opt-in. When typed schema and real migrations beat hand-written SQL. Use the **`/web`** entry — the default one is Node-native and will not run on workerd. `dialect: 'turso'` in `drizzle.config.ts`. |
+| Structured logging | A ~10-line `src/utilities/logger.ts` | Emit one JSON line per event via `console.warn`/`console.error`; Workers Logs indexes the fields. Keep `observability.enabled` on in `wrangler.jsonc`. Pair with Hono's built-in `logger()` middleware for request lines. |
+| Outbound HTTP | Built-in `fetch`, or `src/utilities/http.ts` from the console kit | `fetch` is native here. Copy the kit's client only when you want one place for base URL, timeout, and error shaping across several calls. |
+| Dates | `Intl` (built in), or `date-fns` | `Intl.DateTimeFormat` / `Intl.NumberFormat` for formatting; add `date-fns` only when you need real date math (`differenceInHours`, `addDays`, parsing). |
+| Scheduled work | Cron triggers in `wrangler.jsonc` + a `scheduled` handler | The Workers-native answer to a background job. Not a library. |
 
 ---
 
@@ -46,10 +69,16 @@ Do not add these without an explicit, documented reason.
 
 | Library | Avoid because | Use instead |
 | --- | --- | --- |
-| `express` | A Node-era framework with its own req/res model; slower on Bun and duplicates what Hono does with Web-standard types. | `hono` — it covers routing, middleware, and body parsing, natively on Bun. |
-| `nest` (NestJS) | Heavy DI/decorator framework, large runtime and conceptual weight unjustified for a lean service. | `hono` + plain `services/` functions; add structure only as the app grows. |
-| `zod` (and `yup`/`joi`/`valibot`) **app-wide** | A parallel runtime type system to maintain across the whole app; the baseline validates env + external data by hand (`unknown` + type guards). | Hand-written type guards. **Exception:** request-body validation **at a route boundary** is fine if you opt into it — keep the schema scoped to that route, never an app-wide layer, and never for env parsing. |
-| `dotenv` / `dotenv-cli` | Bun loads `.env` (and `.env.local`, `.env.<APP_ENV>`) natively; a dep here does nothing but add noise. | Bun's native `.env` loading + `src/constants/env.ts` for validation. |
+| `express` | A Node-era framework built on Node's `req`/`res` and its stream internals. It does not belong on workerd. | `hono` — Web-standard types, built for this runtime. |
+| `nest` (NestJS) | Heavy DI/decorator framework, large runtime and conceptual weight unjustified for a lean service — and a poor fit for an isolate-per-request model. | `hono` + plain `services/` functions; add structure as the app grows. |
+| **`axios`** | A dependency for something the runtime already has, with its own error model and cancellation story on top. | Built-in `fetch`, or `src/utilities/http.ts`. Blocked by lint **and** by `check-structure.sh`. |
+| **`pino`** (and other Node loggers) | Built around Node streams and transports; on Workers the platform already captures and indexes structured output. | A tiny `logger.ts` writing JSON through `console.warn`/`console.error`. |
+| **`dotenv`** | There is no `.env` at runtime here. Config is bindings; local secrets come from `.dev.vars`, which wrangler loads itself. | `wrangler.jsonc` `vars` + `.dev.vars` + `src/constants/env.ts`. |
+| **`@tursodatabase/database` / `@tursodatabase/sync`** | Native/WASM local-database packages. They cannot run on workerd, and the failure looks like a bundler bug. | `@tursodatabase/serverless`. |
+| A connection pool (`pg`, `mysql2`, pool wrappers) | Workers cannot hold sockets across requests, and an isolate is shared — a "pool" here is a bug that shows up under load. | Per-request connections over HTTP (Turso), or Hyperdrive if you truly need Postgres. |
+| `yup` / `joi` / `valibot`, or hand-written type guards | The kit has one validator, and here it is load-bearing: the same Zod schemas that validate a procedure's input and output are what type the clients. A second library means shapes that oRPC cannot see. | **`zod`** everywhere — bindings, procedure `.input()`/`.output()`, webhook bodies. |
+| `trpc` | Same idea as oRPC, but the kit picked one. Running both means two clients, two conventions, and two ways to describe the same procedure. | `@orpc/server` + `@orpc/client`. |
+| `bun:sql`, `bun:sqlite`, `Bun.*` anything | Bun is the package manager here, not the runtime. These APIs do not exist on workerd. | The Turso client; `wrangler dev` for local runs. |
 
 ---
 
@@ -58,5 +87,5 @@ Do not add these without an explicit, documented reason.
 Prefer **vendoring** (copying a small, well-understood source file into
 `src/utilities/` with attribution + a test) over an npm dependency when the
 library is tiny (a few functions), unmaintained, or you only need a slice of it.
-Treat vendored code as ours: lint it, type it, test it. Don't vendor anything with
-native bindings — those must be real dependencies.
+Treat vendored code as ours: lint it, type it, test it. Don't vendor anything
+with native bindings — those cannot run here at all.

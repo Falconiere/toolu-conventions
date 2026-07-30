@@ -21,8 +21,11 @@ picks the version compatible with your SDK.
 | Animation | `react-native-reanimated` | Ships with Expo; the standard for performant animation. |
 | Gestures | `react-native-gesture-handler` | Peer of Reanimated / navigation. |
 | Safe area | `react-native-safe-area-context` | Insets for notches/home indicator. |
+| Validation | `zod` (v4) | Every boundary: env, parsed responses, forms, storage. Types come from `z.infer`. |
 | Testing | `jest` + `jest-expo` + `@testing-library/react-native` | Unit/component tests, real data. |
 | Lint / format | `oxlint` + `oxfmt` (+ `oxlint-tsgolint` for type-aware) | Fast Rust tooling. |
+| Dead code / unused deps | `knip` | Gate step. Fails on an unused file, export, or dependency. |
+| Copy-paste detection | `jscpd` | Gate step, `threshold: 0` + `exitCode: 1`. |
 | Git hooks | `lefthook` | Pre-commit lint + format. |
 
 ---
@@ -36,11 +39,13 @@ demand.
 | Concern | Library | When / why |
 | --- | --- | --- |
 | Action / bottom sheets | **`react-native-actions-sheet`** | Sheets, menus, pickers. Imperative `SheetManager` API. **Use this, not `@gorhom/bottom-sheet`.** |
-| HTTP client | `axios` | When you opt into an API layer. Interceptors for auth + a custom `ApiError`. |
-| Forms | `react-hook-form` (+ optional `zod` + `@hookform/resolvers`) | Performant, uncontrolled-by-default forms. Built-in rules for simple validation; add `zod` + `zodResolver` only when a form needs richer schema validation — and keep the schema scoped to that form, never as an app-wide layer. |
+| API client (our own API) | **`@orpc/client` + `@orpc/tanstack-query`** | The typed client for our own service, plus its TanStack Query bindings. Query keys derive from the procedure path — no key factory to write. Same client the console uses. |
+| Validation | **`zod`** (v4) | Every boundary: env, any response the app parses itself, form schemas. Types come from `z.infer`. |
+| HTTP client (everything else) | **`src/utilities/http.ts`** (ships with the kit, not npm) | The house fetch client — `createHttpClient` gives `get`/`post`/`put`/`patch`/`delete`, a base URL, per-request timeouts, a headers hook for the auth token, and typed `HttpError`/`HttpAbortError`. Copy it from `stacks/console/templates/utilities/http.ts`; it is written to run on Hermes (no `AbortSignal.timeout`/`any`). **Not axios** — see AVOID. |
+| Forms | `react-hook-form` + `zod` + `@hookform/resolvers` | Performant, uncontrolled-by-default forms. The form's Zod schema is the same kind of schema everything else uses; where the fields match a procedure's input, derive it from that schema rather than restating it. |
 | Local key-value storage | `@react-native-async-storage/async-storage` | The opt-in local-storage integration. Async API, no native config beyond install. Good for cache, flags, small persisted UI state. |
 | Secure storage / tokens | `expo-secure-store` | Auth tokens + secrets (Keychain / Keystore). Backs the opt-in auth scaffold. |
-| Auth scaffold | `expo-secure-store` + a custom `AuthProvider` | The baseline auth is a generic token-based provider in `src/providers/` backed by secure storage, wired into the axios interceptor and a `(auth)` route group. A hosted auth vendor (Clerk, Auth0, SuperTokens, …) is opt-in per project — add its SDK then, not by default. |
+| Auth | **`better-auth`** (+ `expo-secure-store`) | The house auth. The app uses the **client** half (`better-auth/react` → `createAuthClient`, `useSession`, `signIn`, `signOut`) with its Expo plugin storing the session in `expo-secure-store`; the server half lives in the `backend-ts` service and owns the database. Point the `http` client's `headers` hook at the session token and gate routes with an `(auth)` route group. Check better-auth's current Expo docs for the plugin's exact setup — it moves faster than this kit. |
 | Icons | `@react-native-vector-icons/feather` + `@react-native-vector-icons/material-design-icons` | Lean subset — do **not** install all icon families. |
 | Images | `expo-image` | Caching, transitions, better perf than `<Image>`. |
 
@@ -71,11 +76,15 @@ documented reason.
 
 | Library | Avoid because | Use instead |
 | --- | --- | --- |
+| **`axios`** | A dependency for something the platform already does. `fetch` is in Hermes, and axios brings its own error model, its own cancellation story, and bundle weight — while still needing a wrapper to be usable. | **`src/utilities/http.ts`** — the kit's fetch client, copied from the console kit. |
+| Bare `fetch` scattered through features | Base URL, auth headers, timeouts and error shaping get re-implemented (differently) at each call site. | The one configured client from `src/api/http-client.ts`. |
 | `react-native-unistyles` | Heavy theming/breakpoint runtime + TS module augmentation for what plain styles do fine. Couples every component to it. | `StyleSheet.create` + the plain `src/ui/theme/*` token files. |
 | `nativewind` / Tailwind-in-RN | A second styling paradigm on top of `StyleSheet`; class strings dodge the theme tokens. | `StyleSheet.create` + `src/ui/theme/*`. |
 | `@gorhom/bottom-sheet` | Large, gesture-heavy, native complexity for behavior most apps don't need. | `react-native-actions-sheet`, or a screen/route. |
 | `moment` | Huge, mutable, deprecated. | `date-fns`. |
-| Schema-validation libs *app-wide* (`zod`, `yup`, `valibot`, `joi`) for env / API parsing / general data | Extra runtime + a parallel type system to maintain across the whole app. The baseline validates env + external data by hand. | Hand-written type guards on `unknown` (the lint config already mandates `unknown` + guards over `any`). **Exception:** `zod` is fine *scoped to a single form's validation* with `react-hook-form` + `zodResolver` — see Forms above. |
+| `yup` / `valibot` / `joi`, or hand-written type guards | The kit has one validator. A second one means two ways to describe the same shape and no single place to read it. | **`zod`** — env, parsed responses, forms, storage. Types via `z.infer` (CORE rule 13). |
+| A type declared beside its schema | They drift, silently, and the compiler cannot say which is right. | `type X = z.infer<typeof X>`. |
+| A hand-written `queryKey` array for an oRPC call | Two places to keep in sync, and an invalidation that silently matches nothing once they drift. | `orpc.<path>.key()`. |
 | Redux / Redux Toolkit | Boilerplate-heavy for app state; overlaps React Query for server state. | React Query (server state) + React Context / local state (the rare global client state). |
 | `zustand` (and other global client-state stores) | Most "global" state is either server state (belongs in React Query) or screen-local. A standalone store invites duplicating server data and over-globalizing. | React Query for server state; `useState`/`useReducer` + a small React Context for genuinely global client state (session, theme). |
 | `@shopify/flash-list` | Extra native dependency for what RN core already does; easy to reach for preemptively. | `FlatList` / `SectionList` (virtualized in core) — tune `keyExtractor` / `getItemLayout` / window size before adding anything. |

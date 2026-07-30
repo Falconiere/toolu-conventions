@@ -1,0 +1,66 @@
+# GitHub Actions — the quality gate for every PR (and pushes to main).
+# Mirrors `bun run check` step for step, then proves the production build.
+#
+# Copy to `.github/workflows/ci.yml`. Keep the Bun version in sync with the Bun
+# you develop against locally.
+#
+# Note the order: `astro sync` runs first because `astro check` needs the
+# generated `.astro/types.d.ts` (content-collection types) to exist, and a fresh
+# CI clone has never run a build.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: type-check · lint · format · structure · unused · dupes · test · build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Sync Astro types
+        run: bunx astro sync
+
+      - name: Type-check
+        run: bun run type-check
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Format check
+        run: bun run fmt:check
+
+      - name: Structure check
+        run: bun run check:structure
+
+      - name: Unused files, exports, dependencies (knip)
+        run: bun run check:unused
+
+      - name: Copy-paste detection (jscpd)
+        run: bun run check:dupes
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: bun run build

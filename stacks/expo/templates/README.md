@@ -25,7 +25,7 @@ bun run android      # build + run on Android (dev client)
 | `src/api/` | Data layer: `clients/` (requests) + `queries/` (React Query hooks). |
 | `src/utilities/` | Shared pure helpers. |
 | `src/providers/` | App-level context providers (mounted in `app/_layout.tsx`). |
-| `src/constants/` | `env.ts` (hand-validated env) + enums. |
+| `src/constants/` | `env.ts` (Zod-validated env) + enums. |
 | `src/types/` | Cross-cutting types. |
 | `assets/` | Images, icons, fonts. |
 | `docs/` | `design-language.md` — the house UI rules. Read before any UI work. |
@@ -44,7 +44,7 @@ Every `src/*` folder has a `README.md` describing its contents.
 (Add a `staging` row if a staging env was enabled at setup.)
 
 Config lives in `app.config.ts` (variant-driven) and `src/constants/env.ts`
-(hand-validated `EXPO_PUBLIC_*`). Copy `.env.example` → `.env` and fill it in.
+(`EXPO_PUBLIC_*`, parsed with a Zod schema). Copy `.env.example` → `.env` and fill it in.
 
 ## Scripts
 

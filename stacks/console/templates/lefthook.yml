@@ -1,0 +1,21 @@
+# Pre-commit hooks. Install once with: bunx lefthook install
+# Runs only on staged files, in parallel. Keep it fast — heavier checks
+# (type-check, full test, structure) belong in CI / `bun run check`.
+#
+# The generated route tree is excluded: TanStack Router writes it, we do not own
+# its formatting, and a complaint about a generated file would block a commit
+# that has nothing to do with it.
+pre-commit:
+  parallel: true
+  commands:
+    fmt:
+      glob: '*.{ts,tsx,json,md,yaml,yml,css}'
+      exclude:
+        - 'src/route-tree.gen.ts'
+        - 'worker-configuration.d.ts'
+      run: bunx oxfmt --check --no-error-on-unmatched-pattern {staged_files}
+    lint:
+      glob: 'src/**/*.{ts,tsx}'
+      exclude:
+        - 'src/route-tree.gen.ts'
+      run: bunx oxlint --deny-warnings {staged_files}

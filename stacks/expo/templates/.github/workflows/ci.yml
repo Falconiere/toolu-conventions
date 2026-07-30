@@ -45,5 +45,11 @@ jobs:
       - name: Structure check
         run: bun run check:structure
 
+      - name: Unused files, exports, dependencies (knip)
+        run: bun run check:unused
+
+      - name: Copy-paste detection (jscpd)
+        run: bun run check:dupes
+
       - name: Test
         run: bun run test

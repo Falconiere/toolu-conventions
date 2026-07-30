@@ -1,13 +1,14 @@
 // Runtime-validated environment — the app's single typed source of truth for env.
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import * as z from 'zod';
 
 // All public config flows through here so the app has ONE typed source of truth
-// for env. Validation is hand-written (no schema library) — keep it that way and
-// add fields as integrations are wired.
+// for env, declared as a Zod schema: one place to read the shape, one error that
+// names every bad field at once, and types inferred from the same declaration
+// instead of restated beside it.
 
 type AppVariant = 'prod' | 'test';
-type AppEnv = 'production' | 'staging' | 'development';
 
 function appVariant(): AppVariant {
   const extra: { appVariant?: string } = Constants.expoConfig?.extra ?? {};
@@ -19,34 +20,43 @@ function devDefaultApiUrl(): string {
   return Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
 }
 
-function isAppEnv(value: string | undefined): value is AppEnv {
-  return value === 'production' || value === 'staging' || value === 'development';
-}
-
-// Lightweight URL check. Avoids relying on Hermes' partial `URL` implementation
-// and keeps the baseline dependency-free — tighten the rule if you need to.
-function requireHttpUrl(value: string, name: string): string {
-  if (!/^https?:\/\/.+/.test(value)) {
-    throw new Error(`[env] ${name} must be an http(s) URL, got: ${JSON.stringify(value)}`);
-  }
-  return value;
+/** Treats an unset OR empty var as absent, so `.default()` applies to both. */
+function optional(value: string | undefined): string | undefined {
+  return value === undefined || value.length === 0 ? undefined : value;
 }
 
 // IMPORTANT: babel-preset-expo inlines EXPO_PUBLIC_* only at *direct static
 // member-access* sites (`process.env.EXPO_PUBLIC_X`). A release Hermes build's
-// `process.env` carries no such keys, so referencing each var by its full static
-// path is what gets the value inlined before validation — otherwise every field
-// silently collapses to undefined in production. Read each var into a local here
-// (the access site is what matters); do not refactor this into a loop or dynamic
-// `process.env[name]` access.
-const RAW_ENV: string | undefined = process.env.EXPO_PUBLIC_ENV;
-const RAW_API_URL: string | undefined = process.env.EXPO_PUBLIC_API_URL;
+// `process.env` carries no such keys, so naming each var at its full static path
+// is what gets the value inlined before validation — otherwise every field
+// silently collapses to undefined in production. Read each var into the object
+// below (the access site is what matters); never hand `process.env` to the
+// schema wholesale, and never use a loop or a dynamic `process.env[name]`.
+const EnvSchema = z.object({
+  EXPO_PUBLIC_ENV: z
+    .enum(['development', 'staging', 'production'])
+    .default(__DEV__ ? 'development' : 'production'),
+  // `z.url()` rather than a hand-rolled regex: Zod does not lean on Hermes'
+  // partial `URL` implementation, so this behaves the same on device as in a test.
+  EXPO_PUBLIC_API_URL: z.url().default(devDefaultApiUrl()),
+});
+
+/** The logical environment this build targets. */
+export type AppEnv = z.infer<typeof EnvSchema>['EXPO_PUBLIC_ENV'];
+
+const parsed = EnvSchema.safeParse({
+  EXPO_PUBLIC_ENV: optional(process.env.EXPO_PUBLIC_ENV),
+  EXPO_PUBLIC_API_URL: optional(process.env.EXPO_PUBLIC_API_URL),
+});
+
+if (!parsed.success) {
+  // Thrown at import time, on purpose: a misconfigured build should fail loudly
+  // at launch rather than at the first request that needs the bad value.
+  throw new Error(`[env] invalid configuration:\n${z.prettifyError(parsed.error)}`);
+}
 
 export const APP_VARIANT: AppVariant = appVariant();
 export const IS_PROD: boolean = !__DEV__;
-export const APP_ENV: AppEnv = isAppEnv(RAW_ENV) ? RAW_ENV : __DEV__ ? 'development' : 'production';
-export const BASE_API_URL: string = requireHttpUrl(
-  RAW_API_URL !== undefined && RAW_API_URL.length > 0 ? RAW_API_URL : devDefaultApiUrl(),
-  'EXPO_PUBLIC_API_URL',
-);
+export const APP_ENV: AppEnv = parsed.data.EXPO_PUBLIC_ENV;
+export const BASE_API_URL: string = parsed.data.EXPO_PUBLIC_API_URL;
 export const REQUEST_TIMEOUT_MS = 8_000;

@@ -1,0 +1,9 @@
+---
+/** `/` — the home page. A page composes sections; it holds no markup of its own. */
+import BaseLayout from '@/layouts/base-layout.astro';
+import HeroSection from '@/sections/hero-section.astro';
+---
+
+<BaseLayout title="{{APP_NAME}}" description="{{ONE_LINE_DESCRIPTION}}">
+  <HeroSection />
+</BaseLayout>

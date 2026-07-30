@@ -1,8 +1,8 @@
-# GitHub Actions — code-quality gate for every PR (and pushes to main).
-# Mirrors `bun run check`: type-check + lint + format-check + test.
+# GitHub Actions — the quality gate for every PR (and pushes to main).
+# Mirrors `bun run check` step for step, then proves the Worker actually builds.
 #
-# Copy to `.github/workflows/ci.yml`. Keep the Bun version in sync with the one in
-# the CI of any related repo and with the version you develop against locally.
+# Copy to `.github/workflows/ci.yml`. Keep the Bun version in sync with the Bun
+# you develop against locally.
 name: CI
 
 on:
@@ -11,14 +11,16 @@ on:
   push:
     branches: [main]
 
-# A newer push to the same ref cancels the older in-flight run.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   check:
-    name: type-check · lint · format · test
+    name: types · lint · format · structure · unused · dupes · test · build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,6 +34,15 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # `worker-configuration.d.ts` is committed so `tsc` works on a fresh
+      # clone. Regenerating it here and failing on a diff catches the common
+      # mistake: adding a binding to wrangler.jsonc without regenerating, so
+      # `c.env.NEW_THING` type-checks locally against a stale definition.
+      - name: Check generated Worker types are current
+        run: |
+          bun run cf-typegen
+          git diff --exit-code -- worker-configuration.d.ts
+
       - name: Type-check
         run: bun run type-check
 
@@ -44,5 +55,18 @@ jobs:
       - name: Structure check
         run: bun run check:structure
 
+      - name: Unused files, exports, dependencies (knip)
+        run: bun run check:unused
+
+      - name: Copy-paste detection (jscpd)
+        run: bun run check:dupes
+
+      # Runs inside workerd via @cloudflare/vitest-pool-workers, against the
+      # same wrangler.jsonc the deploy uses.
       - name: Test
         run: bun run test
+
+      # A dry-run deploy: bundles the Worker and validates the config without
+      # publishing. Catches an unsupported import or a bad binding before merge.
+      - name: Build (dry-run deploy)
+        run: bunx wrangler deploy --dry-run --outdir dist

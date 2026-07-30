@@ -1,0 +1,65 @@
+# GitHub Actions — the quality gate for every PR (and pushes to main).
+# Mirrors `bun run check` step for step, then proves the production build.
+#
+# Copy to `.github/workflows/ci.yml`. Keep the Bun version in sync with the Bun
+# you develop against locally.
+#
+# Each check is its own step on purpose: a red run names the failing gate in the
+# job summary instead of burying it inside one aggregate command.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A newer push to the same ref cancels the older in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: type-check · lint · format · structure · unused · dupes · test · build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type-check
+        run: bun run type-check
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Format check
+        run: bun run fmt:check
+
+      - name: Structure check
+        run: bun run check:structure
+
+      - name: Unused files, exports, dependencies (knip)
+        run: bun run check:unused
+
+      - name: Copy-paste detection (jscpd)
+        run: bun run check:dupes
+
+      - name: Test
+        run: bun run test
+
+      # The gate ends at a real production build: a type-clean app can still
+      # fail to bundle (bad dynamic import, missing env at build time).
+      - name: Build
+        run: bun run build

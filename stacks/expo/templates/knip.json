@@ -1,0 +1,6 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  "entry": ["app/**/*.{ts,tsx}", "app.config.ts", "jest.setup.ts"],
+  "project": ["src/**/*.{ts,tsx}", "app/**/*.{ts,tsx}"],
+  "ignoreBinaries": ["eas"]
+}

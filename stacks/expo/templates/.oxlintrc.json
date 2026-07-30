@@ -3,7 +3,14 @@
   "options": {
     "typeAware": true
   },
-  "plugins": ["react", "typescript", "import", "unicorn", "promise", "oxc"],
+  "plugins": [
+    "react",
+    "typescript",
+    "import",
+    "unicorn",
+    "promise",
+    "oxc"
+  ],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
@@ -21,16 +28,72 @@
     "__DEV__": "readonly",
     "process": "readonly"
   },
-  "ignorePatterns": ["node_modules", ".expo", "android", "ios", "dist", "assets", "babel.config.js", "metro.config.js"],
+  "ignorePatterns": [
+    "node_modules",
+    ".expo",
+    "android",
+    "ios",
+    "dist",
+    "assets",
+    "babel.config.js",
+    "metro.config.js"
+  ],
   "rules": {
-    "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
-    "no-restricted-imports": ["error", {
-      "patterns": [
-        { "group": ["**/index", "**/index.js", "**/index.ts", "**/index.tsx"], "message": "No barrel imports - import the concrete file" },
-        { "group": ["../../*", "../../**"], "message": "No deep relative imports - use @/ aliases" },
-        { "group": ["@/features/*", "@/features/**"], "message": "Features are isolated - only route files import feature screens" }
-      ]
-    }],
+    "max-lines": [
+      "error",
+      {
+        "max": 300,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": [
+              "**/index",
+              "**/index.js",
+              "**/index.ts",
+              "**/index.tsx"
+            ],
+            "message": "No barrel imports - import the concrete file"
+          },
+          {
+            "group": [
+              "../../*",
+              "../../**"
+            ],
+            "message": "No deep relative imports - use @/ aliases"
+          },
+          {
+            "group": [
+              "@/features/*",
+              "@/features/**"
+            ],
+            "message": "Features are isolated - only route files import feature screens"
+          },
+          {
+            "group": [
+              "axios",
+              "axios/*"
+            ],
+            "message": "No axios - use the fetch client in @/utilities/http"
+          },
+          {
+            "group": [
+              "yup",
+              "joi",
+              "valibot",
+              "superstruct",
+              "ajv"
+            ],
+            "message": "One validator: use zod (CORE rule 13)"
+          }
+        ]
+      }
+    ],
     "react/jsx-key": "error",
     "react/jsx-no-duplicate-props": "error",
     "react/no-array-index-key": "error",
@@ -39,10 +102,21 @@
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "error",
     "typescript/no-explicit-any": "error",
-    "typescript/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "typescript/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
     "typescript/consistent-type-imports": "error",
     "typescript/prefer-as-const": "error",
-    "typescript/consistent-type-assertions": ["error", { "assertionStyle": "never" }],
+    "typescript/consistent-type-assertions": [
+      "error",
+      {
+        "assertionStyle": "never"
+      }
+    ],
     "typescript/no-non-null-assertion": "error",
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-unsafe-assignment": "error",
@@ -61,32 +135,91 @@
     "import/no-cycle": "error",
     "import/no-self-import": "error",
     "import/no-duplicates": "error",
-    "unicorn/filename-case": ["error", { "case": "kebabCase" }],
+    "unicorn/filename-case": [
+      "error",
+      {
+        "case": "kebabCase"
+      }
+    ],
     "unicorn/prefer-node-protocol": "error",
     "promise/no-return-wrap": "error",
     "promise/catch-or-return": "error",
-    "no-console": ["error", { "allow": ["warn", "error"] }],
+    "no-console": [
+      "error",
+      {
+        "allow": [
+          "warn",
+          "error"
+        ]
+      }
+    ],
     "no-debugger": "error",
-    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "eqeqeq": [
+      "error",
+      "always",
+      {
+        "null": "ignore"
+      }
+    ],
     "prefer-const": "error",
     "no-var": "error"
   },
   "overrides": [
     {
-      "files": ["app/**/*.{ts,tsx}"],
+      "files": [
+        "app/**/*.{ts,tsx}"
+      ],
       "rules": {
         "import/no-default-export": "off",
         "unicorn/filename-case": "off",
-        "no-restricted-imports": ["error", {
-          "patterns": [
-            { "group": ["**/index", "**/index.js", "**/index.ts", "**/index.tsx"], "message": "No barrel imports - import the concrete file" },
-            { "group": ["../../*", "../../**"], "message": "No deep relative imports - use @/ aliases" }
-          ]
-        }]
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/index",
+                  "**/index.js",
+                  "**/index.ts",
+                  "**/index.tsx"
+                ],
+                "message": "No barrel imports - import the concrete file"
+              },
+              {
+                "group": [
+                  "../../*",
+                  "../../**"
+                ],
+                "message": "No deep relative imports - use @/ aliases"
+              },
+              {
+                "group": [
+                  "axios",
+                  "axios/*"
+                ],
+                "message": "No axios - use the fetch client in @/utilities/http"
+              },
+              {
+                "group": [
+                  "yup",
+                  "joi",
+                  "valibot",
+                  "superstruct",
+                  "ajv"
+                ],
+                "message": "One validator: use zod (CORE rule 13)"
+              }
+            ]
+          }
+        ]
       }
     },
     {
-      "files": ["**/__tests__/**/*.{ts,tsx}", "**/*.test.{ts,tsx}", "jest.setup.ts"],
+      "files": [
+        "**/__tests__/**/*.{ts,tsx}",
+        "**/*.test.{ts,tsx}",
+        "jest.setup.ts"
+      ],
       "rules": {
         "max-lines": "off",
         "typescript/no-explicit-any": "off",
@@ -102,7 +235,10 @@
       }
     },
     {
-      "files": ["*.config.{ts,js}", "*.d.ts"],
+      "files": [
+        "*.config.{ts,js}",
+        "*.d.ts"
+      ],
       "rules": {
         "max-lines": "off"
       }

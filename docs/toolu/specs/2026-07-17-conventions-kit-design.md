@@ -25,7 +25,7 @@ Reuse: `CORE.md` codifies the already-enforced toolu conventions (no barrels, ke
 ## Interfaces / Schema
 
 ```
-toolu-convensions/
+toolu-conventions/
 ├── README.md                  # what this is, how to hand it to an agent, version note
 ├── SETUP.md                   # router: prereq checks → intake → dispatch to stacks/<stack>/SETUP.md
 ├── CORE.md                    # stack-agnostic conventions (see below)

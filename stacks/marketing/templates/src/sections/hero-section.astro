@@ -1,0 +1,29 @@
+---
+/** The opening band. One section per file — a page is a list of these. */
+import { CONSOLE_URL } from '@/constants/env';
+---
+
+<!-- `band` paints the ruled backdrop; add `band-light` for a light band. The
+     two classes are the whole theming surface — see docs/design-language.md. -->
+<section class="band">
+  <p class="marker">{{SECTION_MARKER}}</p>
+  <h1>
+    {{HEADLINE_LINE_ONE}}
+    <span class="signal">{{HEADLINE_LINE_TWO}}</span>
+  </h1>
+  <p>{{SUBHEAD}}</p>
+  <a href={CONSOLE_URL}>Get started</a>
+</section>
+
+<style>
+  /* Scoped to this component by Astro. Read tokens through the --tone-*
+     variables so the section works in either band — never a literal hex. */
+  .signal {
+    color: var(--tone-accent);
+  }
+
+  .marker {
+    color: var(--tone-text-faint);
+    font-family: var(--font-mono);
+  }
+</style>

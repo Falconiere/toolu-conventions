@@ -14,7 +14,8 @@ src/features/   One folder per feature: screens/ components/ hooks/ api/ types
 src/api/        Cross-feature data layer: clients/ (requests) + queries/ (React Query)
 src/utilities/  Shared pure helpers (dates, formatters, …)
 src/providers/  App-level context providers (mounted in app/_layout.tsx)
-src/constants/  env.ts (hand-validated), enums
+src/api/         Data layer: orpc.ts (our API) + http-client.ts + clients/ (everything else)
+src/constants/  env.ts (Zod-validated), enums
 src/types/      Cross-cutting types
 assets/         Images, icons, fonts
 docs/           design-language.md — the house UI rules; read before UI work
@@ -98,9 +99,13 @@ barrel files, `lefthook.yml`). A violation fails the gate.
   React Context (no store library — for genuinely-global client state use
   `createContext` + `useReducer` in `src/providers/`). Never duplicate server data
   into client state.
-- **Validation**: env + external/parsed data are validated by hand (type guards
-  on `unknown`) — no schema library app-wide. `zod` is allowed **only** inside a
-  form (`react-hook-form` + `zodResolver`), with the schema scoped to that form.
+- **Validation**: `zod` at every boundary — env, parsed responses, forms,
+  secure/async storage — and the TypeScript type comes from `z.infer`, never
+  declared alongside the schema.
+- **Calling things**: our own API → `orpc` (typed end to end from the server's
+  procedure declarations, with TanStack Query bindings). Anything else → the
+  `http` client in `src/api/http-client.ts`. No axios; no bare `fetch` in a
+  feature; no hand-written `queryKey` arrays for oRPC calls.
 - **Commits**: `type(scope): description` (conventional). Push to feature
   branches; never directly to main.
 

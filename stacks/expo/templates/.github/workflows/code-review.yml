@@ -1,0 +1,47 @@
+# GitHub Actions — automated AI code review on every pull request.
+#
+# The third guard rail, after the agent's own `bun run check` and the CI job.
+# It reads the repo's own convention files (CLAUDE.md and friends) from the BASE
+# ref and reviews the diff against them, so the rules this kit installs are the
+# rules the bot enforces — and a PR cannot rewrite the rules it is judged by.
+#
+# Setup (human-only): add an OPENROUTER_API_KEY repository secret.
+# Inputs and defaults: https://github.com/falconiere/toolu-ghactions
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  security-events: write # uploads the secret-scan / SAST SARIF to Code Scanning
+
+concurrency:
+  group: code-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: AI review
+    runs-on: ubuntu-latest
+    # Draft PRs are skipped — mark ready for review to trigger the bot.
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so the merge-base resolves
+
+      - name: Review
+        uses: falconiere/toolu-ghactions/code-review@v6
+        with:
+          API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CODEBASE_OVERVIEW: >-
+            Expo / React Native app. Routes live in app/ (Expo Router) and are
+            thin re-exports of feature screens; feature code lives in
+            src/features. Styling goes through src/ui/theme tokens — a literal
+            colour or magic number in a component is a bug. HTTP goes through
+            src/utilities/http.ts; axios is banned. See CLAUDE.md.

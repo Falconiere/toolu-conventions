@@ -10,7 +10,7 @@ There is **no staging-environment question for Rust** — skip it.
 Throughout, two shell variables stand in for your inputs — set them once:
 
 ```bash
-KIT=/path/to/toolu-convensions          # this kit's checkout
+KIT=/path/to/toolu-conventions          # this kit's checkout
 PROJECT=project-name                      # kebab-case name from intake
 ```
 
@@ -60,8 +60,14 @@ cp "$KIT/stacks/rust/templates/scripts/check-structure.sh" scripts/check-structu
 chmod +x scripts/check-structure.sh
 
 mkdir -p .github/workflows
-cp "$KIT/stacks/rust/templates/.github/workflows/ci.yml" .github/workflows/ci.yml
+cp "$KIT/stacks/rust/templates/.github/workflows/ci.yml"          .github/workflows/ci.yml
+cp "$KIT/stacks/rust/templates/.github/workflows/code-review.yml" .github/workflows/code-review.yml
 ```
+
+`ci.yml` is the gate (fmt + clippy + structure + test); `code-review.yml` reviews
+every PR against this repo's own convention files, read from the base ref, and
+needs an `OPENROUTER_API_KEY` repository secret (human checklist). See
+[`../../CORE.md`](../../CORE.md) → "Quality gates & guardrails".
 
 Then set the crate name in the copied manifest and `CLAUDE.md` (the templates
 ship the literal placeholder `project-name`):
@@ -158,6 +164,14 @@ the 500 code-line ceiling (tests exempt), and that the lefthook config is `.yml`
 Fix the code; never silence a lint to pass. The freshly scaffolded skeleton passes
 this as-is.
 
+> **The TS stacks' `knip` and `jscpd` steps are deliberately absent here.** Both
+> are Node tools, and requiring a Node toolchain in a Rust repo to run them costs
+> more than it buys: clippy already flags dead code (`dead_code`, `unused_imports`)
+> and `cargo` fails on an unused crate dependency far less silently than npm does.
+> If a crate grows enough to want them, the Rust-native equivalents are
+> `cargo machete` (unused dependencies) and `cargo +nightly udeps`; add them
+> deliberately and put them in this gate command, not beside it.
+
 Commit once it's green.
 
 ## 7. Human-only checklist
@@ -171,5 +185,9 @@ Print this and stop — these need a human:
 - [ ] **Deploy target.** If this is a service/binary that ships somewhere (a
       container, a host, a release artifact), set that up — it is not part of the
       scaffold.
-- [ ] **CI secrets.** Add any registry or deploy credentials the GitHub Actions
-      workflow needs as repository secrets.
+- [ ] **CI secrets.** Add the `OPENROUTER_API_KEY` repository secret the
+      code-review workflow needs, plus any registry or deploy credentials the
+      CI workflow uses.
+- [ ] **Branch protection.** Require both the **CI** check
+      (`.github/workflows/ci.yml`) and a passing **Code Review** on PRs to
+      `main`.

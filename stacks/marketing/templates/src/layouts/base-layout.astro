@@ -1,0 +1,41 @@
+---
+/** The one page shell — every page renders inside it. */
+import '@fontsource-variable/archivo';
+import '@fontsource-variable/jetbrains-mono';
+import '@/ui/globals.css';
+
+interface Props {
+  /** Browser tab + og:title. Keep it under ~60 characters. */
+  readonly title: string;
+  /** Meta description + og:description. One sentence, ~155 characters. */
+  readonly description: string;
+  /** Omit for the house default (Jade): 'blueprint' | 'ion' | 'chalk'. */
+  readonly signal?: 'blueprint' | 'ion' | 'chalk';
+}
+
+const { title, description, signal } = Astro.props;
+
+// A canonical URL on every page — duplicate content across www/apex/trailing
+// slash is the cheapest SEO mistake to make and the most annoying to undo.
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
+---
+
+<!doctype html>
+<html lang="en" data-signal={signal}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

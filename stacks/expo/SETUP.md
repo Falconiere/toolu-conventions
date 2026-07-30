@@ -161,12 +161,12 @@ Install the exact testing + lint/format tooling and always-on runtime libs:
 # library v14 peer (replaces the old react-test-renderer).
 bun add -d jest@~29.7.0 jest-expo @testing-library/react-native @types/jest@^29 test-renderer@^1
 
-# Lint / format + git hooks
-bun add -d oxlint oxfmt oxlint-tsgolint lefthook
+# Lint / format / gate + git hooks
+bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook
 
 # Always-on runtime libs (see LIBRARIES.md "Baseline")
 bunx expo install react-native-svg react-native-reanimated react-native-gesture-handler react-native-safe-area-context
-bun add @tanstack/react-query date-fns
+bun add @tanstack/react-query date-fns zod
 ```
 
 Copy these templates into the project root:
@@ -179,6 +179,8 @@ Copy these templates into the project root:
 | `templates/lefthook.yml` | `lefthook.yml` |
 | `templates/jest.config.js` | `jest.config.js` |
 | `templates/jest.setup.ts` | `jest.setup.ts` |
+| `templates/knip.json` | `knip.json` (unused files/exports/dependencies) |
+| `templates/.jscpd.json` | `.jscpd.json` (copy-paste detection; **keep `"exitCode": 1`** — without it jscpd reports and still exits 0) |
 | `templates/scripts/check-structure.sh` | `scripts/check-structure.sh` (`mkdir -p scripts` first) |
 
 Copy the lefthook config **before** installing hooks. Use the `.yml` extension:
@@ -209,7 +211,9 @@ Set these scripts in `package.json`. This block **overrides** the values
     "test": "jest --watchAll=false --coverage=false",
     "test:changed": "jest --watchAll=false --coverage=false --changedSince=origin/main",
     "check:structure": "bash scripts/check-structure.sh",
-    "check": "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run test",
+    "check:unused": "knip",
+    "check:dupes": "jscpd",
+    "check": "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run check:unused && bun run check:dupes && bun run test",
     "prepare": "lefthook install --force || true"
   }
 }
@@ -323,7 +327,7 @@ module/public symbol, no `any`, no `console.log`.
    vs prod) — keep that logic; delete `app.json` if `create-expo-app` left one
    (config now lives in `app.config.ts`).
 2. Copy `templates/env.ts` → `src/constants/env.ts`. It validates `EXPO_PUBLIC_*`
-   vars by hand (no schema library). **Keep the static member-access pattern** —
+   vars with a Zod schema. **Keep the static member-access pattern** —
    `babel-preset-expo` only inlines `process.env.EXPO_PUBLIC_X` at direct access
    sites, so production Hermes builds otherwise collapse every var to `undefined`.
    Add a new var by reading it via its full static `process.env.EXPO_PUBLIC_X`
@@ -413,6 +417,7 @@ mkdir -p .github/workflows .eas/workflows
 | Source (in this kit) | Destination (in project) |
 | --- | --- |
 | `templates/.github/workflows/ci.yml` | `.github/workflows/ci.yml` |
+| `templates/.github/workflows/code-review.yml` | `.github/workflows/code-review.yml` |
 | `templates/.eas/workflows/development-build.yml` | `.eas/workflows/development-build.yml` |
 | `templates/.eas/workflows/production-deploy.yml` | `.eas/workflows/production-deploy.yml` |
 | `templates/.eas/workflows/publish-update.yml` | `.eas/workflows/publish-update.yml` |
@@ -420,6 +425,10 @@ mkdir -p .github/workflows .eas/workflows
 - `ci.yml` runs type-check + lint + fmt:check + test (the same checks as
   `bun run check`). Keep its `bun-version` in sync with the `bun` field in
   `eas.json`.
+- `code-review.yml` reviews every PR against this repo's own convention files,
+  read from the **base** ref (so a PR cannot rewrite the rules it is judged by).
+  It needs an `OPENROUTER_API_KEY` repository secret — that's on the human
+  checklist. See [`../../CORE.md`](../../CORE.md) → "Quality gates & guardrails".
 - `production-deploy.yml` needs the `submit.production` credentials in `eas.json`
   filled in.
 - If **STAGING was not requested**, drop the `staging` option from
@@ -548,18 +557,34 @@ bunx expo run:ios     # or: bunx expo run:android
 
 Skip any the user declined. Add a README line under the relevant folder for each.
 
-**8a. API layer** — `bun add axios`; create `src/api/http-client.ts` (axios
-instance + interceptors), `src/api/api-error.ts` (a typed error class with
-field-level helpers), and a sample `clients/` + `queries/` pair per
-[`STRUCTURE.md`](./STRUCTURE.md). Default to hand-written clients/queries; only
-weigh `orval` codegen if the backend ships a reliable OpenAPI spec that changes
-frequently (see LIBRARIES.md "Use with caution").
+**8a. API layer** — two paths, same as the console stack.
 
-**8b. Auth scaffold** — `bunx expo install expo-secure-store`; add an
-`AuthProvider` in `src/providers/` that stores the token in secure storage,
-expose a `useAuth` hook, wire the axios interceptor to attach it, and gate routes
-with an `(auth)` route group. A hosted auth vendor (Clerk, Auth0, SuperTokens) is
-a per-project add-on, not the default.
+**Our own API → oRPC.** `bun add @orpc/client @orpc/tanstack-query`, then copy
+`../console/templates/src/api/orpc.ts` → `src/api/orpc.ts` and point its
+type-only `AppRouter` import at wherever the API's router type comes from. Query
+keys derive from the procedure path — never hand-write a `queryKey` array for an
+oRPC call.
+
+**Everything else → the kit's fetch client.** No HTTP dependency to install: copy
+`../console/templates/utilities/http.ts` → `src/utilities/http.ts` (**not axios**; it is written to run on Hermes, using a manual
+`AbortController` rather than `AbortSignal.timeout`/`any`, which Hermes lacks).
+Then create `src/api/http-client.ts` (one `createHttpClient` instance reading the
+base URL and timeout from `@/constants/env`) and a sample `clients/` + `queries/`
+pair per [`STRUCTURE.md`](./STRUCTURE.md). A response is `unknown` until you pass
+a `parse` guard — that is the point, not friction to route around. Default to
+hand-written clients/queries; only weigh `orval` codegen if the backend ships a
+reliable OpenAPI spec that changes frequently (see LIBRARIES.md "Use with
+caution").
+
+**8b. Auth (better-auth)** — `bun add better-auth` and
+`bunx expo install expo-secure-store`. The app holds the **client** half only:
+create the auth client with `createAuthClient` (better-auth's Expo plugin, with
+the session stored in secure storage), expose it through a provider in
+`src/providers/`, point the `http` client's `headers` hook at the session token,
+and gate routes with an `(auth)` route group. The server half — `betterAuth(...)`,
+the tables, `/api/auth/*` — belongs to the `backend-ts` service; no auth secret
+ever ships in the app bundle. Check better-auth's current Expo docs for the
+plugin's exact setup.
 
 **8c. Local storage** — `bunx expo install @react-native-async-storage/async-storage`;
 create `src/utilities/storage.ts` exposing a typed wrapper + centralized key
@@ -617,8 +642,10 @@ options; the common items:
       dev vs prod icon variants.
 - [ ] Set up the OTA `updates.url` channel→branch mapping in EAS (`eas channel`)
       so `publish-update.yml` ships to the right audience.
-- [ ] Create the GitHub repo + branch protection; require the **CI** check
-      (`.github/workflows/ci.yml`) on PRs to `main`.
+- [ ] Create the GitHub repo, add the `OPENROUTER_API_KEY` secret for the
+      code-review workflow, and set branch protection to require both the **CI**
+      check (`.github/workflows/ci.yml`) and a passing **Code Review** on PRs to
+      `main`.
 - [ ] Confirm the **EAS Workflows** appear in the EAS dashboard and that the
       `production-deploy.yml` submit credentials (Apple / Google) are valid.
 - [ ] Fill in real values in `.env` / EAS env for each `EXPO_PUBLIC_*` var.
