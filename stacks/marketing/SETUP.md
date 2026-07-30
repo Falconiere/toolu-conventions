@@ -125,7 +125,8 @@ Astro template generated where they overlap:
   defaults to double quotes, so without this the templates fail `oxfmt --check`)
 - `templates/knip.json` → `knip.json` (unused files/exports/dependencies)
 - `templates/.jscpd.json` → `.jscpd.json` (copy-paste detection). **Keep
-  `"exitCode": 1`** — without it jscpd prints its findings and still exits 0.
+  `"exitCode": 1`** — jscpd 5.x already exits 1 on a threshold breach, so this
+  pins the behaviour rather than enabling it; 4.x exited 0 by default.
 - `templates/lefthook.yml` → `lefthook.yml` **before** running the installer —
   use the `.yml` name (lefthook 2.x's `install` writes a stub `lefthook.yml`
   that silently shadows a `lefthook.yaml`, so hooks never fire). Then run

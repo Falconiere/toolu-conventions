@@ -103,8 +103,9 @@ generated):
   fails)
 - `templates/knip.json` → `knip.json` (unused files/exports/dependencies)
 - `templates/.jscpd.json` → `.jscpd.json` (copy-paste detection). **Keep
-  `"exitCode": 1`** — without it jscpd prints its findings and still exits 0, so
-  the gate step looks green while catching nothing.
+  `"exitCode": 1`** — jscpd 5.x already exits 1 on a threshold breach, so this
+  pins the behaviour rather than enabling it; 4.x exited 0 by default, and the
+  dependency is unpinned.
 - `templates/lefthook.yml` → `lefthook.yml` (must be `.yml`, not `.yaml` — see
   the install note below)
 - `templates/scripts/check-structure.sh` → `scripts/check-structure.sh`

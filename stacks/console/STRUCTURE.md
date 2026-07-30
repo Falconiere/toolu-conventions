@@ -141,8 +141,9 @@ blocked-patterns list.
 7. **Nothing unused, nothing duplicated.** `knip` fails the gate on an unused
    file, export, or dependency; `jscpd` fails it on copy-paste. Both are part of
    `bun run check`, not optional extras.
-   _Enforced by:_ `knip.json` and `.jscpd.json` (the latter with `exitCode: 1`,
-   without which jscpd reports and still exits 0).
+   _Enforced by:_ `knip.json` and `.jscpd.json` (the latter pins `exitCode: 1` —
+   jscpd 5.x exits 1 on a breach anyway, but 4.x did not, and the dep is
+   unpinned).
 8. **Co-locate tests** in a sibling `__tests__/` folder (`button.tsx` →
    `__tests__/button.test.tsx`), and test with **real data** — exercise real
    inputs and real integration paths. A mock-only test that just proves a mock

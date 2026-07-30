@@ -171,8 +171,8 @@ blocked-patterns list.
     `no-restricted-imports` (competing validation libraries) + review.
 11. **Nothing unused, nothing duplicated.** `knip` fails the gate on an unused
     file, export, or dependency; `jscpd` fails it on copy-paste. — enforced by
-    `knip.json` and `.jscpd.json` (the latter with `exitCode: 1`, without which
-    jscpd reports and still exits 0).
+    `knip.json` and `.jscpd.json` (the latter pins `exitCode: 1` — jscpd 5.x
+    exits 1 on a breach anyway, but 4.x did not, and the dep is unpinned).
 12. **Secrets never enter `wrangler.jsonc`,** and `.dev.vars` is never committed.
     — enforced by `check-structure.sh` (fails if git tracks `.dev.vars`).
 13. **Co-locate tests** in a sibling `__tests__/`: `health-service.ts` →

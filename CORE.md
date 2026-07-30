@@ -131,9 +131,12 @@ Two of the gate steps exist to keep the codebase from rotting quietly:
   with no re-export layer to hide behind, an export that nothing uses is
   genuinely dead.
 - **jscpd** (`.jscpd.json`) fails on copy-paste. It ships with `"threshold": 0`
-  **and `"exitCode": 1`** — without the second one jscpd prints its findings and
-  still exits 0, which is a check that looks green while catching nothing. Tests
-  are excluded; repeated setup there is not the duplication worth chasing.
+  **and an explicit `"exitCode": 1`.** The installed jscpd (5.x) already exits 1
+  on a threshold breach, so the key is not what makes the step work today — it
+  pins the behaviour so an unpinned version bump cannot quietly turn a red gate
+  green. jscpd 4.x did exit 0 by default, which is the failure this guards
+  against. Tests are excluded; repeated setup there is not the duplication worth
+  chasing.
 
 The same steps run in CI (`.github/workflows/ci.yml`) on every PR and push to
 `main`, **each as its own named step** so a red run names the failing gate
