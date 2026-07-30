@@ -6,6 +6,7 @@ import { healthProcedures } from '@/rpc/health-procedures';
 // it hides where things live. This file builds a value — the router — and its
 // shape *is* the API. Reading it should tell you the whole surface, and adding a
 // domain means adding one line here.
+/** The API surface, one line per domain. Clients are typed from this value. */
 export const router = {
   health: healthProcedures,
 };

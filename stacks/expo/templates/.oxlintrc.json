@@ -79,7 +79,7 @@
               "axios",
               "axios/*"
             ],
-            "message": "No axios - use the fetch client in @/utilities/http"
+            "message": "No axios - use the configured client in @/api/http-client"
           },
           {
             "group": [
@@ -197,7 +197,7 @@
                   "axios",
                   "axios/*"
                 ],
-                "message": "No axios - use the fetch client in @/utilities/http"
+                "message": "No axios - use the configured client in @/api/http-client"
               },
               {
                 "group": [

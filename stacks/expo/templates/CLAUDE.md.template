@@ -11,10 +11,9 @@ app/            Expo Router routes — THIN (re-export a feature screen, no logi
 src/ui/         Design-system primitives (button, text, text-input) + theme/
                 (colors · spacing · typography · motion · icons)
 src/features/   One folder per feature: screens/ components/ hooks/ api/ types
-src/api/        Cross-feature data layer: clients/ (requests) + queries/ (React Query)
-src/utilities/  Shared pure helpers (dates, formatters, …)
+src/api/        Data layer: orpc.ts (our API) + http-client.ts + clients/ (everything else)
+src/utilities/  Shared pure helpers (dates, formatters, …) — including http.ts
 src/providers/  App-level context providers (mounted in app/_layout.tsx)
-src/api/         Data layer: orpc.ts (our API) + http-client.ts + clients/ (everything else)
 src/constants/  env.ts (Zod-validated), enums
 src/types/      Cross-cutting types
 assets/         Images, icons, fonts

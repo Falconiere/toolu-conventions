@@ -55,8 +55,13 @@ if (!parsed.success) {
   throw new Error(`[env] invalid configuration:\n${z.prettifyError(parsed.error)}`);
 }
 
+/** Which build variant is installed — drives the app id, icon, and display name. */
 export const APP_VARIANT: AppVariant = appVariant();
+/** True in a release build. Reflects how the JS was bundled, not which API it talks to. */
 export const IS_PROD: boolean = !__DEV__;
+/** The logical environment this build targets — the one the API belongs to. */
 export const APP_ENV: AppEnv = parsed.data.EXPO_PUBLIC_ENV;
+/** Base URL every request in `src/api/` is resolved against. */
 export const BASE_API_URL: string = parsed.data.EXPO_PUBLIC_API_URL;
+/** Abort budget for a single request, in milliseconds. */
 export const REQUEST_TIMEOUT_MS = 8_000;

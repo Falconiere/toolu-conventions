@@ -165,8 +165,8 @@
     },
     {
       "files": [
-        "**/__tests__/**/*.ts",
-        "**/*.test.ts"
+        "**/__tests__/**/*.{ts,tsx}",
+        "**/*.test.{ts,tsx}"
       ],
       "rules": {
         "max-lines": "off",

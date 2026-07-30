@@ -14,4 +14,5 @@ export interface RpcContext {
 //
 // Shared middleware (auth, rate limiting, logging) is attached here with
 // `.use(...)` so it cannot be forgotten on a new procedure.
+/** The builder every procedure starts from — carries the context type and shared middleware. */
 export const base = os.$context<RpcContext>();

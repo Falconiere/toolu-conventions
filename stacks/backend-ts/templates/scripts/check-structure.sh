@@ -58,11 +58,13 @@ if [ -d .git ] && git ls-files --error-unmatch .dev.vars >/dev/null 2>&1; then
   err ".dev.vars is tracked by git — it holds secrets; untrack it and add it to .gitignore"
 fi
 
-# Banned dependencies. fetch is built into the Workers runtime.
+# Banned dependencies — the same set .oxlintrc.json blocks at import time, so a
+# package cannot be installed here and merely go unimported. fetch is built into
+# the Workers runtime, and zod is the one validator (CORE rule 13).
 if [ -f package.json ]; then
-  for banned in axios; do
+  for banned in axios yup joi valibot superstruct ajv; do
     if grep -q "\"$banned\"[[:space:]]*:" package.json; then
-      err "banned dependency in package.json: $banned (fetch is built in)"
+      err "banned dependency in package.json: $banned (fetch is built in; zod is the one validator)"
     fi
   done
 fi

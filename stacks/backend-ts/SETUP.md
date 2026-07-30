@@ -301,7 +301,9 @@ Skip any the user declined. Add a README line under the relevant folder for each
 ### 6a. Auth (better-auth)
 
 ```bash
-bun add better-auth
+# @libsql/kysely-libsql is the Kysely dialect the sample below imports —
+# better-auth pulls in kysely itself, but not the libSQL dialect for it.
+bun add better-auth @libsql/kysely-libsql
 ```
 
 better-auth is the house auth library, and this service owns the **server** half

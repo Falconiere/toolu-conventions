@@ -64,12 +64,14 @@ if [ -f vitest.config.ts ] || [ -f vitest.config.mts ]; then
   echo "STRUCTURE: found a separate vitest config — move the 'test' block into vite.config.ts (a vitest config replaces, not merges)"; fail=1
 fi
 
-# 8. Banned dependencies. The house HTTP layer is src/utilities/http.ts over
-#    fetch; see LIBRARIES.md for the reasoning behind each entry.
+# 8. Banned dependencies — the same set .oxlintrc.json blocks at import time, so a
+#    package cannot be installed here and merely go unimported. One HTTP client
+#    (src/utilities/http.ts over fetch) and one validator (zod, CORE rule 13).
+#    See LIBRARIES.md for the reasoning behind each entry.
 if [ -f package.json ]; then
-  for banned in axios; do
+  for banned in axios yup joi valibot superstruct ajv; do
     if grep -q "\"$banned\"[[:space:]]*:" package.json; then
-      echo "STRUCTURE: banned dependency in package.json: $banned (use src/utilities/http.ts)"; fail=1
+      echo "STRUCTURE: banned dependency in package.json: $banned (one HTTP client: src/utilities/http.ts; one validator: zod)"; fail=1
     fi
   done
 fi

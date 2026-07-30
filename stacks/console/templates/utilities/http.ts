@@ -91,6 +91,13 @@ export class HttpAbortError extends Error {
 
 const DEFAULT_TIMEOUT_MS = 8_000;
 
+// `error.name` rather than `instanceof DOMException`: Hermes (React Native) does
+// not expose DOMException, and every runtime we target names the abort rejection
+// 'AbortError'.
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
 // `JSON.parse` retyped to hand back `unknown`. Assigning the *function* (not its
 // result) keeps `any` from ever entering the module.
 const parseJson: (text: string) => unknown = JSON.parse;
@@ -141,7 +148,14 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     const forwardAbort = (): void => {
       controller.abort();
     };
-    options?.signal?.addEventListener('abort', forwardAbort);
+    // A signal that is ALREADY aborted never fires 'abort' again, so adding a
+    // listener to one would let the request run to completion after the caller
+    // had cancelled it. Check the current state first.
+    if (options?.signal?.aborted === true) {
+      controller.abort();
+    } else {
+      options?.signal?.addEventListener('abort', forwardAbort);
+    }
 
     const headers: Record<string, string> = { accept: 'application/json' };
     const configured = await config.headers?.();
@@ -171,7 +185,11 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       }
       return decoded;
     } catch (error) {
-      if (controller.signal.aborted) {
+      // Test the error, not `controller.signal.aborted`: once the timeout has
+      // fired, the signal reads aborted for the rest of this scope, so a genuine
+      // network or parse failure arriving afterwards would be relabelled a
+      // timeout and the real cause lost.
+      if (isAbortError(error)) {
         throw new HttpAbortError(url, timedOut);
       }
       throw error;

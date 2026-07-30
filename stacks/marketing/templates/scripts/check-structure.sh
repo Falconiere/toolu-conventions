@@ -63,11 +63,13 @@ if [ -f lefthook.yaml ]; then
   echo "STRUCTURE: found lefthook.yaml — rename to lefthook.yml (lefthook 2.x installer shadows .yaml)"; fail=1
 fi
 
-# 8. Banned dependencies. See LIBRARIES.md for the reasoning behind each entry.
+# 8. Banned dependencies — the same set .oxlintrc.json blocks at import time, so a
+#    package cannot be installed here and merely go unimported. One validator
+#    (CORE rule 13) and one HTTP client. See LIBRARIES.md for the reasoning.
 if [ -f package.json ]; then
-  for banned in axios; do
+  for banned in axios yup joi valibot superstruct ajv; do
     if grep -q "\"$banned\"[[:space:]]*:" package.json; then
-      echo "STRUCTURE: banned dependency in package.json: $banned (use src/utilities/http.ts)"; fail=1
+      echo "STRUCTURE: banned dependency in package.json: $banned (one HTTP client: src/utilities/http.ts; one validator: zod)"; fail=1
     fi
   done
 fi

@@ -19,4 +19,5 @@ export const check = base.output(HealthStatus).handler(() => {
   return { status: 'ok' };
 });
 
+/** The `health.*` namespace, mounted into the router. */
 export const healthProcedures = { check };
