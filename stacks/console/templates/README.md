@@ -78,7 +78,7 @@ Navigate with `<Link to="…">` so a renamed route is a compile error, not a 404
 - **`ci.yml`** — type-check, lint, format-check, structure check, test, and a
   production build, each as its own step, on every PR and push to `main`.
 - **`code-review.yml`** — AI review of every PR against this repo's own
-  convention files (read from the base branch). Needs an `OPENROUTER_API_KEY`
+  convention files (read from the base branch). Needs a `DEEPSEEK_API_KEY`
   repository secret.
 
 Both should be required checks on `main`.

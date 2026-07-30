@@ -76,7 +76,7 @@ with a real 404 status so dead URLs are dropped rather than indexed.
 - **`ci.yml`** — `astro sync`, then type-check, lint, format-check, structure
   check, test, and a production build, on every PR and push to `main`.
 - **`code-review.yml`** — AI review of every PR against this repo's own
-  convention files (read from the base branch). Needs an `OPENROUTER_API_KEY`
+  convention files (read from the base branch). Needs a `DEEPSEEK_API_KEY`
   repository secret.
 
 Both should be required checks on `main`.

@@ -85,7 +85,7 @@ clean up its own rows.
 - **`ci.yml`** — checks the committed Worker types are current, runs the whole
   gate, then a dry-run deploy that bundles the Worker without publishing.
 - **`code-review.yml`** — AI review of every PR against this repo's own
-  convention files (read from the base branch). Needs an `OPENROUTER_API_KEY`
+  convention files (read from the base branch). Needs a `DEEPSEEK_API_KEY`
   repository secret.
 
 Both should be required checks on `main`.

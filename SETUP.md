@@ -97,6 +97,6 @@ stack kit defines (Cloudflare login, Turso database creation, secrets, store
 logins, EAS setup, branch protection — things only a human can do). Do not
 attempt them yourself.
 
-Every TS stack's checklist includes adding the `OPENROUTER_API_KEY` repository
+Every TS stack's checklist includes adding the `DEEPSEEK_API_KEY` repository
 secret and requiring both **CI** and **Code Review** on `main`. Without those,
 two of the four guard-rail layers in `CORE.md` are decorative.

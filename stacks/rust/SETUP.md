@@ -66,7 +66,7 @@ cp "$KIT/stacks/rust/templates/.github/workflows/code-review.yml" .github/workfl
 
 `ci.yml` is the gate (fmt + clippy + structure + test); `code-review.yml` reviews
 every PR against this repo's own convention files, read from the base ref, and
-needs an `OPENROUTER_API_KEY` repository secret (human checklist). See
+needs a `DEEPSEEK_API_KEY` repository secret (human checklist). See
 [`../../CORE.md`](../../CORE.md) → "Quality gates & guardrails".
 
 Then set the crate name in the copied manifest and `CLAUDE.md` (the templates
@@ -185,7 +185,7 @@ Print this and stop — these need a human:
 - [ ] **Deploy target.** If this is a service/binary that ships somewhere (a
       container, a host, a release artifact), set that up — it is not part of the
       scaffold.
-- [ ] **CI secrets.** Add the `OPENROUTER_API_KEY` repository secret the
+- [ ] **CI secrets.** Add the `DEEPSEEK_API_KEY` repository secret the
       code-review workflow needs, plus any registry or deploy credentials the
       CI workflow uses.
 - [ ] **Branch protection.** Require both the **CI** check

@@ -36,7 +36,8 @@ jobs:
       - name: Review
         uses: falconiere/toolu-ghactions/code-review@v6
         with:
-          API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          PROVIDER: deepseek
+          API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           RULES_GLOB: 'CORE.md'
           CODEBASE_OVERVIEW: >-
             This repo is an AI-agent-runnable conventions kit, not an

@@ -75,7 +75,7 @@ lives in the **Design notes** section of [`CLAUDE.md`](./CLAUDE.md).
   format-check + structure + knip + jscpd + test on every PR and push to `main`
   (same checks as `bun run check`, each as its own named step).
 - **`code-review.yml`** — AI review of every PR against this repo's own
-  convention files, read from the base branch. Needs an `OPENROUTER_API_KEY`
+  convention files, read from the base branch. Needs a `DEEPSEEK_API_KEY`
   repository secret.
 - **EAS Workflows** (`.eas/workflows/`) — `development-build` (on-demand dev
   clients), `production-deploy` (build + submit, on a `v*` tag), and

@@ -146,7 +146,7 @@ dry-run deploy), because a type-clean project can still fail to ship.
 **4. AI code review (`.github/workflows/code-review.yml`).** Every stack ships
 it. It reviews each PR against the repo's own convention files — read from the
 **base** ref, so a PR cannot rewrite the rules it is judged by — and posts inline
-findings. It needs an `OPENROUTER_API_KEY` repository secret.
+findings. It needs a `DEEPSEEK_API_KEY` repository secret.
 
 Both CI and Code Review should be **required checks** on `main`. That is on every
 stack's human-only checklist, because only a human can set it.

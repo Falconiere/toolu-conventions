@@ -427,7 +427,7 @@ mkdir -p .github/workflows .eas/workflows
   `bun-version` in sync with the `bun` field in `eas.json`.
 - `code-review.yml` reviews every PR against this repo's own convention files,
   read from the **base** ref (so a PR cannot rewrite the rules it is judged by).
-  It needs an `OPENROUTER_API_KEY` repository secret — that's on the human
+  It needs a `DEEPSEEK_API_KEY` repository secret — that's on the human
   checklist. See [`../../CORE.md`](../../CORE.md) → "Quality gates & guardrails".
 - `production-deploy.yml` needs the `submit.production` credentials in `eas.json`
   filled in.
@@ -642,7 +642,7 @@ options; the common items:
       dev vs prod icon variants.
 - [ ] Set up the OTA `updates.url` channel→branch mapping in EAS (`eas channel`)
       so `publish-update.yml` ships to the right audience.
-- [ ] Create the GitHub repo, add the `OPENROUTER_API_KEY` secret for the
+- [ ] Create the GitHub repo, add the `DEEPSEEK_API_KEY` secret for the
       code-review workflow, and set branch protection to require both the **CI**
       check (`.github/workflows/ci.yml`) and a passing **Code Review** on PRs to
       `main`.
