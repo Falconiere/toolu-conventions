@@ -341,8 +341,13 @@ new top-level entry: add `worker` handling to `scripts/check-structure.sh` if yo
 move it into a folder.
 
 Add a `"cf-typegen": "wrangler types"` script and run it, then commit the
-generated `worker-configuration.d.ts` — it is what types the Worker's `env`, and
-`tsc --noEmit` needs it on a fresh clone. The kit already ships the plumbing for
+generated `worker-configuration.d.ts` **and add it to `tsconfig.json`'s
+`include`**. Committing it is not enough on its own: `wrangler types` writes it
+to the project root, the shipped `include` is `["src", "vite.config.ts",
+"vitest.setup.ts"]`, and an ambient `.d.ts` outside the program is invisible —
+`tsc --noEmit` fails with `Cannot find name 'Env'` even with the file sitting
+right there. (The backend-ts stack lists it in `include` for exactly this
+reason; console does not, because until this phase it has no Worker.) The kit already ships the plumbing for
 that file (it is listed in `.gitattributes`, and excluded from oxlint and the
 Lefthook globs), because those entries are harmless while the file is absent and
 would otherwise be easy to forget once it appears. Nothing generates it until

@@ -109,8 +109,9 @@ silently shadowed by the 2.x installer's stub, and the hooks then never run.
   type-check + `bunx oxlint --deny-warnings` + `bunx oxfmt --check` +
   `bash scripts/check-structure.sh` + `bunx knip` + `bunx jscpd` + the test
   runner, in that order. ("Type-check" is `tsc --noEmit`, except in the marketing
-  stack, where it is `astro check` — the only tool that sees inside `.astro`
-  files.)
+  stack, where it is `astro check` — the only tool that reads an `.astro`
+  file's TEMPLATE body. oxlint reads its frontmatter too; oxfmt cannot parse
+  `.astro` at all.)
 - **Rust** —
   `cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/check-structure.sh && cargo test`.
 

@@ -62,8 +62,8 @@ with a real 404 status so dead URLs are dropped rather than indexed.
 | `bun run check` | Full gate: `astro check` + lint + format-check + structure + unused + dupes + test. |
 | `bun run type-check` | `astro check` — types in `.astro` frontmatter and `.ts`. |
 | `bun run sync` | `astro sync` — regenerates content-collection types. |
-| `bun run lint` / `lint:fix` | oxlint (TypeScript files). |
-| `bun run fmt` / `fmt:check` | oxfmt. |
+| `bun run lint` / `lint:fix` | oxlint — `.ts`/`.tsx` and `.astro` frontmatter. |
+| `bun run fmt` / `fmt:check` | oxfmt — `.ts`/`.tsx`; it cannot parse `.astro`. |
 | `bun run check:structure` | Folder tree, the required 404 page, banned deps. |
 | `bun run check:unused` | knip — unused files, exports, dependencies. |
 | `bun run check:dupes` | jscpd — copy-paste detection. |
