@@ -31,4 +31,15 @@ while IFS= read -r f; do fail "test not colocated in __tests__/: $f"; done \
 # Lefthook config must be lefthook.yml — a .yaml is silently shadowed on install.
 [ -f lefthook.yaml ] && fail "lefthook.yaml present — rename to lefthook.yml"
 
+# Banned dependencies — the same set .oxlintrc.json blocks at import time, so a
+# package cannot be installed here and merely go unimported. One HTTP client
+# (src/utilities/http.ts over fetch) and one validator (zod, CORE rule 13).
+if [ -f package.json ]; then
+  for banned in axios yup joi valibot superstruct ajv; do
+    if grep -q "\"$banned\"[[:space:]]*:" package.json; then
+      fail "banned dependency in package.json: $banned (one HTTP client: @/api/http-client; one validator: zod)"
+    fi
+  done
+fi
+
 exit "$status"

@@ -1,0 +1,37 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "{{PROJECT_NAME}}",
+  // Pin to the date you scaffolded on. Bumping it opts into newer runtime
+  // behaviour — do it deliberately, not as a drive-by.
+  "compatibility_date": "2026-07-30",
+
+  // A static Astro build served from the edge: no Worker script at all, so
+  // there is no cold start and no per-request cost for a page view.
+  //
+  // `not_found_handling` is deliberately NOT "single-page-application" here —
+  // this is a multi-page site, and a 404 must stay a 404 so search engines
+  // drop dead URLs instead of indexing a soft-200. Astro builds a real 404 page
+  // from src/pages/404.astro; "404-page" serves it with the right status.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  },
+
+  // Only if you opted into SSR (SETUP.md Phase 6) — the @astrojs/cloudflare
+  // adapter emits a Worker entry and this must point at it:
+  //   "main": "./dist/_worker.js/index.js",
+  //   "assets": { ..., "binding": "ASSETS" },
+  //   "compatibility_flags": ["nodejs_compat"]
+
+  // Staging is one more deploy target, not another codebase. Uncomment when the
+  // intake asked for it, then deploy with `wrangler deploy --env staging`.
+  // "env": {
+  //   "staging": {
+  //     "name": "{{PROJECT_NAME}}-staging"
+  //   }
+  // },
+
+  "observability": {
+    "enabled": true
+  }
+}

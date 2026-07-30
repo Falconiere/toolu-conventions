@@ -9,7 +9,7 @@ err() {
   fail=1
 }
 
-allowed_dirs="routes services utilities constants types"
+allowed_dirs="rpc routes services utilities constants types"
 allowed_root_files="app.ts index.ts"
 
 for path in src/*; do
@@ -46,5 +46,27 @@ done < <(find src -type f -name '*.test.*' -not -path '*/__tests__/*' 2>/dev/nul
 
 # Lefthook config must be .yml — a .yaml is shadowed by the install stub (hooks silently skip).
 [ -e lefthook.yaml ] && err "lefthook.yaml present — rename to lefthook.yml (lefthook 2.x shadows it)"
+
+# Wrangler config must exist and must be the .jsonc the kit ships. Two configs is
+# the classic way to deploy one thing and test another.
+[ -f wrangler.jsonc ] || err "missing wrangler.jsonc — the Worker has no deploy config"
+[ -e wrangler.toml ] && err "wrangler.toml present — this kit uses wrangler.jsonc; delete one"
+
+# A secret must never be committed. .dev.vars is local-only; .dev.vars.example is
+# the tracked template.
+if [ -d .git ] && git ls-files --error-unmatch .dev.vars >/dev/null 2>&1; then
+  err ".dev.vars is tracked by git — it holds secrets; untrack it and add it to .gitignore"
+fi
+
+# Banned dependencies — the same set .oxlintrc.json blocks at import time, so a
+# package cannot be installed here and merely go unimported. fetch is built into
+# the Workers runtime, and zod is the one validator (CORE rule 13).
+if [ -f package.json ]; then
+  for banned in axios yup joi valibot superstruct ajv; do
+    if grep -q "\"$banned\"[[:space:]]*:" package.json; then
+      err "banned dependency in package.json: $banned (fetch is built in; zod is the one validator)"
+    fi
+  done
+fi
 
 exit "$fail"

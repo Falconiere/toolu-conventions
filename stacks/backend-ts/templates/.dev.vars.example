@@ -1,0 +1,19 @@
+# Copy to `.dev.vars` (git-ignored). Wrangler loads it for `wrangler dev` and for
+# the Vitest Workers pool, exactly as if each line were a deployed secret.
+#
+# `.dev.vars` is for SECRETS. Non-secret config belongs in the `vars` block of
+# wrangler.jsonc, where it is version-controlled and visible in review.
+#
+# Deployed environments do NOT read this file — push each value with
+#   wrangler secret put TURSO_AUTH_TOKEN
+#   wrangler secret put TURSO_AUTH_TOKEN --env staging
+# and remember that every environment needs its own copy.
+
+# --- Turso (the house database) ---
+TURSO_DATABASE_URL=libsql://your-db-your-org.turso.io
+TURSO_AUTH_TOKEN=
+
+# --- better-auth (auth integration) ---
+# Generate with: openssl rand -base64 32
+# BETTER_AUTH_SECRET=
+# BETTER_AUTH_URL=http://localhost:8787

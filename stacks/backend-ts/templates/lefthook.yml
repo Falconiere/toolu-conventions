@@ -5,7 +5,7 @@ pre-commit:
   parallel: true
   commands:
     fmt:
-      glob: '*.{ts,json,md,yaml,yml}'
+      glob: '*.{ts,json,jsonc,md,yaml,yml}'
       run: bunx oxfmt --check --no-error-on-unmatched-pattern {staged_files}
     lint:
       glob: 'src/**/*.ts'

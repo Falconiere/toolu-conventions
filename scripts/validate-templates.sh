@@ -15,10 +15,53 @@ while IFS= read -r -d '' f; do
   jq empty "$f" >/dev/null 2>&1 || bad "json parse: $f"
 done < <(find stacks/*/templates -type f -name '*.json' -print0)
 
-# --- YAML ---
+# --- JSONC (wrangler configs; comments are the point, so jq can't read them) ---
+# Strips // and /* */ comments with a string-aware scanner — a naive regex would
+# eat the "//" inside a URL. Trailing commas are legal JSONC but rejected here:
+# the templates don't use them, and allowing them hides a real typo.
+while IFS= read -r -d '' f; do
+  python3 - "$f" <<'PY' >/dev/null 2>&1 || bad "jsonc parse: $f"
+import json, sys
+
+text = open(sys.argv[1], encoding="utf-8").read()
+out, i, n = [], 0, len(text)
+while i < n:
+    ch = text[i]
+    if ch == '"':
+        j = i + 1
+        while j < n:
+            if text[j] == "\\":
+                j += 2
+                continue
+            if text[j] == '"':
+                break
+            j += 1
+        out.append(text[i : j + 1])
+        i = j + 1
+    elif text.startswith("//", i):
+        while i < n and text[i] != "\n":
+            i += 1
+    elif text.startswith("/*", i):
+        k = text.find("*/", i + 2)
+        i = n if k == -1 else k + 2
+    else:
+        out.append(ch)
+        i += 1
+json.loads("".join(out))
+PY
+done < <(find stacks/*/templates -type f -name '*.jsonc' -print0)
+
+# --- YAML (templates, plus this repo's OWN workflows — a kit whose CI file
+#     does not parse cannot enforce anything) ---
 while IFS= read -r -d '' f; do
   ruby -ryaml -e "YAML.load_file(ARGV[0])" "$f" >/dev/null 2>&1 || bad "yaml parse: $f"
-done < <(find stacks/*/templates -type f \( -name '*.yml' -o -name '*.yaml' \) -print0)
+done < <(find stacks/*/templates .github -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 2>/dev/null)
+
+# The kit calls all four guard-rail layers mandatory in CORE.md; it has to run
+# them itself. This is the check that keeps it honest.
+for wf in .github/workflows/ci.yml .github/workflows/code-review.yml; do
+  [ -f "$wf" ] || bad "the kit does not run its own guard rails: missing $wf"
+done
 
 # --- TOML ---
 while IFS= read -r -d '' f; do
@@ -39,10 +82,40 @@ if [ "${#ts_files[@]}" -gt 0 ]; then
     || bad "oxfmt --check on TS/TSX templates"
 fi
 
-# --- Web globals.css pair: both exist, and neither has the other's Tailwind wiring.
-#     Copying the wrong one silently kills every utility class or every UA default. ---
-plain=stacks/web/templates/globals.css
-twind=stacks/web/templates/globals.tailwind.css
+# --- Lint each stack's templates with THAT STACK'S SHIPPED .oxlintrc.json.
+#     The pass above uses a deliberately minimal config, which is exactly how a
+#     template that trips a rule the real config enables reached a scaffold and
+#     turned `bun run lint` red on the very first run (a side-effect
+#     `import './globals.css'` under `suspicious: error`). Templates are copied
+#     to a temp dir at their project-relative paths so the config's `overrides`
+#     (keyed on `src/main.tsx`, `src/app/**`, …) match the way they will in a
+#     real project. `typeAware` is forced off — it needs the node_modules and
+#     tsconfig that only exist inside a scaffold. ---
+for d in stacks/*/; do
+  stack=$(basename "$d")
+  [ -f "$d/templates/.oxlintrc.json" ] || continue
+  lintdir="$(mktemp -d)"
+  cp -R "$d/templates/." "$lintdir/"
+  if python3 -c "
+import json, sys
+cfg = json.load(open(sys.argv[1]))
+cfg.setdefault('options', {})['typeAware'] = False
+json.dump(cfg, open(sys.argv[1], 'w'), indent=2)
+" "$lintdir/.oxlintrc.json" 2>/dev/null; then
+    ( cd "$lintdir" && bunx oxlint --deny-warnings . ) \
+      || bad "oxlint with the SHIPPED .oxlintrc.json on $stack templates"
+  else
+    bad "could not read $stack .oxlintrc.json to disable typeAware"
+  fi
+  rm -rf "$lintdir"
+done
+
+# --- The globals.css pair: both exist, and neither has the other's Tailwind
+#     wiring. Copying the wrong one silently kills every utility class or every
+#     UA default. These two files are shared: the marketing kit copies one of
+#     them too, so a break here breaks two stacks. ---
+plain=stacks/console/templates/globals.css
+twind=stacks/console/templates/globals.tailwind.css
 for f in "$plain" "$twind"; do
   [ -f "$f" ] || bad "globals template missing: $f"
 done
@@ -83,7 +156,7 @@ if [ -f "$plain" ] && [ -f "$twind" ]; then
   # SemanticColors keys map to kebab-case --tone-* names.
   tonetmp="$(mktemp -d)"
   bun -e '
-    const m = await import("./stacks/web/templates/theme/colors.ts");
+    const m = await import("./stacks/console/templates/theme/colors.ts");
     const kebab = (k) => k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
     const emit = (o) =>
       Object.entries(o)
@@ -112,17 +185,88 @@ depfree=(
   stacks/expo/templates/theme/motion.ts
   stacks/expo/templates/theme/spacing.ts
   stacks/expo/templates/theme/typography.ts
-  stacks/web/templates/theme/colors.ts
-  stacks/web/templates/theme/icons.ts
-  stacks/web/templates/theme/motion.ts
-  stacks/web/templates/theme/spacing.ts
-  stacks/web/templates/theme/typography.ts
+  stacks/console/templates/theme/colors.ts
+  stacks/console/templates/theme/icons.ts
+  stacks/console/templates/theme/motion.ts
+  stacks/console/templates/theme/spacing.ts
+  stacks/console/templates/theme/typography.ts
 )
 missing=0
 for f in "${depfree[@]}"; do [ -f "$f" ] || { bad "dep-free template missing: $f"; missing=1; }; done
 if [ "$missing" -eq 0 ]; then
   bunx tsc --strict --noEmit "${depfree[@]}" || bad "tsc --strict on dep-free templates"
 fi
+
+# --- The HTTP client: dependency-free, but it needs the browser lib and a modern
+#     target, so it gets its own pass under the console tsconfig's real flags.
+#     It ships to three stacks (console, marketing, expo) — a break here is a
+#     break everywhere, and it is the one template with actual logic in it. ---
+http_client=stacks/console/templates/utilities/http.ts
+if [ ! -f "$http_client" ]; then
+  bad "http client template missing: $http_client"
+else
+  bunx tsc --noEmit --strict --noUncheckedIndexedAccess --exactOptionalPropertyTypes \
+    --noImplicitOverride --noImplicitReturns --noUnusedLocals --noUnusedParameters \
+    --useUnknownInCatchVariables --verbatimModuleSyntax \
+    --target ES2022 --lib ES2022,DOM,DOM.Iterable \
+    --module esnext --moduleResolution bundler \
+    "$http_client" || bad "tsc --strict on $http_client"
+  # Enforced by lint in a scaffold, but the templates lint non-type-aware here,
+  # so check the two bans that make this file worth having.
+  grep -q "from 'axios'" "$http_client" && bad "http client must not import axios: $http_client"
+  grep -qE '\bas [A-Z]' "$http_client" && bad "http client must not use type assertions: $http_client"
+fi
+
+# --- Cross-stack template references: the marketing kit copies its tokens,
+#     stylesheet, and (via expo) the HTTP client out of the console kit. Those
+#     paths are prose in SETUP.md, so nothing else would catch a rename. ---
+for f in \
+  stacks/console/templates/theme/colors.ts \
+  stacks/console/templates/theme/typography.ts \
+  stacks/console/templates/globals.css \
+  stacks/console/templates/utilities/http.ts
+do
+  [ -f "$f" ] || bad "cross-stack template referenced by marketing/expo is missing: $f"
+done
+
+# --- Guard rails: every stack ships both workflows, and no stack ships a
+#     lefthook.yaml (the 2.x installer silently shadows it). ---
+for d in stacks/*/; do
+  stack=$(basename "$d")
+  for wf in ci.yml code-review.yml; do
+    [ -f "$d/templates/.github/workflows/$wf" ] \
+      || bad "stack '$stack' is missing templates/.github/workflows/$wf"
+  done
+  [ -f "$d/templates/lefthook.yaml" ] \
+    && bad "stack '$stack' ships lefthook.yaml — must be lefthook.yml"
+done
+
+# --- The console stack must NOT ship a vitest config: its own
+#     check-structure.sh fails the gate when one exists (a vitest config
+#     replaces vite.config.ts rather than merging, dropping the router plugin
+#     and the @/* alias). Shipping one would hand every new project a template
+#     that its own gate rejects. ---
+[ -e stacks/console/templates/vitest.config.ts ] \
+  && bad "console ships a vitest.config.ts — its check-structure.sh rejects one; the test block belongs in vite.config.ts"
+
+# --- Gate extras: every TypeScript stack ships knip + jscpd configs, and the
+#     jscpd config carries exitCode 1. Measured on 4.0.0, 4.2.5 and 5.0.14:
+#     `threshold: 0` is what fails the gate (any clone exceeds it, jscpd throws,
+#     exit 1) with or without the key — exitCode is inert at threshold 0. It
+#     matters only above threshold 0, where jscpd stops throwing and without the
+#     key reports clones and exits 0. Required here so the pair stays correct if
+#     a project ever relaxes the threshold. ---
+for stack in console marketing backend-ts expo; do
+  [ -f "stacks/$stack/templates/knip.json" ] \
+    || bad "stack '$stack' is missing templates/knip.json"
+  jscpd_cfg="stacks/$stack/templates/.jscpd.json"
+  if [ ! -f "$jscpd_cfg" ]; then
+    bad "stack '$stack' is missing templates/.jscpd.json"
+  else
+    [ "$(jq -r '.exitCode' "$jscpd_cfg")" = "1" ] \
+      || bad "jscpd config must set exitCode 1 (keeps it correct if threshold is ever raised): $jscpd_cfg"
+  fi
+done
 
 # --- Rust skeleton: materialize into temp crate, fmt + clippy offline ---
 tmpcrate="$(mktemp -d)/skel"

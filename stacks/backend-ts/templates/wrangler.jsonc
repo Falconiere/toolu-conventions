@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "{{PROJECT_NAME}}",
+  "main": "./src/index.ts",
+  // Pin to the date you scaffolded on. Bumping it opts into newer runtime
+  // behaviour — do it deliberately, not as a drive-by.
+  "compatibility_date": "2026-07-30",
+
+  // Required by better-auth (AsyncLocalStorage) and by most Node-shaped
+  // libraries. Turso's serverless client is fetch-only and does not need it.
+  // Left on by default because its absence fails at runtime with an import
+  // error that reads like a bundler bug.
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Non-secret config. Secrets (TURSO_AUTH_TOKEN, BETTER_AUTH_SECRET) never
+  // appear here — they live in `.dev.vars` locally and `wrangler secret put`
+  // for deployed environments.
+  "vars": {
+    "APP_ENV": "development"
+  },
+
+  // Staging is one more deploy target, not another codebase. Uncomment when the
+  // intake asked for it, then deploy with `wrangler deploy --env staging`.
+  // Note: each environment needs its OWN secrets
+  // (`wrangler secret put TURSO_AUTH_TOKEN --env staging`).
+  // "env": {
+  //   "staging": {
+  //     "name": "{{PROJECT_NAME}}-staging",
+  //     "vars": { "APP_ENV": "staging" }
+  //   }
+  // },
+
+  "observability": {
+    "enabled": true
+  }
+}

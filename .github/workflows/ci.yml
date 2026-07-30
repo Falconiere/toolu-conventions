@@ -1,0 +1,65 @@
+# GitHub Actions — the gate for the conventions kit itself.
+#
+# This repo ships `ci.yml` and `code-review.yml` as templates for generated
+# projects. For a long time it had neither of its own, which meant a PR here got
+# zero checks while CORE.md called all four guard-rail layers mandatory. This
+# file closes that gap: the kit obeys its own rules.
+#
+# The whole gate is `scripts/validate-templates.sh` — one command, same as every
+# stack's `bun run check`. It parses every JSON/JSONC/YAML/TOML template, lints
+# and format-checks every TS/TSX template twice (once with a minimal config,
+# once with each stack's REAL .oxlintrc.json), strict-type-checks the
+# dependency-free templates and the HTTP client, verifies the tone tokens agree
+# across theme/colors.ts and both stylesheets, checks cross-stack template
+# references, and materializes the rust skeleton into a temp crate for
+# fmt + clippy.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: validate templates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Bun runs oxlint / oxfmt / tsc over the TS templates, and evaluates
+      # theme/colors.ts to diff it against the CSS projections.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      # The rust skeleton is materialized into a temp crate and checked offline.
+      # Both components ship with the runner's stable toolchain, but asking for
+      # them explicitly turns a silent skip into a clear failure if that changes.
+      - name: Ensure rustfmt + clippy
+        run: rustup component add rustfmt clippy
+
+      # jq, ruby and python3 are all preinstalled on ubuntu-latest; the script
+      # needs python >= 3.11 for tomllib. Fail loudly and early rather than
+      # letting a missing parser look like a passing check.
+      - name: Verify toolchain
+        run: |
+          set -euo pipefail
+          jq --version
+          ruby --version
+          python3 -c 'import sys, tomllib; assert sys.version_info >= (3, 11); print(sys.version)'
+          cargo --version
+          bun --version
+
+      - name: Validate templates
+        run: bash scripts/validate-templates.sh

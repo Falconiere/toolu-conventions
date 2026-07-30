@@ -1,0 +1,21 @@
+# Pre-commit hooks. Install once with: bunx lefthook install
+# Runs only on staged files, in parallel. Keep it fast — heavier checks
+# (astro check, full test, structure) belong in CI / `bun run check`.
+#
+# `.astro` is in the lint glob but not the format one, and that split is real:
+# oxlint reads `.astro` frontmatter (so the import and TypeScript rules apply
+# there), while oxfmt does not parse the component syntax at all. The template
+# body below the frontmatter is `astro check`'s job in the full gate.
+#
+# `.tsx` is in BOTH: an interactive island is a documented option in this stack,
+# oxfmt formats JSX fine, and a staged island that skipped these globs would
+# reach CI unformatted and unlinted.
+pre-commit:
+  parallel: true
+  commands:
+    fmt:
+      glob: '*.{ts,tsx,mjs,json,jsonc,md,yaml,yml,css}'
+      run: bunx oxfmt --check --no-error-on-unmatched-pattern {staged_files}
+    lint:
+      glob: 'src/**/*.{ts,tsx,astro}'
+      run: bunx oxlint --deny-warnings {staged_files}

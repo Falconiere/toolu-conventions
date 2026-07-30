@@ -1,0 +1,50 @@
+# GitHub Actions — automated AI code review on every pull request.
+#
+# The third guard rail, after the agent's own `cargo` gate and the CI job.
+# It reads the repo's own convention files (CLAUDE.md and friends) from the BASE
+# ref and reviews the diff against them, so the rules this kit installs are the
+# rules the bot enforces — and a PR cannot rewrite the rules it is judged by.
+#
+# Setup (human-only): add a DEEPSEEK_API_KEY repository secret.
+# Inputs and defaults: https://github.com/falconiere/toolu-ghactions
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  security-events: write # uploads the secret-scan / SAST SARIF to Code Scanning
+
+concurrency:
+  group: code-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: AI review
+    runs-on: ubuntu-latest
+    # Draft PRs are skipped — mark ready for review to trigger the bot.
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so the merge-base resolves
+
+      - name: Review
+        uses: falconiere/toolu-ghactions/code-review@v6
+        with:
+          PROVIDER: deepseek
+          API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          # Cargo.lock is generated; reviewing it wastes budget and adds noise.
+          EXCLUDE_GLOBS: 'Cargo.lock'
+          CODEBASE_OVERVIEW: >-
+            Single Rust crate. clippy runs with -D warnings and rustfmt is
+            enforced, so style findings are already covered — focus on
+            correctness, error handling, and API design. `unwrap()`/`expect()`
+            outside tests and the main bootstrap is a defect: errors propagate.
+            See CLAUDE.md.

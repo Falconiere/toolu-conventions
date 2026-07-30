@@ -11,10 +11,11 @@ app/            Expo Router routes — THIN (re-export a feature screen, no logi
 src/ui/         Design-system primitives (button, text, text-input) + theme/
                 (colors · spacing · typography · motion · icons)
 src/features/   One folder per feature: screens/ components/ hooks/ api/ types
-src/api/        Cross-feature data layer: clients/ (requests) + queries/ (React Query)
-src/utilities/  Shared pure helpers (dates, formatters, …)
+src/api/        Data layer: orpc.ts (our API) + http-client.ts + clients/ (everything
+                else) + queries/ (React Query hooks + key factories, per domain)
+src/utilities/  Shared pure helpers (dates, formatters, …) — including http.ts
 src/providers/  App-level context providers (mounted in app/_layout.tsx)
-src/constants/  env.ts (hand-validated), enums
+src/constants/  env.ts (Zod-validated), enums
 src/types/      Cross-cutting types
 assets/         Images, icons, fonts
 docs/           design-language.md — the house UI rules; read before UI work
@@ -53,12 +54,14 @@ before adding files, and add a line when you add something notable.
 an unrelated failure:
 
 ```bash
-bun run check        # tsc --noEmit + oxlint --deny-warnings + oxfmt --check + check:structure + jest
+bun run check        # tsc --noEmit + oxlint --deny-warnings + oxfmt --check + check:structure + knip + jscpd + jest
 ```
 
 Individual pieces: `bun run type-check`, `bun run lint` (`lint:fix` to auto-fix),
-`bun run fmt` / `fmt:check`, `bun run check:structure`, `bun run test`. Pre-commit
-(Lefthook) runs oxlint + oxfmt on staged files only. Run tests non-interactively
+`bun run fmt` / `fmt:check`, `bun run check:structure`, `bun run check:unused`
+(knip — unused files, exports, dependencies), `bun run check:dupes` (jscpd —
+copy-paste detection), `bun run test`. Pre-commit (Lefthook) runs oxlint + oxfmt
+on staged files only. Run tests non-interactively
 (`--watchAll=false`).
 
 The structure rules are **enforced, not doc-only**: oxlint (`no-restricted-imports`
@@ -98,9 +101,13 @@ barrel files, `lefthook.yml`). A violation fails the gate.
   React Context (no store library — for genuinely-global client state use
   `createContext` + `useReducer` in `src/providers/`). Never duplicate server data
   into client state.
-- **Validation**: env + external/parsed data are validated by hand (type guards
-  on `unknown`) — no schema library app-wide. `zod` is allowed **only** inside a
-  form (`react-hook-form` + `zodResolver`), with the schema scoped to that form.
+- **Validation**: `zod` at every boundary — env, parsed responses, forms,
+  secure/async storage — and the TypeScript type comes from `z.infer`, never
+  declared alongside the schema.
+- **Calling things**: our own API → `orpc` (typed end to end from the server's
+  procedure declarations, with TanStack Query bindings). Anything else → the
+  `http` client in `src/api/http-client.ts`. No axios; no bare `fetch` in a
+  feature; no hand-written `queryKey` arrays for oRPC calls.
 - **Commits**: `type(scope): description` (conventional). Push to feature
   branches; never directly to main.
 

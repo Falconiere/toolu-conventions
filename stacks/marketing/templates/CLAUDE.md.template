@@ -1,0 +1,167 @@
+# CLAUDE.md — {{APP_NAME}}
+
+{{ONE_LINE_DESCRIPTION}} Astro marketing site. Static output · TypeScript
+(strictest) · bun · Vitest · oxlint + oxfmt + `astro check` · deployed to
+Cloudflare Workers. Read this file first — it is the map and the rulebook.
+
+## What this repo is (and is not)
+
+This is the **public site**: the pages a stranger and a search crawler see. It is
+static HTML, ships almost no JavaScript, and holds no session. The authenticated
+product is a **separate repo** (the console app). If a page needs a logged-in
+user, it does not belong here.
+
+## Repo map
+
+```
+src/pages/         ROUTES — one file per URL. Thin: pick a layout, list sections
+src/layouts/       Page shells (<html>, <head>, meta, canonical)
+src/sections/      Composed page sections — hero, pricing, faq. One per file
+src/ui/            Design-system primitives, globals.css, theme/ tokens
+src/content/       Content collections (markdown)
+src/content.config.ts  defineCollection() schemas
+src/utilities/     Shared pure helpers
+src/constants/     env.ts (Zod-validated), enums
+src/types/         Cross-cutting types
+public/            Served verbatim at the site root (favicon, robots.txt, og image)
+docs/              design-language.md — the house UI rules; read before UI work
+astro.config.mjs   Astro config (static output, site URL)
+wrangler.jsonc     Cloudflare Workers deploy config
+```
+
+Each `src/*` folder except `pages` has its own `README.md` — read it before
+adding files, and add a line when you add something notable.
+
+## Tooling
+
+- Use `bun` for everything (`bun install`, `bun run <script>`, `bunx <bin>`).
+- `bun run check` runs the full gate: `astro check` + lint + fmt +
+  `check:structure` + `check:unused` (knip) + `check:dupes` (jscpd) + test.
+- **`type-check` is `astro check`, not `tsc`.** It is the only tool that
+  type-checks an `.astro` file's TEMPLATE body. The split is finer than it
+  looks: oxlint **does** read `.astro` frontmatter, so the import and TypeScript
+  rules apply there; oxfmt handles `.ts`/`.tsx` (JSX included) but cannot parse
+  `.astro` component syntax at all. So a `.astro` file is linted but never
+  formatted, and its template body is `astro check`'s job plus review.
+- Run `bun run sync` (`astro sync`) after changing `src/content.config.ts`, and
+  before `astro check` on a fresh clone — it generates the collection types.
+- `bun run dev` starts Astro; `bun run build` produces `dist/`;
+  `bunx wrangler dev` serves that build through the real Workers runtime.
+- Pre-commit (Lefthook) runs oxlint + oxfmt on staged files.
+
+## Blocked patterns (pre-commit + CI reject these)
+
+- `as any`, `: any`, `as unknown as T` → use `unknown` + type guards.
+- `console.log`, `debugger` → use `console.warn` / `console.error`.
+- **`axios`** → use `src/utilities/http.ts`. Blocked in lint *and* by the
+  structure check reading `package.json`.
+- **A hardcoded hex or magic number in a component** → read `--tone-*` custom
+  properties so the component works in both bands.
+- **`yup` / `valibot` / `joi`, or a hand-written type guard** → `zod`.
+- **An `interface` declared beside its schema** → `type X = z.infer<typeof X>`.
+- **An unused export, file, or dependency** → knip fails the gate. Delete it.
+- **Copy-pasted blocks** → jscpd fails the gate. Extract it.
+- **A framework integration used as the default component model** → `.astro`
+  components. A React island is for one genuinely interactive section, with a
+  comment saying why it can't be static.
+- **`client:load` by reflex** → `client:visible` / `client:idle`, or no
+  directive at all.
+- **Barrel files** (an `index.ts` that only re-exports) → import the concrete file.
+- **Default exports** in `.ts` files → named exports. (Config files and
+  `.astro` components are exempt; Astro components *are* default exports.)
+- **Deep relative imports** (`../../…`) → use the `@/` alias.
+- **A page without `title` + `description`** → both are required props on
+  `BaseLayout`, because they are product surface, not decoration.
+- **Deleting `src/pages/404.astro`** → the structure check fails; `wrangler.jsonc`
+  serves it as a real 404 and a soft-200 gets dead URLs indexed.
+- **Mock-data tests** → tests must exercise real inputs and real integration paths.
+- Files over 300 lines (tests exempt) → split.
+
+## Conventions
+
+- **Path alias**: `@/*` → `src/*`. Works in `.astro` frontmatter and `.ts` alike.
+- **Filenames**: kebab-case, named after what they are
+  (`pricing-section.astro`). One primary export per file.
+- **Pages are thin**: a file in `src/pages/` picks a layout and lists sections —
+  no markup of its own, no data munging, no styles.
+- **Sections own the markup**: one section per file in `src/sections/`. A page
+  should read as a list of section names.
+- **Static by default**: `output: 'static'`. SSR is a documented, per-page
+  decision, not a default. If this project ever turns it on, the reason is
+  recorded in Design notes below.
+- **Ship no JavaScript you don't need**: Astro sends zero by default. Every
+  `client:*` directive is a deliberate choice with a comment.
+- **Styling**: Astro's scoped `<style>` blocks reading `--tone-*` variables, or
+  theme tokens from `src/ui/theme/*`. No second styling system.
+- **Validation**: `zod` at every boundary — env, anything the build fetches,
+  content-collection schemas — and the TypeScript type comes from `z.infer`,
+  never declared alongside the schema. Inside `src/content.config.ts` use
+  `astro/zod` (Astro's re-export, so collection types are generated correctly);
+  everywhere else import `zod` directly. Same library, one convention.
+- **Testing**: co-locate tests in a sibling `__tests__/`, real data only.
+- **Doc line required**: every module and public symbol carries a concise
+  `/** … */` doc line; `.astro` components carry one in their frontmatter.
+- **Docs in sync**: a change to a user-facing surface updates the prose
+  describing it (README, the relevant `src/*/README.md`, `CLAUDE.md`) in the
+  **same** change.
+- **Commits**: `type(scope): description` (conventional). Push to feature
+  branches; never directly to main.
+
+## Guard rails
+
+Four layers, and none of them are optional:
+
+1. **These rules**, read first by every agent working here.
+2. **Pre-commit** (Lefthook) — oxlint + oxfmt on staged files.
+3. **CI** (`.github/workflows/ci.yml`) — the whole gate plus a production build,
+   each check its own named step.
+4. **AI code review** (`.github/workflows/code-review.yml`) — reviews every PR
+   against this file, read from the base branch.
+
+Never advance while any of them is red, **even on an unrelated failure**. Fix it
+or say plainly that it is broken; do not disable a check to get green.
+
+## Design notes
+
+<!-- The setup design-context answers are recorded here: audience, tone, palette
+direction. The theme token files (src/ui/theme/*) hold the concrete values. -->
+
+> **Before any UI work, read [`docs/design-language.md`](./docs/design-language.md)** —
+> the full house language (bands, signal, type, motion, glyphs, contrast gate,
+> banned list, and a self-check). It is deliberately not summarised here: this
+> file loads every session, that one loads only when you touch UI.
+
+This site shares its token set with the console app **on purpose** — they are one
+product, and a visitor who signs up should not feel a seam. If a token changes
+here, it changes there too.
+
+The site follows the house **CodaSignal "Signal"** design language: full-bleed
+bands that alternate dark (`#0e0f0d`) and light (`#f2f2ee`) with a quarter-width
+ruled backdrop behind each, one chromatic signal in four temperatures (Jade is
+the default) that only ever marks the second line of a heading, live data, or a
+list number, Archivo at 600/500 with tight negative tracking for everything
+readable, and JetBrains Mono for every label/tag/data/glyph line. Depth is a
+hairline. No serif, no italic, no second hue, no gradients, no icon library.
+
+**Hard rules:** no hardcoded hex or magic numbers in components — tokens only.
+The signal never fills a button. Focus is always visible. Motion flattens under
+`prefers-reduced-motion: reduce`. The band is a CSS-variable seam: `:root`
+carries the dark band, `.band-light` overrides it, and components read the
+variables — never import a colour map directly.
+
+- **Deviations from the house language:** <none | what-and-why>
+
+{{DESIGN_NOTES}}
+
+## Tool usage (for agents)
+
+- Read with `Read`, search with `Grep` — not `cat`/`sed`/`bash grep`.
+- Create/modify with `Write`/`Edit` — never `cat <<EOF` heredocs.
+
+## House style (yes, be a little silly)
+
+Agents working in this repo keep a bit of a playful, silly attitude — a
+deliberate house rule, not a glitch. The catch: **the silliness lives in your
+prose, never in the work.** Code, comments, commit messages, and status reports
+stay clean, precise, and honest. If a gate fails, say so plainly. Ship correct
+first, then sprinkle the glitter. ✨

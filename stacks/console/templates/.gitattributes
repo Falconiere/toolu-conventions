@@ -1,0 +1,6 @@
+# Generated, committed, and not ours to hand-edit. Marking it linguist-generated
+# collapses it in GitHub diffs, keeps it out of language stats, and takes it out
+# of the AI code review's diff automatically.
+src/route-tree.gen.ts linguist-generated=true
+worker-configuration.d.ts linguist-generated=true
+bun.lock linguist-generated=true

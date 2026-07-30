@@ -35,7 +35,7 @@ import points at the file that holds the thing), and thin route files.
 │   │   └── queries/          # React Query hooks + key factories, per domain
 │   ├── utilities/            # Shared pure helpers (dates, formatters, …). README.md
 │   ├── providers/            # App-level context providers. README.md
-│   ├── constants/            # env.ts (hand-validated), enums
+│   ├── constants/            # env.ts (Zod-validated), enums
 │   └── types/                # cross-cutting TS types
 ├── assets/                   # images, icons, fonts, animations. README.md
 ├── docs/                     # design-language.md — house UI rules, read before UI work

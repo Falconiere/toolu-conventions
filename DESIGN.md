@@ -72,10 +72,11 @@ instrument, not of brand. One per product. Values: `signalThemes` in `colors.ts`
 The hue arc stays green → cyan → indigo, clear of amber and red, so the signal
 never collides with a status colour.
 
-**Setting it — web needs BOTH:** `<html data-signal="…">` themes the CSS seam,
-`defaultSignal` in `colors.ts` themes every TS consumer of `colors`. Naming
-different temperatures in the two ships a split-brain palette. Native:
-`defaultSignal` alone.
+**Setting it — the browser stacks need BOTH:** `<html data-signal="…">` themes
+the CSS seam (in `index.html` for the console, on the base layout for the
+marketing site), and `defaultSignal` in `colors.ts` themes every TS consumer of
+`colors`. Naming different temperatures in the two ships a split-brain palette.
+Native (Expo): `defaultSignal` alone.
 
 **On a light band the signal drops one step** (`dim`) — the full signal is
 headings-only on paper (§11). Already baked into `colorsLight`.
@@ -299,8 +300,8 @@ Faint ink and the signal are the two places this system can hurt a reader.
 ## 13. Applying it
 
 1. Tokens ship pre-filled — a new project starts on-language by default.
-2. Pick **one** temperature and set it (web: `data-signal` **and**
-   `defaultSignal`; native: `defaultSignal`).
+2. Pick **one** temperature and set it (console/marketing: `data-signal` **and**
+   `defaultSignal`; expo: `defaultSignal`).
 3. A **different brand** replaces values but keeps the *structure*: alternating
    bands, one signal with four steps, fixed status, mono meta layer, hairline
    depth, glyphs over icons. Record the deviation in the project's `CLAUDE.md`.
