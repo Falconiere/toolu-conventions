@@ -22,9 +22,6 @@
     "node": true,
     "es2024": true
   },
-  "globals": {
-    "process": "readonly"
-  },
   "ignorePatterns": [
     "node_modules",
     "dist",
@@ -79,6 +76,10 @@
           }
         ]
       }
+    ],
+    "no-restricted-globals": [
+      "error",
+      "process"
     ],
     "typescript/no-explicit-any": "error",
     "typescript/no-unused-vars": [
