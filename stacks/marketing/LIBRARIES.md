@@ -22,7 +22,7 @@ committed; CI installs with `--frozen-lockfile`.
 | Testing | `vitest` | Via `getViteConfig()` from `astro/config`, so tests see the real build config. |
 | Dead code / unused deps | `knip` | Gate step. Fails on an unused file, export, or dependency. |
 | Copy-paste detection | `jscpd` | Gate step, `threshold: 0` + `exitCode: 1`. |
-| Lint / format | `oxlint` + `oxfmt` (+ `oxlint-tsgolint` for type-aware) | oxlint reads `.astro` frontmatter too; oxfmt handles `.ts` only. The template body is `astro check`'s job. |
+| Lint / format | `oxlint` + `oxfmt` (+ `oxlint-tsgolint` for type-aware) | oxlint reads `.astro` frontmatter too; oxfmt handles `.ts`/`.tsx` (JSX included) but cannot parse `.astro` component syntax. The template body is `astro check`'s job. |
 | Git hooks | `lefthook` | Pre-commit lint + format on staged files. |
 | Deploy | `wrangler` (dev dependency) | Cloudflare Workers CLI — the house deploy target. |
 
