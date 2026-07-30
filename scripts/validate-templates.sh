@@ -75,6 +75,34 @@ if [ "${#ts_files[@]}" -gt 0 ]; then
     || bad "oxfmt --check on TS/TSX templates"
 fi
 
+# --- Lint each stack's templates with THAT STACK'S SHIPPED .oxlintrc.json.
+#     The pass above uses a deliberately minimal config, which is exactly how a
+#     template that trips a rule the real config enables reached a scaffold and
+#     turned `bun run lint` red on the very first run (a side-effect
+#     `import './globals.css'` under `suspicious: error`). Templates are copied
+#     to a temp dir at their project-relative paths so the config's `overrides`
+#     (keyed on `src/main.tsx`, `src/app/**`, …) match the way they will in a
+#     real project. `typeAware` is forced off — it needs the node_modules and
+#     tsconfig that only exist inside a scaffold. ---
+for d in stacks/*/; do
+  stack=$(basename "$d")
+  [ -f "$d/templates/.oxlintrc.json" ] || continue
+  lintdir="$(mktemp -d)"
+  cp -R "$d/templates/." "$lintdir/"
+  if python3 -c "
+import json, sys
+cfg = json.load(open(sys.argv[1]))
+cfg.setdefault('options', {})['typeAware'] = False
+json.dump(cfg, open(sys.argv[1], 'w'), indent=2)
+" "$lintdir/.oxlintrc.json" 2>/dev/null; then
+    ( cd "$lintdir" && bunx oxlint --deny-warnings . ) \
+      || bad "oxlint with the SHIPPED .oxlintrc.json on $stack templates"
+  else
+    bad "could not read $stack .oxlintrc.json to disable typeAware"
+  fi
+  rm -rf "$lintdir"
+done
+
 # --- The globals.css pair: both exist, and neither has the other's Tailwind
 #     wiring. Copying the wrong one silently kills every utility class or every
 #     UA default. These two files are shared: the marketing kit copies one of

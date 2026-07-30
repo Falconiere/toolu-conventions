@@ -1,6 +1,7 @@
 # GitHub Actions — code-quality gate for every PR (and pushes to main).
-# Mirrors `bun run check`: type-check + lint + format-check + test. Builds, OTAs,
-# and submissions live in EAS Workflows (.eas/workflows/*), not here.
+# Mirrors `bun run check` step for step: type-check + lint + format-check +
+# structure + knip + jscpd + test. Builds, OTAs, and submissions live in EAS
+# Workflows (.eas/workflows/*), not here.
 #
 # Copy to `.github/workflows/ci.yml`. Keep the Bun version in sync with the `bun`
 # field in eas.json.
@@ -19,7 +20,7 @@ concurrency:
 
 jobs:
   check:
-    name: type-check · lint · format · test
+    name: type-check · lint · format · structure · unused · dupes · test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

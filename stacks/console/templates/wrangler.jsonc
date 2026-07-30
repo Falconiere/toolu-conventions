@@ -14,7 +14,7 @@
     "not_found_handling": "single-page-application"
   },
 
-  // Only if you opted into a same-project Worker API (SETUP.md Phase 6a):
+  // Only if you opted into a same-project Worker API (SETUP.md Phase 6c):
   //   "main": "./src/worker.ts",
   //   "assets": { ..., "binding": "ASSETS" },
   //   "compatibility_flags": ["nodejs_compat"]

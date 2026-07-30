@@ -29,7 +29,7 @@ bun run android      # build + run on Android (dev client)
 | `src/types/` | Cross-cutting types. |
 | `assets/` | Images, icons, fonts. |
 | `docs/` | `design-language.md` — the house UI rules. Read before any UI work. |
-| `.github/workflows/` | GitHub Actions — CI gate (type-check, lint, format, test). |
+| `.github/workflows/` | GitHub Actions — `ci.yml` (the gate) + `code-review.yml` (AI review). |
 | `.eas/workflows/` | EAS Workflows — builds, OTA updates, store submissions. |
 
 Every `src/*` folder has a `README.md` describing its contents.
@@ -50,10 +50,13 @@ Config lives in `app.config.ts` (variant-driven) and `src/constants/env.ts`
 
 | Script | Does |
 | --- | --- |
-| `bun run check` | Full gate: type-check + lint + format-check + test. |
+| `bun run check` | Full gate: type-check + lint + format-check + structure + unused + dupes + test. |
 | `bun run type-check` | `tsc --noEmit` (strict). |
 | `bun run lint` / `lint:fix` | oxlint. |
 | `bun run fmt` / `fmt:check` | oxfmt. |
+| `bun run check:structure` | Folder-tree rules. |
+| `bun run check:unused` | knip — unused files, exports, dependencies. |
+| `bun run check:dupes` | jscpd — copy-paste detection. |
 | `bun run test` | Jest (unit/component). |
 
 ## Builds (EAS)
@@ -69,8 +72,11 @@ lives in the **Design notes** section of [`CLAUDE.md`](./CLAUDE.md).
 ## CI/CD
 
 - **GitHub Actions** (`.github/workflows/ci.yml`) — runs type-check + lint +
-  format-check + test on every PR and push to `main` (same checks as
-  `bun run check`).
+  format-check + structure + knip + jscpd + test on every PR and push to `main`
+  (same checks as `bun run check`, each as its own named step).
+- **`code-review.yml`** — AI review of every PR against this repo's own
+  convention files, read from the base branch. Needs an `OPENROUTER_API_KEY`
+  repository secret.
 - **EAS Workflows** (`.eas/workflows/`) — `development-build` (on-demand dev
   clients), `production-deploy` (build + submit, on a `v*` tag), and
   `publish-update` (manual OTA to a channel). Run with `eas workflow:run <file>`

@@ -108,8 +108,10 @@ bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook wrangler
 Copy and adapt these templates into the project root, **overwriting** what the
 Astro template generated where they overlap:
 
-- `templates/astro.config.mjs` → `astro.config.mjs` (set `site` to the
-  production domain; keep the `sitemap()` integration `astro add` just wrote)
+- `templates/astro.config.mjs` → `astro.config.mjs` (replace `{{SITE_DOMAIN}}`
+  with the production domain; keep the `sitemap()` integration `astro add` just
+  wrote). A staging build can override the domain with a `SITE_URL` env var, so
+  staging never advertises canonical URLs pointing at production.
 - `templates/tsconfig.json` → `tsconfig.json` (strictest + `@/*` alias)
 - `templates/vitest.config.ts` → `vitest.config.ts`
 - `templates/.oxlintrc.json` → `.oxlintrc.json`

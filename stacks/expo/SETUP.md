@@ -422,9 +422,9 @@ mkdir -p .github/workflows .eas/workflows
 | `templates/.eas/workflows/production-deploy.yml` | `.eas/workflows/production-deploy.yml` |
 | `templates/.eas/workflows/publish-update.yml` | `.eas/workflows/publish-update.yml` |
 
-- `ci.yml` runs type-check + lint + fmt:check + test (the same checks as
-  `bun run check`). Keep its `bun-version` in sync with the `bun` field in
-  `eas.json`.
+- `ci.yml` runs type-check + lint + fmt:check + check:structure + knip + jscpd +
+  test (the same checks as `bun run check`, each as its own named step). Keep its
+  `bun-version` in sync with the `bun` field in `eas.json`.
 - `code-review.yml` reviews every PR against this repo's own convention files,
   read from the **base** ref (so a PR cannot rewrite the rules it is judged by).
   It needs an `OPENROUTER_API_KEY` repository secret — that's on the human

@@ -163,6 +163,14 @@
   "overrides": [
     {
       "files": [
+        "src/main.tsx"
+      ],
+      "rules": {
+        "import/no-unassigned-import": "off"
+      }
+    },
+    {
+      "files": [
         "src/app/**/*.{ts,tsx}"
       ],
       "rules": {

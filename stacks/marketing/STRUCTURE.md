@@ -97,10 +97,12 @@ truth — the test config *derives* from the build config rather than replacing 
    _Enforced by:_ review.
 8. **Named exports, no barrels, kebab-case filenames, co-located real-data
    tests, no `any`, no `console.log`, `max-lines: 300`** — the CORE rules.
-   _Enforced by:_ oxlint + `check-structure.sh`. `.astro` files sit outside
-   oxlint's reach (it parses TypeScript, not Astro's component syntax) — their
-   frontmatter is type-checked by `astro check` instead, and their conventions
-   are review-enforced.
+   _Enforced by:_ oxlint + `check-structure.sh`. oxlint **does** read `.astro`
+   frontmatter, so the import and TypeScript rules apply there too — the entry
+   layouts carry a scoped `import/no-unassigned-import` override because a
+   side-effect `import '@/ui/globals.css'` is the whole point of that file.
+   What oxlint cannot see is the template body below the frontmatter; that is
+   `astro check`'s job, and the conventions in it are review-enforced.
 
 ## Routes (Astro file-based)
 

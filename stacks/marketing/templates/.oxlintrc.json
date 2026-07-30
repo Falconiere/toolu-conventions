@@ -145,6 +145,15 @@
   "overrides": [
     {
       "files": [
+        "src/layouts/**/*.astro",
+        "src/pages/**/*.astro"
+      ],
+      "rules": {
+        "import/no-unassigned-import": "off"
+      }
+    },
+    {
+      "files": [
         "*.config.{ts,js,mjs}",
         "astro.config.mjs",
         "vitest.config.ts",

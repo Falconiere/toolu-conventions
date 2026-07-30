@@ -54,12 +54,14 @@ before adding files, and add a line when you add something notable.
 an unrelated failure:
 
 ```bash
-bun run check        # tsc --noEmit + oxlint --deny-warnings + oxfmt --check + check:structure + jest
+bun run check        # tsc --noEmit + oxlint --deny-warnings + oxfmt --check + check:structure + knip + jscpd + jest
 ```
 
 Individual pieces: `bun run type-check`, `bun run lint` (`lint:fix` to auto-fix),
-`bun run fmt` / `fmt:check`, `bun run check:structure`, `bun run test`. Pre-commit
-(Lefthook) runs oxlint + oxfmt on staged files only. Run tests non-interactively
+`bun run fmt` / `fmt:check`, `bun run check:structure`, `bun run check:unused`
+(knip — unused files, exports, dependencies), `bun run check:dupes` (jscpd —
+copy-paste detection), `bun run test`. Pre-commit (Lefthook) runs oxlint + oxfmt
+on staged files only. Run tests non-interactively
 (`--watchAll=false`).
 
 The structure rules are **enforced, not doc-only**: oxlint (`no-restricted-imports`

@@ -2,9 +2,10 @@
 # Runs only on staged files, in parallel. Keep it fast — heavier checks
 # (astro check, full test, structure) belong in CI / `bun run check`.
 #
-# `.astro` files are absent from both globs on purpose: oxlint and oxfmt parse
-# TypeScript, not the Astro component syntax. Their frontmatter is type-checked
-# by `astro check` in the full gate instead.
+# `.astro` is in the lint glob but not the format one, and that split is real:
+# oxlint reads `.astro` frontmatter (so the import and TypeScript rules apply
+# there), while oxfmt does not parse the component syntax at all. The template
+# body below the frontmatter is `astro check`'s job in the full gate.
 pre-commit:
   parallel: true
   commands:
@@ -12,5 +13,5 @@ pre-commit:
       glob: '*.{ts,mjs,json,md,yaml,yml,css}'
       run: bunx oxfmt --check --no-error-on-unmatched-pattern {staged_files}
     lint:
-      glob: 'src/**/*.ts'
+      glob: 'src/**/*.{ts,astro}'
       run: bunx oxlint --deny-warnings {staged_files}

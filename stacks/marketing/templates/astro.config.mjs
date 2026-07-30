@@ -6,8 +6,15 @@ import { defineConfig } from 'astro/config';
 // site should be HTML on a CDN edge, not a running server. Only switch to
 // 'server' (and add the @astrojs/cloudflare adapter) when a page genuinely
 // cannot be built ahead of time — see SETUP.md Phase 6.
+
+// `site` feeds canonical URLs and the sitemap, so it has to match the host this
+// build is actually served from. SITE_URL lets a staging build override it;
+// without it the production domain is baked in and staging would advertise
+// canonicals pointing at production.
+const site = process.env.SITE_URL ?? 'https://{{SITE_DOMAIN}}';
+
 export default defineConfig({
-  site: 'https://{{SITE_DOMAIN}}',
+  site,
   output: 'static',
   build: {
     format: 'directory',
