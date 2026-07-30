@@ -51,10 +51,17 @@ json.loads("".join(out))
 PY
 done < <(find stacks/*/templates -type f -name '*.jsonc' -print0)
 
-# --- YAML ---
+# --- YAML (templates, plus this repo's OWN workflows — a kit whose CI file
+#     does not parse cannot enforce anything) ---
 while IFS= read -r -d '' f; do
   ruby -ryaml -e "YAML.load_file(ARGV[0])" "$f" >/dev/null 2>&1 || bad "yaml parse: $f"
-done < <(find stacks/*/templates -type f \( -name '*.yml' -o -name '*.yaml' \) -print0)
+done < <(find stacks/*/templates .github -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 2>/dev/null)
+
+# The kit calls all four guard-rail layers mandatory in CORE.md; it has to run
+# them itself. This is the check that keeps it honest.
+for wf in .github/workflows/ci.yml .github/workflows/code-review.yml; do
+  [ -f "$wf" ] || bad "the kit does not run its own guard rails: missing $wf"
+done
 
 # --- TOML ---
 while IFS= read -r -d '' f; do

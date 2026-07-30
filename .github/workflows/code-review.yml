@@ -1,0 +1,68 @@
+# GitHub Actions — automated AI code review on every pull request.
+#
+# The fourth guard-rail layer, and the same workflow this kit ships to every
+# stack. `RULES_GLOB` is the one thing tuned for this repo: the action
+# auto-reads CLAUDE.md / AGENTS.md / CONTRIBUTING.md, none of which exist here —
+# the house rules live in CORE.md, so it is added explicitly. Read from the BASE
+# ref, so a PR cannot rewrite the rules it is judged against.
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  security-events: write # uploads the secret-scan / SAST SARIF to Code Scanning
+
+concurrency:
+  group: code-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: AI review
+    runs-on: ubuntu-latest
+    # Draft PRs are skipped — mark ready for review to trigger the bot.
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so the merge-base resolves
+
+      - name: Review
+        uses: falconiere/toolu-ghactions/code-review@v6
+        with:
+          API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          RULES_GLOB: 'CORE.md'
+          CODEBASE_OVERVIEW: >-
+            This repo is an AI-agent-runnable conventions kit, not an
+            application. The product is the instructions and the copy-ready
+            templates under stacks/<stack>/templates/, which agents execute to
+            scaffold new projects. There is almost no runtime code — the one
+            file with real logic is
+            stacks/console/templates/utilities/http.ts.
+
+            A defect here is therefore: a template that contradicts its own
+            stack's gate (its .oxlintrc.json, scripts/check-structure.sh, or
+            package.json scripts); a SETUP.md step that would fail if followed
+            literally; a config key that does not exist in the tool it
+            configures; prose that claims behaviour the shipped config does not
+            produce; or an internal reference to a template path or phase number
+            that does not resolve.
+
+            Two real examples from this branch's own review, for calibration: a
+            stack shipped a vitest.config.ts that its own check-structure.sh
+            rejects, and an unpinned `typescript` dependency resolved to a major
+            version that made `astro check` refuse to run — both of which made a
+            freshly scaffolded project red on its first gate run.
+
+            Do not propose alternative library choices: the stack picks
+            (Cloudflare Workers, Turso, better-auth, Zod, oRPC + TanStack Query,
+            the kit's own http.ts over axios) are settled and recorded in
+            CORE.md under "Platform defaults". Prose style, tone and the
+            deliberate "be a little silly" house instructions are intentional
+            and out of scope.

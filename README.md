@@ -53,6 +53,12 @@ build, and an AI code review (`code-review.yml`) that judges each PR against the
 repo's own convention files read from the base branch. Details in
 [`CORE.md`](./CORE.md).
 
+**The kit runs them on itself.** `.github/workflows/ci.yml` runs
+`scripts/validate-templates.sh` on every PR, and `.github/workflows/code-review.yml`
+reviews each PR against [`CORE.md`](./CORE.md). A kit that preaches four
+mandatory layers while running none of them is just a document — so
+`validate-templates.sh` now fails if either workflow goes missing.
+
 ## How to use it
 
 1. Create the new empty repo/folder for the project.
@@ -65,14 +71,26 @@ repo's own convention files read from the base branch. Details in
 ## Maintaining
 
 When a convention changes, update `CORE.md` / `DESIGN.md` or the stack kit AND
-its templates together — docs and templates stay in lockstep. Re-run
-`bash scripts/validate-templates.sh` before distributing. Design docs live in
-`docs/toolu/` (spec + plan).
+its templates together — docs and templates stay in lockstep. Run
+`bash scripts/validate-templates.sh` before distributing; CI runs the same
+command on every PR. Design docs live in `docs/toolu/` (spec + plan).
+
+`validate-templates.sh` is the only gate this repo has, so it is worth knowing
+what it actually covers: every JSON/JSONC/YAML/TOML template parses; every
+TS/TSX template passes oxfmt and is linted **twice** — once with a minimal
+config and once with each stack's real `.oxlintrc.json`, at project-relative
+paths so the config's `overrides` match as they will in a scaffold; the
+dependency-free templates and `http.ts` strict-type-check; the `--tone-*` values
+agree across `theme/colors.ts` and both stylesheets; cross-stack template
+references resolve; every stack ships both workflows plus `knip.json` and a
+`.jscpd.json` with `exitCode: 1`; and the rust skeleton passes fmt + clippy in a
+temp crate. Adding a convention usually means adding a check here too.
 
 > **Version:** v0.2 (2026-07) · `web` renamed to `console` and rebuilt on
 > React + Vite + TanStack Router; new `marketing` (Astro) kit; `backend-ts`
 > moved to Cloudflare Workers + Turso; better-auth adopted; oRPC + TanStack
 > Query as the API layer; Zod adopted as the one validator (replacing
 > hand-written guards); axios replaced by the kit's `http.ts`; knip + jscpd
-> added to the gate; `code-review.yml` added to every stack. Expo validated
-> end-to-end, other stacks template-validated.
+> added to the gate; `code-review.yml` added to every stack — and to this repo,
+> which now runs its own CI. Expo validated end-to-end, other stacks
+> template-validated.
