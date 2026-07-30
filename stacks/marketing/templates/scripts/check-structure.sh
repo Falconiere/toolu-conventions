@@ -43,8 +43,11 @@ for centralized in src/__tests__ src/tests tests test; do
   fi
 done
 
-# 5. Every *.test.ts under src/ lives inside a sibling __tests__/ folder.
-stray_tests=$(find src -type f -name '*.test.ts' -not -path '*/__tests__/*' 2>/dev/null)
+# 5. Every *.test.ts(x) under src/ lives inside a sibling __tests__/ folder. The
+#    .tsx half matters: an interactive React island is a documented option here,
+#    and vitest.config.ts and .oxlintrc.json both cover *.test.tsx — a gate that
+#    only saw .test.ts would let a misplaced component test through.
+stray_tests=$(find src -type f \( -name '*.test.ts' -o -name '*.test.tsx' \) -not -path '*/__tests__/*' 2>/dev/null)
 if [ -n "$stray_tests" ]; then
   echo "STRUCTURE: test files must live in a sibling __tests__/ folder:"
   echo "$stray_tests" | sed 's/^/  - /'
