@@ -145,8 +145,7 @@
   "overrides": [
     {
       "files": [
-        "src/layouts/**/*.astro",
-        "src/pages/**/*.astro"
+        "src/layouts/**/*.astro"
       ],
       "rules": {
         "import/no-unassigned-import": "off"

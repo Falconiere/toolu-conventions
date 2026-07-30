@@ -15,7 +15,7 @@ committed; CI installs with `--frozen-lockfile`.
 | Concern | Library | Notes |
 | --- | --- | --- |
 | Framework | `astro` | File-based pages, content collections, islands. Static output by default. |
-| Type-checking | `@astrojs/check` + `typescript` | `astro check` type-checks `.astro` frontmatter and templates — oxlint cannot. |
+| Type-checking | `@astrojs/check` + **`typescript@^6`** | `astro check` type-checks `.astro` frontmatter and templates — oxlint cannot. **Keep the 6.x pin:** `astro check` needs TypeScript's programmatic API, which TS 7's native compiler does not ship yet, so an unpinned install makes the gate hard-error before it checks anything. |
 | Fonts | `@fontsource-variable/archivo` + `@fontsource-variable/jetbrains-mono` | The two families the design language names, self-hosted — no runtime request to Google. |
 | Sitemap | `@astrojs/sitemap` | A marketing site without a sitemap is a marketing site with a slower crawl. Needs `site` set in `astro.config.mjs`. |
 | Validation | `zod` (v4) | Every boundary: env, anything the build fetches. Content collections use `astro/zod`, the same library re-exported. |

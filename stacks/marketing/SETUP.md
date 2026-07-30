@@ -88,8 +88,14 @@ rm -rf src/pages/index.astro src/components src/assets public/favicon.svg
 ## Phase 2 — Baseline dependencies & tooling
 
 ```bash
-# Type-checking for .astro files + the sitemap
-bun add -d @astrojs/check typescript
+# Type-checking for .astro files + the sitemap.
+# typescript is pinned to 6.x ON PURPOSE: `astro check` drives the TypeScript
+# programmatic API, and TS 7's native compiler does not ship it yet. An
+# unpinned `bun add -d typescript` resolves to 7.x today and `astro check`
+# hard-errors before checking a single file — so `bun run check` is red on a
+# fresh scaffold. Drop the pin once astro check supports TS 7
+# (https://github.com/withastro/roadmap/discussions/1321).
+bun add -d @astrojs/check 'typescript@^6'
 bunx astro add sitemap --yes
 
 # Self-hosted fonts named by the design language
