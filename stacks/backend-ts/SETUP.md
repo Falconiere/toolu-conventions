@@ -102,10 +102,10 @@ generated):
   house style; without this config oxfmt defaults to double quotes and the gate
   fails)
 - `templates/knip.json` → `knip.json` (unused files/exports/dependencies)
-- `templates/.jscpd.json` → `.jscpd.json` (copy-paste detection). **Keep
-  `"exitCode": 1`** — jscpd 5.x already exits 1 on a threshold breach, so this
-  pins the behaviour rather than enabling it; 4.x exited 0 by default, and the
-  dependency is unpinned.
+- `templates/.jscpd.json` → `.jscpd.json` (copy-paste detection). **Keep both
+  `"threshold": 0` and `"exitCode": 1`.** The threshold is what fails the gate;
+  the exit code only matters if someone later raises the threshold, where jscpd
+  stops throwing and would otherwise report clones and exit 0.
 - `templates/lefthook.yml` → `lefthook.yml` (must be `.yml`, not `.yaml` — see
   the install note below)
 - `templates/scripts/check-structure.sh` → `scripts/check-structure.sh`

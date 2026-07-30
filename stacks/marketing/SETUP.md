@@ -124,9 +124,9 @@ Astro template generated where they overlap:
 - `templates/.oxfmtrc.json` → `.oxfmtrc.json` (sets `singleQuote: true` — oxfmt
   defaults to double quotes, so without this the templates fail `oxfmt --check`)
 - `templates/knip.json` → `knip.json` (unused files/exports/dependencies)
-- `templates/.jscpd.json` → `.jscpd.json` (copy-paste detection). **Keep
-  `"exitCode": 1`** — jscpd 5.x already exits 1 on a threshold breach, so this
-  pins the behaviour rather than enabling it; 4.x exited 0 by default.
+- `templates/.jscpd.json` → `.jscpd.json` (copy-paste detection). **Keep both
+  `"threshold": 0` and `"exitCode": 1`.** The threshold is what fails the gate;
+  the exit code only matters if the threshold is later raised.
 - `templates/lefthook.yml` → `lefthook.yml` **before** running the installer —
   use the `.yml` name (lefthook 2.x's `install` writes a stub `lefthook.yml`
   that silently shadows a `lefthook.yaml`, so hooks never fire). Then run

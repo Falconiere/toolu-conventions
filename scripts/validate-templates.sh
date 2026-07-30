@@ -250,11 +250,12 @@ done
   && bad "console ships a vitest.config.ts — its check-structure.sh rejects one; the test block belongs in vite.config.ts"
 
 # --- Gate extras: every TypeScript stack ships knip + jscpd configs, and the
-#     jscpd config pins exitCode 1. Verified against jscpd 5.0.14: it exits 1 on
-#     a threshold breach with or without the key, so this is not what makes the
-#     step work today. It is pinned because jscpd 4.x exited 0 by default and
-#     the templates install jscpd unpinned — without the key, a resolved-version
-#     change could quietly turn a red gate green. ---
+#     jscpd config carries exitCode 1. Measured on 4.0.0, 4.2.5 and 5.0.14:
+#     `threshold: 0` is what fails the gate (any clone exceeds it, jscpd throws,
+#     exit 1) with or without the key — exitCode is inert at threshold 0. It
+#     matters only above threshold 0, where jscpd stops throwing and without the
+#     key reports clones and exits 0. Required here so the pair stays correct if
+#     a project ever relaxes the threshold. ---
 for stack in console marketing backend-ts expo; do
   [ -f "stacks/$stack/templates/knip.json" ] \
     || bad "stack '$stack' is missing templates/knip.json"
@@ -263,7 +264,7 @@ for stack in console marketing backend-ts expo; do
     bad "stack '$stack' is missing templates/.jscpd.json"
   else
     [ "$(jq -r '.exitCode' "$jscpd_cfg")" = "1" ] \
-      || bad "jscpd config must pin exitCode 1 (guards against a 4.x-style default): $jscpd_cfg"
+      || bad "jscpd config must set exitCode 1 (keeps it correct if threshold is ever raised): $jscpd_cfg"
   fi
 done
 
