@@ -6,6 +6,6 @@
     "astro.config.mjs",
     "vitest.config.ts"
   ],
-  "project": ["src/**/*.{ts,astro}"],
+  "project": ["src/**/*.{ts,tsx,astro}"],
   "ignoreBinaries": ["wrangler"]
 }
