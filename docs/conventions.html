@@ -182,12 +182,34 @@
       .btn-ghost { background: transparent; color: var(--text); border-color: var(--border-strong); }
       .btn-ghost:hover { border-color: var(--text); color: var(--text); }
       .stack-grid {
-        display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 2.5rem;
+        display: grid;
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        margin-top: 2.5rem;
       }
-      @media (min-width: 720px) { .stack-grid { grid-template-columns: repeat(2, 1fr); } }
-      @media (min-width: 1100px) { .stack-grid { grid-template-columns: repeat(3, 1fr); } }
+      @media (min-width: 720px) {
+        .stack-grid-primary {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .stack-grid-more {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      .stack-more-label {
+        margin: 1.75rem 0 0.85rem;
+        font-family: var(--font-mono);
+        font-size: 0.59375rem;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .stack-grid-more {
+        margin-top: 0;
+      }
       .stack-card {
-        background: var(--surface); padding: 1.5rem 1.35rem 1.6rem;
+        background: var(--surface);
+        padding: 1.5rem 1.35rem 1.6rem;
         transition: background var(--duration) var(--ease);
       }
       .stack-card:hover { background: var(--surface-hover); }
@@ -543,10 +565,10 @@
             <span class="line-2">not a fashion.</span>
           </h2>
           <p class="body">
-            Each stack answers a different job. The kit keeps one recommended
-            toolset per job so teams and agents stop shopping mid-build.
+            A full product is usually three surfaces. Each keeps one recommended
+            toolset so teams and agents stop shopping mid-build.
           </p>
-          <div class="stack-grid">
+          <div class="stack-grid stack-grid-primary">
             <article class="stack-card">
               <p class="label">marketing</p>
               <h3 class="subhead">Public website</h3>
@@ -565,6 +587,9 @@
               <p>Procedures, validation, database access, and auth. Clients stay thin; the server owns secrets and tables.</p>
               <p class="tech">Hono · workerd · Turso · oRPC · Vitest</p>
             </article>
+          </div>
+          <p class="stack-more-label">— also · when the product needs it</p>
+          <div class="stack-grid stack-grid-more">
             <article class="stack-card">
               <p class="label">expo</p>
               <h3 class="subhead">Mobile app</h3>
@@ -1095,6 +1120,7 @@ type Shift = z.infer&lt;typeof Shift&gt;;</pre>
             <a href="../SETUP.md">SETUP.md</a>
             <a href="../CORE.md">CORE.md</a>
             <a href="../DESIGN.md">DESIGN.md</a>
+            <a href="design-system.html">Design system, live</a>
             <a href="toolu/specs/2026-07-17-conventions-kit-design.md">Design spec</a>
           </div>
         </div>
