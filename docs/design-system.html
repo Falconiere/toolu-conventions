@@ -182,7 +182,7 @@
         position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap;
         align-items: baseline; justify-content: space-between; gap: 1rem 1.5rem;
         padding: 1.25rem var(--gutter); border-bottom: 1px solid var(--border);
-        background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(10px);
+        background: var(--bg);
       }
       .site-nav .brand {
         font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: 0.06em; text-decoration: none;
@@ -200,7 +200,7 @@
         display: inline-flex; align-items: center; justify-content: center; min-height: 2.5rem;
         padding: 0.65rem 1.1rem; font-family: var(--font-mono); font-size: 0.59375rem;
         letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none;
-        border: 1px solid transparent; cursor: pointer;
+        border: 1px solid transparent; border-radius: 3px; cursor: pointer;
         transition: background var(--duration) var(--ease), color var(--duration) var(--ease), border-color var(--duration) var(--ease), opacity 140ms var(--ease);
       }
       .btn-primary { background: var(--primary); color: var(--on-primary); }
@@ -356,7 +356,7 @@
       .motion-card { background: var(--surface); border: 1px solid var(--border); padding: 1.4rem 1.3rem 1.6rem; }
       .motion-card .label { margin-bottom: 1rem; }
       .motion-card p { margin: 0.75rem 0 0; font-size: 0.8125rem; color: var(--text-soft); }
-      .hover-swatch { display: inline-flex; align-items: center; justify-content: center; padding: 0.6rem 1rem; border: 1px solid var(--border-strong); font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text); background: transparent; cursor: pointer; transition: color 140ms var(--ease), border-color 140ms var(--ease); }
+      .hover-swatch { display: inline-flex; align-items: center; justify-content: center; padding: 0.6rem 1rem; border: 1px solid var(--border-strong); border-radius: 3px; font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text); background: transparent; cursor: pointer; transition: color 140ms var(--ease), border-color 140ms var(--ease); }
       .hover-swatch:hover { color: var(--accent); border-color: var(--accent); }
       details.disclosure { border: 1px solid var(--border); padding: 0.1rem 0.9rem; }
       details.disclosure summary { list-style: none; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0; cursor: pointer; font-family: var(--font-mono); font-size: 0.6875rem; }
@@ -391,7 +391,7 @@
       .banner-demo { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.85rem; padding: 0.9rem 1rem; background: var(--surface); border: 1px solid var(--danger); }
       .banner-demo .dot { width: 0.55rem; height: 0.55rem; border-radius: 9999px; background: var(--danger); }
       .banner-demo p { margin: 0; font-size: 0.8125rem; }
-      .banner-demo button { border: 1px solid var(--danger); background: transparent; color: var(--text); font-family: var(--font-mono); font-size: 0.5625rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.4rem 0.7rem; cursor: pointer; }
+      .banner-demo button { border: 1px solid var(--danger); border-radius: 3px; background: transparent; color: var(--text); font-family: var(--font-mono); font-size: 0.5625rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.4rem 0.7rem; cursor: pointer; }
       .toast-demo { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.1rem; background: var(--ink-dark); color: var(--band-dark); font-size: 0.8125rem; }
       .band-light .toast-demo { background: var(--ink-dark); color: var(--band-dark); }
       .empty-demo .placeholder { height: 4.5rem; border: 1px dashed var(--border-strong); margin-bottom: 0.9rem; }
@@ -424,7 +424,7 @@
       .banned-list li::before { content: "✕"; color: var(--danger); flex: none; font-family: var(--font-mono); }
       .voice-yes, .voice-no { margin-top: 1.5rem; }
       .voice-yes p, .voice-no p { font-size: 1.0625rem; margin: 0 0 0.6rem; }
-      .voice-no p { color: var(--text-faint); text-decoration: line-through; }
+      .voice-no p { color: var(--text-soft); text-decoration: line-through; }
     </style>
   </head>
   <body>
@@ -441,6 +441,7 @@
         <li><a href="#icons">Glyphs &amp; icons</a></li>
         <li><a href="#patterns">Patterns</a></li>
         <li><a href="#states">States</a></li>
+        <li><a href="#voice">Voice</a></li>
         <li><a href="#contrast">Contrast</a></li>
         <li><a href="#banned">Banned</a></li>
       </ul>
@@ -888,7 +889,28 @@
       </section>
       <hr class="band-seam" aria-hidden="true" />
 
-      <section class="band" id="contrast" aria-labelledby="contrast-title">
+      <section class="band" id="voice" aria-labelledby="voice-title">
+        <div class="wrap">
+          <p class="marker">— §10 · voice</p>
+          <h2 id="voice-title" class="display">
+            A number,
+            <span class="line-2">not a promise.</span>
+          </h2>
+          <div class="voice-yes">
+            <p>"Most launches break in week three."</p>
+            <p>"from $25K · 4–8 weeks"</p>
+            <p>"No pitch. Just the next step."</p>
+          </div>
+          <div class="voice-no">
+            <p>world-class</p>
+            <p>cutting-edge</p>
+            <p>leverage</p>
+          </div>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band band-light" id="contrast" aria-labelledby="contrast-title">
         <div class="wrap wrap-wide">
           <p class="marker">— §11 · contrast gate — measured</p>
           <h2 id="contrast-title" class="display">
@@ -917,27 +939,6 @@
             <li>Interactive elements are real <code>&lt;button&gt;</code> / <code>&lt;a&gt;</code>, always labeled.</li>
             <li>Targets: <code>layout.minTouchTarget</code> (44px) minimum; an app row may be <code>layout.rowTarget</code> (36px) as long as its hit area reaches the minimum.</li>
           </ul>
-        </div>
-      </section>
-      <hr class="band-seam" aria-hidden="true" />
-
-      <section class="band band-light" id="voice" aria-labelledby="voice-title">
-        <div class="wrap">
-          <p class="marker">— §10 · voice</p>
-          <h2 id="voice-title" class="display">
-            A number,
-            <span class="line-2">not a promise.</span>
-          </h2>
-          <div class="voice-yes">
-            <p>"Most launches break in week three."</p>
-            <p>"from $25K · 4–8 weeks"</p>
-            <p>"No pitch. Just the next step."</p>
-          </div>
-          <div class="voice-no">
-            <p>world-class</p>
-            <p>cutting-edge</p>
-            <p>leverage</p>
-          </div>
         </div>
       </section>
       <hr class="band-seam" aria-hidden="true" />
