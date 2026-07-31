@@ -27,8 +27,10 @@ project read this file first, then the chosen stack kit.
    file** (blanks/comments excluded; tests exempt). If a design implies a bigger
    file, split the design — don't fight the gate later.
 6. **Tests colocate.** TypeScript: sibling `__tests__/` folder
-   (`button.tsx` → `__tests__/button.test.tsx`). Rust: sibling `tests/` (unit
-   tests may live in-file under `#[cfg(test)]`). Keep test trees flat.
+   (`button.tsx` → `__tests__/button.test.tsx`). Rust: sibling `tests/` folder
+   (`parse_config.rs` → `tests/parse_config.rs`) — **never** put tests in the
+   same file as the logic (no in-file `#[cfg(test)] mod tests { … }` bodies).
+   Keep test trees flat.
 7. **Real data, no mock-data tests.** Tests exercise real inputs and real
    integration paths. A test that only proves a mock returns what the mock was
    told to return is banned — it hides integration breakage.
@@ -78,9 +80,10 @@ in the project's `CLAUDE.md` is not optional.
 | Database | **Turso** | Reached with `@tursodatabase/serverless` (fetch-only, runs on workerd). Only server-side code touches it. |
 | Auth | **better-auth** | Server half in the API service (owns the tables); clients hold only `createAuthClient`. No auth secret ever ships in a client bundle. |
 | HTTP client | **`src/utilities/http.ts`** | The kit's own `fetch` wrapper — `get`/`post`/`put`/`patch`/`delete`, base URL, timeouts, typed errors. **`axios` is banned** in every TS stack, in lint *and* in the structure check. |
-| Validation | **Zod 4** | Every boundary: env, response and request bodies, webhooks, storage. Types come from `z.infer`. `yup`/`joi`/`valibot` and hand-rolled guards are out — one validator, everywhere. |
+| Validation | **Zod 4** | Every boundary: env, response and request bodies, webhooks, storage, forms. Types come from `z.infer`. `yup`/`joi`/`valibot` and hand-rolled guards are out — one validator, everywhere. |
 | API between our own apps | **oRPC** (`@orpc/server` / `@orpc/client`) | Procedures with Zod input *and* output schemas; the client is typed from the same declaration, so the contract cannot drift. Served at `/rpc`. |
-| Server state on the client | **TanStack Query** + `@orpc/tanstack-query` | `orpc.<procedure>.queryOptions(...)` — query keys derive from the procedure path, so there is no key factory to hand-write and none to get wrong. |
+| Server state on the client | **TanStack Query** (`@tanstack/react-query`) + `@orpc/tanstack-query` | `orpc.<procedure>.queryOptions(...)` — query keys derive from the procedure path, so there is no key factory to hand-write and none to get wrong. |
+| Forms on the client | **TanStack Form** (`@tanstack/react-form`) + Zod | One form library across console and expo. Pass Zod schemas directly via Standard Schema (`validators: { onChange: schema }`) — **do not** add `@tanstack/zod-form-adapter` (deprecated). Prefer the same Zod schema as the matching oRPC input when fields align. |
 | Dead code + unused deps | **knip** | Part of the gate. An unused export or a dependency nobody imports fails the build, which is what keeps "lean" true over time instead of aspirational. |
 | Copy-paste detection | **jscpd** | Part of the gate, at `threshold: 0` with `exitCode: 1`. Duplication is the failure mode the size ceilings push you toward if nothing is watching. |
 | Package manager | **bun** | Install and scripts. Note it is *not* the runtime for the Workers stacks. |

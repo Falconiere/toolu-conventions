@@ -166,7 +166,7 @@ bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook
 
 # Always-on runtime libs (see LIBRARIES.md "Baseline")
 bunx expo install react-native-svg react-native-reanimated react-native-gesture-handler react-native-safe-area-context
-bun add @tanstack/react-query date-fns zod
+bun add @tanstack/react-query @tanstack/react-form date-fns zod
 ```
 
 Copy these templates into the project root:

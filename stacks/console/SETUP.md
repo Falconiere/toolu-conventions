@@ -105,8 +105,8 @@ kit's versions.
 bun add @tanstack/react-router
 bun add -d @tanstack/router-plugin
 
-# Data + validation: server state, the typed API client, and the one validator
-bun add @tanstack/react-query @orpc/client @orpc/tanstack-query zod
+# Data + validation + forms: server state, typed API client, forms, one validator
+bun add @tanstack/react-query @tanstack/react-form @orpc/client @orpc/tanstack-query zod
 
 # Self-hosted fonts named by the design language
 bun add @fontsource-variable/archivo @fontsource-variable/jetbrains-mono
@@ -321,6 +321,12 @@ import { BASE_API_URL } from '@/constants/env';
 
 export const authClient = createAuthClient({ baseURL: BASE_API_URL });
 export const { signIn, signOut, useSession } = authClient;
+
+// Usage (current client API):
+// const { data: session, isPending } = useSession();
+// await signIn.email({ email, password });
+// await signIn.social({ provider: 'github' });
+// await signOut();
 ```
 
 Gate routes with a pathless layout route (`src/app/_authed.tsx`) whose

@@ -8,6 +8,9 @@ tooling, and guard rails every time — across five stacks.
 Modeled on the Qwick native boilerplate pattern: markdown an agent executes,
 plus copy-ready templates. No CLI, no generator.
 
+**Human-readable guide:** open [`docs/conventions.html`](./docs/conventions.html)
+in a browser — product shape, folder trees, rules, and guard rails in one page.
+
 ## Layout
 
 | Path | Purpose |
@@ -33,8 +36,10 @@ One answer per job, so no project re-litigates them:
 
 - **Host:** Cloudflare Workers · **Database:** Turso · **Auth:** better-auth
 - **Validation:** Zod at every boundary, types from `z.infer`
-- **Our own API:** oRPC + TanStack Query — procedures typed end to end, query
-  keys derived from the procedure path
+- **Client data:** TanStack Query (+ `@orpc/tanstack-query` for our API)
+- **Forms:** TanStack Form (`@tanstack/react-form`) + Zod
+- **Our own API:** oRPC — procedures typed end to end; query keys from the
+  procedure path
 - **HTTP for everything else:** the kit's own `src/utilities/http.ts` over
   `fetch` — **axios is banned**, in lint *and* in the structure check
 - **Package manager:** bun · **Lint/format:** oxlint + oxfmt · **Hooks:** Lefthook

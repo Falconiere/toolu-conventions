@@ -56,11 +56,13 @@ language.
 
    Note what is **not** a question: the validator (always **Zod**, at every
    boundary, with types from `z.infer`), how our own apps talk to our own API
-   (always **oRPC + TanStack Query**), the HTTP client for everything else
-   (always the kit's `src/utilities/http.ts` — axios is banned), the database
-   (always **Turso**), the auth library (always **better-auth**), the host
-   (always **Cloudflare Workers**), and the gate steps (**knip** and **jscpd**
-   are not optional). See CORE.md → "Platform defaults".
+   (always **oRPC + TanStack Query**), forms on clients (always **TanStack Form**
+   + Zod via Standard Schema — no `@tanstack/zod-form-adapter`), the HTTP client
+   for everything else (always the kit's `src/utilities/http.ts` — axios is
+   banned), the database (always **Turso**), the auth library (always
+   **better-auth**), the host (always **Cloudflare Workers**), and the gate
+   steps (**knip** and **jscpd** are not optional). See CORE.md → "Platform
+   defaults".
 
 5. **Design context** — `console`, `marketing`, and `expo` only: free-text
    brand/look description (colors, tone, reference apps). The theme tokens

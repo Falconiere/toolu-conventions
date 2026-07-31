@@ -35,10 +35,12 @@ is `.yml`. Fix the code, do not silence the lint.
    the parent).
 4. **500 code-line ceiling per file** (blanks/comments excluded; tests exempt).
    If a design implies a bigger file, split the design.
-5. **Tests colocate.** Unit tests live in-file under `#[cfg(test)] mod tests`.
-   Integration tests live in the sibling top-level `tests/` directory, one file
-   per surface. Tests use real inputs and real integration paths — **no mock-data
-   tests** (a test that only proves a mock returned what it was told is banned).
+5. **Tests colocate.** Module tests live in a sibling `tests/` folder
+   (`parse_config.rs` → `tests/parse_config.rs`) — **never** in the same file as
+   the logic (no in-file `#[cfg(test)] mod tests { … }` bodies). A one-line
+   `#[cfg(test)] #[path = "tests/….rs"] mod tests;` include is allowed.
+   Integration tests live in the top-level `tests/` directory, one file per
+   surface. Tests use real inputs — **no mock-data tests**.
 6. **Doc line on every public item and module.** `///` on every `pub` fn, struct,
    enum, trait, and field; `//!` at the top of every module. `missing_docs` is on.
 7. **Docs in sync.** A change to a user-facing surface (CLI flags, public API,
@@ -47,6 +49,9 @@ is `.yml`. Fix the code, do not silence the lint.
 
 ## Blocked patterns
 
+- **No in-file tests.** Never put `#[cfg(test)] mod … { … }` bodies in a
+  production `.rs` file. Colocate in a sibling `tests/` folder; a one-line
+  `#[cfg(test)] #[path = "tests/….rs"] mod tests;` include is the only exception.
 - **No `unsafe`.** `unsafe_code = "forbid"` in `Cargo.toml`. If a crate genuinely
   needs it, that is a design decision — raise it, don't silently relax the lint.
 - **No `.unwrap()` / `.expect()`** outside tests and the `main` bootstrap. Return
@@ -70,8 +75,9 @@ project-name/
 ├── lefthook.yml          # pre-commit fmt · pre-push clippy
 ├── src/
 │   ├── main.rs           # binary entry point (or lib.rs for a library crate)
-│   └── <module>.rs       # one module per responsibility, snake_case
-├── tests/                # integration tests, one file per surface
+│   ├── <module>.rs       # one module per responsibility, snake_case
+│   └── tests/            # colocated module tests (sibling; not __tests__)
+├── tests/                # crate-root integration tests, one file per surface
 ├── scripts/
 │   └── check-structure.sh # structure gate (snake_case · 500-line ceiling · .yml)
 └── .github/workflows/ci.yml

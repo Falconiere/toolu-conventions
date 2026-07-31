@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en" data-signal="chalk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>toolu-conventions — house rules, explained</title>
+    <meta
+      name="description"
+      content="Plain-language guide to the toolu conventions kit: why the rules exist, how a product is shaped, and how engineers enforce them."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --font-sans: Archivo, Helvetica, -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+        --bg: #0e0f0d;
+        --surface: #1f1f1f;
+        --surface-inset: #0e0f0d;
+        --surface-hover: #131511;
+        --text: #f2f2ef;
+        --text-muted: #8a8d86;
+        --text-soft: #6c6f68;
+        --text-faint: #52554e;
+        --primary: #f2f2ef;
+        --primary-hover: #d0d1ce;
+        --on-primary: #0e0f0d;
+        --accent: #f2f2ef;
+        --accent-lift: #ffffff;
+        --accent-wash: #1f211c;
+        --border: #23251f;
+        --border-inner: #1e201c;
+        --border-strong: #33362e;
+        --grid: #191b17;
+        --seam: #262922;
+        --gutter: clamp(1.25rem, 4vw, 3rem);
+        --container: 52rem;
+        --container-wide: 68rem;
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        --duration: 280ms;
+      }
+      .band-light {
+        --bg: #f2f2ee;
+        --surface: #ffffff;
+        --surface-inset: #f2f2ee;
+        --surface-hover: #f7f7f3;
+        --text: #16170f;
+        --text-muted: #55574f;
+        --text-soft: #8c8e85;
+        --text-faint: #b3b5ab;
+        --primary: #16170f;
+        --primary-hover: #2c2e24;
+        --on-primary: #f2f2ee;
+        --accent: #16170f;
+        --accent-lift: #f2f2ef;
+        --accent-wash: #e6e6df;
+        --border: #e3e3dc;
+        --border-inner: #ecece5;
+        --border-strong: #b3b5ab;
+        --grid: #e6e6df;
+        --seam: #dcdcd4;
+        background-color: var(--bg);
+        color: var(--text);
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+        font-size: 0.9375rem;
+        line-height: 1.7;
+        background: var(--bg);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: inherit; text-underline-offset: 0.18em; }
+      a:hover { color: var(--accent-lift); }
+      .band-light a:hover { color: var(--primary-hover); }
+      :focus-visible { outline: 3px solid var(--accent-wash); outline-offset: 2px; }
+      .skip-link {
+        position: absolute; left: var(--gutter); top: -3rem; z-index: 20;
+        padding: 0.5rem 0.75rem; background: var(--primary); color: var(--on-primary);
+        font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.18em;
+        text-transform: uppercase; text-decoration: none;
+      }
+      .skip-link:focus { top: 0.75rem; }
+      .band { position: relative; background-color: var(--bg); color: var(--text); isolation: isolate; }
+      .band::before {
+        content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+        background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), var(--grid) calc(25% - 1px), var(--grid) 25%);
+        background-position: var(--gutter) 0; opacity: 0.9;
+      }
+      @media (max-width: 640px) {
+        .band::before {
+          background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(50% - 1px), var(--grid) calc(50% - 1px), var(--grid) 50%);
+        }
+      }
+      .band > * { position: relative; z-index: 1; }
+      .band-seam { position: relative; height: 0; border: 0; margin: 0; }
+      .band-seam::before, .band-seam::after {
+        content: "┼"; position: absolute; top: -0.55em; font-family: var(--font-mono);
+        font-size: 0.625rem; color: var(--seam); line-height: 1; z-index: 2;
+      }
+      .band-seam::before { left: var(--gutter); }
+      .band-seam::after { right: var(--gutter); }
+      .wrap {
+        width: min(100% - (var(--gutter) * 2), var(--container));
+        margin-inline: auto; padding-block: clamp(3.5rem, 8vw, 6.5rem);
+      }
+      .wrap-wide { width: min(100% - (var(--gutter) * 2), var(--container-wide)); }
+      .marker {
+        display: block; font-family: var(--font-mono); font-size: 0.59375rem; line-height: 1.5;
+        letter-spacing: 0.24em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 1.25rem;
+      }
+      .display {
+        font-size: clamp(1.875rem, 3.6vw, 3.125rem); line-height: 1.04; font-weight: 600;
+        letter-spacing: -0.035em; margin: 0 0 1.25rem; text-wrap: balance;
+      }
+      .display-lg {
+        font-size: clamp(2.5rem, 4.8vw, 4.25rem); line-height: 1.03; font-weight: 600;
+        letter-spacing: -0.038em; margin: 0 0 1.5rem; text-wrap: balance;
+      }
+      .display .line-2, .display-lg .line-2 { color: var(--accent); display: block; }
+      .lede {
+        font-size: 1.125rem; line-height: 1.55; font-weight: 500; letter-spacing: -0.01em;
+        max-width: 38rem; margin: 0 0 1.75rem; color: var(--text); text-wrap: pretty;
+      }
+      .body { max-width: 42rem; margin: 0 0 1.1rem; color: var(--text-muted); text-wrap: pretty; }
+      .body strong { color: var(--text); font-weight: 500; }
+      .subhead {
+        font-size: 1.3125rem; line-height: 1.3; font-weight: 500; letter-spacing: -0.022em;
+        margin: 0 0 0.65rem; text-wrap: balance;
+      }
+      .meta {
+        font-family: var(--font-mono); font-size: 0.625rem; line-height: 1.6;
+        letter-spacing: 0.06em; color: var(--text-soft); margin: 0;
+      }
+      .label {
+        font-family: var(--font-mono); font-size: 0.59375rem; line-height: 1.5;
+        letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin: 0;
+      }
+      code, .code { font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.75; }
+      .site-nav {
+        position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap;
+        align-items: baseline; justify-content: space-between; gap: 1rem 1.5rem;
+        padding: 1.25rem var(--gutter); border-bottom: 1px solid var(--border);
+        background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(10px);
+      }
+      .site-nav .brand {
+        font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: 0.06em; text-decoration: none;
+      }
+      .site-nav ul {
+        display: flex; flex-wrap: wrap; gap: 0.85rem 1.25rem; list-style: none; margin: 0; padding: 0;
+      }
+      .site-nav a {
+        font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.18em;
+        text-transform: uppercase; text-decoration: none; color: var(--text-muted);
+      }
+      .site-nav a:hover { color: var(--text); }
+      .cta-row { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; margin-top: 2rem; }
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; min-height: 2.5rem;
+        padding: 0.65rem 1.1rem; font-family: var(--font-mono); font-size: 0.59375rem;
+        letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none;
+        border: 1px solid transparent;
+        transition: background var(--duration) var(--ease), color var(--duration) var(--ease), border-color var(--duration) var(--ease);
+      }
+      .btn-primary { background: var(--primary); color: var(--on-primary); }
+      .btn-primary:hover { background: var(--primary-hover); color: var(--on-primary); }
+      .btn-ghost { background: transparent; color: var(--text); border-color: var(--border-strong); }
+      .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+      .stack-grid {
+        display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 2.5rem;
+      }
+      @media (min-width: 720px) { .stack-grid { grid-template-columns: repeat(2, 1fr); } }
+      @media (min-width: 1100px) { .stack-grid { grid-template-columns: repeat(3, 1fr); } }
+      .stack-card {
+        background: var(--surface); padding: 1.5rem 1.35rem 1.6rem;
+        transition: background var(--duration) var(--ease);
+      }
+      .stack-card:hover { background: var(--surface-hover); }
+      .stack-card .label { margin-bottom: 0.85rem; }
+      .stack-card p { margin: 0; color: var(--text-muted); font-size: 0.875rem; line-height: 1.6; }
+      .stack-card .tech {
+        margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--border-inner);
+        color: var(--text-soft); font-family: var(--font-mono); font-size: 0.625rem;
+        letter-spacing: 0.06em; line-height: 1.6;
+      }
+      .rule-list { list-style: none; margin: 2rem 0 0; padding: 0; border-top: 1px solid var(--border); }
+      .rule-list > li { border-bottom: 1px solid var(--border); padding: 1.35rem 0; }
+      .rule-list .num {
+        font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent);
+        letter-spacing: 0.06em; margin-bottom: 0.45rem;
+      }
+      .rule-list .subhead { margin-bottom: 0.4rem; }
+      .rule-list .body { margin-bottom: 0; }
+      .defaults { margin-top: 2rem; border-top: 1px solid var(--border); }
+      .default-row {
+        display: grid; gap: 0.35rem 1.5rem; padding: 1.1rem 0; border-bottom: 1px solid var(--border);
+      }
+      @media (min-width: 640px) {
+        .default-row { grid-template-columns: 9rem 1fr; align-items: baseline; }
+      }
+      .default-row dt {
+        font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.2em;
+        text-transform: uppercase; color: var(--text-muted);
+      }
+      .default-row dd { margin: 0; color: var(--text); }
+      .default-row dd .why {
+        display: block; margin-top: 0.25rem; color: var(--text-muted); font-size: 0.875rem;
+      }
+      .layers {
+        counter-reset: layer; list-style: none; margin: 2rem 0 0; padding: 0;
+        display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border);
+      }
+      .layer { background: var(--surface); padding: 1.5rem 1.35rem; counter-increment: layer; }
+      .layer::before {
+        content: counter(layer, decimal-leading-zero); display: block; font-family: var(--font-mono);
+        font-size: 0.75rem; color: var(--accent); letter-spacing: 0.06em; margin-bottom: 0.55rem;
+      }
+      .layer p { margin: 0; color: var(--text-muted); font-size: 0.875rem; }
+
+      .snippet {
+        margin: 1rem 0 0;
+        padding: 0.9rem 1rem;
+        overflow-x: auto;
+        background: var(--surface-inset);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        line-height: 1.75;
+      }
+      .note-list {
+        list-style: none;
+        margin: 1.5rem 0 0;
+        padding: 0;
+        border-top: 1px solid var(--border);
+      }
+      .note-list li {
+        padding: 0.85rem 0;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        line-height: 1.55;
+      }
+      .note-list code {
+        color: var(--text);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+      }
+      .rule-list .detail {
+        margin: 0.55rem 0 0;
+        max-width: 42rem;
+        color: var(--text-soft);
+        font-size: 0.875rem;
+        line-height: 1.6;
+        text-wrap: pretty;
+      }
+      .rule-list .detail code {
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+      }
+      .steps { counter-reset: step; list-style: none; margin: 2rem 0 0; padding: 0; }
+      .steps li {
+        position: relative; padding: 1.25rem 0 1.25rem 3rem; border-bottom: 1px solid var(--border);
+        counter-increment: step;
+      }
+      .steps li::before {
+        content: counter(step, decimal-leading-zero); position: absolute; left: 0; top: 1.35rem;
+        font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); letter-spacing: 0.06em;
+      }
+      .steps p { margin: 0.35rem 0 0; color: var(--text-muted); }
+      .site-footer {
+        padding: 2rem var(--gutter) 3rem; border-top: 1px solid var(--border);
+        display: flex; flex-wrap: wrap; gap: 1rem 2rem; justify-content: space-between; align-items: baseline;
+      }
+      .site-footer a { text-decoration: none; color: var(--text-muted); }
+      .site-footer a:hover { color: var(--text); }
+      .doc-links { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; margin-top: 1.75rem; }
+      .doc-links a {
+        font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.16em;
+        text-transform: uppercase; text-decoration: none; color: var(--text-muted);
+        border-bottom: 1px solid var(--border-strong); padding-bottom: 0.15rem;
+      }
+      .doc-links a:hover { color: var(--text); border-color: var(--text); }
+
+      .structure-split {
+        display: grid;
+        gap: 2rem;
+        margin-top: 2.5rem;
+      }
+      .structure-panel {
+        background: var(--surface);
+        padding: 1.5rem 1.35rem 1.75rem;
+        border: 1px solid var(--border);
+      }
+      .structure-panel > .label { margin-bottom: 0.85rem; }
+      .structure-panel > .subhead { margin-bottom: 0.55rem; }
+      .structure-panel > .body { margin-bottom: 1.35rem; max-width: none; }
+      @media (min-width: 960px) {
+        .structure-split {
+          grid-template-columns: 1fr 1fr;
+          gap: 1px;
+          background: var(--border);
+          border: 1px solid var(--border);
+        }
+        .structure-panel { border: 0; }
+      }
+
+      /* Designed folder tree — always visible */
+      .tree-viz {
+        list-style: none;
+        margin: 0;
+        padding: 1.1rem 1rem 1.15rem 0.85rem;
+        background: var(--surface-inset);
+        border: 1px solid var(--border);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        line-height: 1.45;
+        overflow-x: auto;
+      }
+      .tree-viz ul {
+        list-style: none;
+        margin: 0;
+        padding: 0 0 0 1.05rem;
+        border-left: 1px solid var(--border-strong);
+      }
+      .tree-viz > li { padding-left: 0; }
+      .tree-viz li {
+        position: relative;
+        padding: 0.28rem 0 0.28rem 0.85rem;
+      }
+      .tree-viz ul > li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.85em;
+        width: 0.7rem;
+        border-top: 1px solid var(--border-strong);
+      }
+      .tree-viz .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.35rem 0.75rem;
+      }
+      .tree-viz .name {
+        color: var(--text);
+        letter-spacing: 0.01em;
+      }
+      .tree-viz .name.dir {
+        color: var(--accent);
+        font-weight: 500;
+      }
+      .tree-viz .name.dir::before {
+        content: "▸ ";
+        color: var(--text-soft);
+      }
+      .tree-viz .name.file {
+        color: var(--text-muted);
+      }
+      .tree-viz .hint {
+        color: var(--text-soft);
+        font-size: 0.625rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .tree-viz .hint::before {
+        content: "· ";
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      .variant-grid {
+        display: grid;
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        margin-top: 1.5rem;
+      }
+      @media (min-width: 720px) {
+        .variant-grid { grid-template-columns: repeat(3, 1fr); }
+      }
+      .variant {
+        background: var(--surface);
+        padding: 1.25rem 1.2rem 1.4rem;
+      }
+      .variant .label { margin-bottom: 0.55rem; }
+      .variant > p {
+        margin: 0 0 1rem;
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        line-height: 1.55;
+      }
+      .variant .tree-viz {
+        font-size: 0.6875rem;
+        padding: 0.85rem 0.75rem;
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .fade-up { animation: fade-up 700ms var(--ease) both; }
+        .fade-up-delay { animation: fade-up 700ms var(--ease) 120ms both; }
+      }
+      @keyframes fade-up {
+        from { opacity: 0; transform: translateY(0.6rem); }
+        to { opacity: 1; transform: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <nav class="site-nav" aria-label="Page">
+      <a class="brand" href="#top">toolu-conventions</a>
+      <ul>
+        <li><a href="#why">Why</a></li>
+        <li><a href="#product">Product shape</a></li>
+        <li><a href="#stacks">Stacks</a></li>
+        <li><a href="#folders">Folders</a></li>
+        <li><a href="#rules">House rules</a></li>
+        <li><a href="#defaults">Defaults</a></li>
+        <li><a href="#gates">Guard rails</a></li>
+        <li><a href="#use">How to use</a></li>
+      </ul>
+    </nav>
+    <main id="main">
+      <section class="band" id="top" aria-labelledby="hero-title">
+        <div class="wrap">
+          <p class="marker fade-up">— §00 · conventions kit</p>
+          <h1 id="hero-title" class="display-lg fade-up">
+            Same decisions,
+            <span class="line-2">every new project.</span>
+          </h1>
+          <p class="lede fade-up-delay">
+            This kit is a shared playbook for how we build software: what each
+            piece of a product is for, which tools we pick once, and the rules
+            that keep code readable for people and for AI agents.
+          </p>
+          <p class="body fade-up-delay">
+            One guide for everyone: product shape, folder trees, house rules,
+            and how those rules are enforced — written so you can skim or dig in.
+          </p>
+          <div class="cta-row fade-up-delay">
+            <a class="btn btn-primary" href="#why">Start with why</a>
+            <a class="btn btn-ghost" href="../CORE.md">Read CORE.md</a>
+          </div>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+      <section class="band band-light" id="why" aria-labelledby="why-title">
+        <div class="wrap">
+          <p class="marker">— §01 · why this exists</p>
+          <h2 id="why-title" class="display">
+            Stop re-deciding
+            <span class="line-2">the same questions.</span>
+          </h2>
+          <p class="body">
+            Every new repo used to reopen the same debate: folder layout, naming,
+            tests, hosting, linting, what an agent is allowed to invent. That
+            costs time and creates drift between projects that should feel like
+            one house.
+          </p>
+          <p class="body">
+            <strong>toolu-conventions</strong> freezes those answers in markdown
+            an AI coding agent can run. Hand it <code class="code">SETUP.md</code>,
+            answer a short intake, and the scaffold matches the last project:
+            structure, tooling, and guard rails included. There is no CLI and no
+            generator binary — the agent is the executor.
+          </p>
+          
+          <p class="body" style="margin-top: 1.25rem">
+                Root router <code>SETUP.md</code> → stack-agnostic
+                <code>CORE.md</code> + <code>DESIGN.md</code> → per-stack
+                <code>SETUP.md</code>, <code>STRUCTURE.md</code>,
+                <code>LIBRARIES.md</code>, and <code>templates/</code>. Stacks
+                may add rules; they must not relax a core rule.
+              </p>
+
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+      <section class="band" id="product" aria-labelledby="product-title">
+        <div class="wrap">
+          <p class="marker">— §02 · product shape</p>
+          <h2 id="product-title" class="display">
+            One product,
+            <span class="line-2">usually three repos.</span>
+          </h2>
+          <p class="body">
+            A full product is typically split so each surface can use the right
+            defaults: a public website people can find, an app behind login, and
+            an API both talk to. They share one design language and one set of
+            house rules.
+          </p>
+          <dl class="defaults">
+            <div class="default-row">
+              <dt>Public site</dt>
+              <dd>
+                Marketing / content pages — fast, crawlable, static-first.
+                <span class="why">Stack: marketing (Astro)</span>
+              </dd>
+            </div>
+            <div class="default-row">
+              <dt>Product app</dt>
+              <dd>
+                The authenticated experience — screens, forms, live data.
+                <span class="why">Stack: console (React + Vite)</span>
+              </dd>
+            </div>
+            <div class="default-row">
+              <dt>API</dt>
+              <dd>
+                Server logic, database, auth — never ships secrets to the browser.
+                <span class="why">Stack: backend-ts (Hono on Workers)</span>
+              </dd>
+            </div>
+          </dl>
+          <p class="body" style="margin-top: 1.75rem">
+            Mobile and systems work have their own kits (Expo and Rust) when the
+            product needs them. Not every idea needs all five stacks.
+          </p>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+      <section class="band band-light" id="stacks" aria-labelledby="stacks-title">
+        <div class="wrap wrap-wide">
+          <p class="marker">— §03 · stacks</p>
+          <h2 id="stacks-title" class="display">
+            Pick the surface,
+            <span class="line-2">not a fashion.</span>
+          </h2>
+          <p class="body">
+            Each stack answers a different job. The kit keeps one recommended
+            toolset per job so teams and agents stop shopping mid-build.
+          </p>
+          <div class="stack-grid">
+            <article class="stack-card">
+              <p class="label">marketing</p>
+              <h3 class="subhead">Public website</h3>
+              <p>Landing pages and content that must load fast and rank. Built for pages and prose, not for a logged-in dashboard.</p>
+              <p class="tech">Astro · TypeScript · bun · Cloudflare Workers</p>
+            </article>
+            <article class="stack-card">
+              <p class="label">console</p>
+              <h3 class="subhead">Authenticated app</h3>
+              <p>The product behind the login wall: navigation, data panels, and client-side workflows.</p>
+              <p class="tech">React · Vite · TanStack Router · Vitest · Workers</p>
+            </article>
+            <article class="stack-card">
+              <p class="label">backend-ts</p>
+              <h3 class="subhead">HTTP API</h3>
+              <p>Procedures, validation, database access, and auth. Clients stay thin; the server owns secrets and tables.</p>
+              <p class="tech">Hono · workerd · Turso · oRPC · Vitest</p>
+            </article>
+            <article class="stack-card">
+              <p class="label">expo</p>
+              <h3 class="subhead">Mobile app</h3>
+              <p>Native-feeling iOS and Android from one TypeScript codebase, with the same naming and test discipline as the web stacks.</p>
+              <p class="tech">Expo · Expo Router · bun · Jest</p>
+            </article>
+            <article class="stack-card">
+              <p class="label">rust</p>
+              <h3 class="subhead">Systems / CLI</h3>
+              <p>Single-crate Rust with strict clippy and rustfmt. Use when the work is a tool or service that belongs in Rust, not TypeScript.</p>
+              <p class="tech">cargo · clippy −D warnings · rustfmt · cargo test</p>
+            </article>
+          </div>
+          <p class="body" style="margin-top: 2rem">
+            Every <code class="code">stacks/&lt;name&gt;/</code> ships the same four
+            artifacts: <code class="code">SETUP.md</code> (scaffold steps),
+            <code class="code">STRUCTURE.md</code> (folder tree),
+            <code class="code">LIBRARIES.md</code> (reach-for / avoid), and
+            <code class="code">templates/</code> (copy-ready configs and
+            <code class="code">CLAUDE.md.template</code>).
+          </p>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band" id="folders" aria-labelledby="folders-title">
+        <div class="wrap wrap-wide">
+          <p class="marker">— §04 · folder design</p>
+          <h2 id="folders-title" class="display">
+            Same words,
+            <span class="line-2">same places.</span>
+          </h2>
+          <p class="body">
+            Every project is laid out so a stranger (or an agent) can guess where
+            a screen, an API call, or a helper lives. Folders are named for jobs,
+            not for frameworks. TypeScript stacks share one vocabulary; Rust uses
+            the same idea with modules instead of feature folders.
+          </p>
+
+          <div class="structure-split">
+            <article class="structure-panel">
+              <p class="label">TypeScript · console (canonical)</p>
+              <h3 class="subhead">Authenticated app tree</h3>
+              <p class="body">
+                Routes only wire URLs to screens. Product work lives under
+                <strong>features/</strong>. Shared UI and helpers stay outside features.
+                Imports use <code class="code">@/*</code> (never deep relatives); no barrel
+                <code class="code">index.ts</code>. Canonical detail:
+                <code class="code">stacks/console/STRUCTURE.md</code>.
+              </p>
+              <ul class="tree-viz" aria-label="TypeScript console folder tree">
+                <li>
+                  <div class="row"><span class="name dir">&lt;app&gt;/</span></div>
+                  <ul>
+                    <li><div class="row"><span class="name file">index.html</span><span class="hint">Vite entry</span></div></li>
+                    <li>
+                      <div class="row"><span class="name dir">src/</span></div>
+                      <ul>
+                        <li><div class="row"><span class="name file">main.tsx</span></div></li>
+                        <li><div class="row"><span class="name file">route-tree.gen.ts</span><span class="hint">generated</span></div></li>
+                        <li>
+                          <div class="row"><span class="name dir">app/</span><span class="hint">routes only · thin</span></div>
+                          <ul>
+                            <li><div class="row"><span class="name file">__root.tsx</span></div></li>
+                            <li><div class="row"><span class="name file">index.tsx</span><span class="hint">/</span></div></li>
+                            <li><div class="row"><span class="name file">shifts.$id.tsx</span><span class="hint">/shifts/:id</span></div></li>
+                          </ul>
+                        </li>
+                        <li>
+                          <div class="row"><span class="name dir">ui/</span><span class="hint">design system + theme</span></div>
+                        </li>
+                        <li>
+                          <div class="row"><span class="name dir">features/&lt;feature&gt;/</span><span class="hint">one job per folder</span></div>
+                          <ul>
+                            <li><div class="row"><span class="name dir">screens/</span></div></li>
+                            <li><div class="row"><span class="name dir">components/</span></div></li>
+                            <li><div class="row"><span class="name dir">hooks/</span></div></li>
+                            <li><div class="row"><span class="name dir">api/</span><span class="hint">optional</span></div></li>
+                            <li><div class="row"><span class="name file">types.ts</span></div></li>
+                            <li><div class="row"><span class="name dir">__tests__/</span><span class="hint">colocated · per feature</span></div></li>
+                          </ul>
+                        </li>
+                        <li><div class="row"><span class="name dir">api/</span><span class="hint">orpc + http clients</span></div></li>
+                        <li><div class="row"><span class="name dir">utilities/</span></div></li>
+                        <li><div class="row"><span class="name dir">providers/</span></div></li>
+                        <li><div class="row"><span class="name dir">constants/</span></div></li>
+                        <li><div class="row"><span class="name dir">types/</span></div></li>
+                      </ul>
+                    </li>
+                    <li><div class="row"><span class="name dir">public/</span><span class="hint">static assets</span></div></li>
+                    <li><div class="row"><span class="name dir">docs/</span></div></li>
+                    <li><div class="row"><span class="name dir">scripts/</span></div></li>
+                    <li><div class="row"><span class="name file">CLAUDE.md</span><span class="hint">agent map</span></div></li>
+                    <li><div class="row"><span class="name file">README.md</span></div></li>
+                  </ul>
+                </li>
+              </ul>
+            </article>
+
+            <article class="structure-panel">
+              <p class="label">Rust · single crate</p>
+              <h3 class="subhead">Modules, not a monorepo</h3>
+              <p class="body">
+                One crate, one <strong>Cargo.toml</strong>. Each file holds one main
+                idea. When it grows, it becomes a folder of parts — still named
+                after that idea. Declare submodules from the parent file
+                (<code class="code">src/foo.rs</code> + <code class="code">src/foo/bar.rs</code>),
+                never <code class="code">mod.rs</code>. Module tests live in a sibling
+                <code class="code">tests/</code> folder — never in the same file as the
+                logic. Canonical detail:
+                <code class="code">stacks/rust/STRUCTURE.md</code>.
+              </p>
+              <ul class="tree-viz" aria-label="Rust project folder tree">
+                <li>
+                  <div class="row"><span class="name dir">project-name/</span></div>
+                  <ul>
+                    <li><div class="row"><span class="name file">Cargo.toml</span><span class="hint">+ Cargo.lock</span></div></li>
+                    <li><div class="row"><span class="name file">rustfmt.toml</span></div></li>
+                    <li><div class="row"><span class="name file">lefthook.yml</span></div></li>
+                    <li>
+                      <div class="row"><span class="name dir">src/</span></div>
+                      <ul>
+                        <li><div class="row"><span class="name file">main.rs</span><span class="hint">or lib.rs</span></div></li>
+                        <li><div class="row"><span class="name file">parse_config.rs</span></div></li>
+                        <li>
+                          <div class="row"><span class="name dir">tests/</span><span class="hint">colocated · not __tests__</span></div>
+                          <ul>
+                            <li><div class="row"><span class="name file">parse_config.rs</span></div></li>
+                          </ul>
+                        </li>
+                        <li>
+                          <div class="row"><span class="name dir">shift_store.rs + shift_store/</span><span class="hint">after a split</span></div>
+                          <ul>
+                            <li><div class="row"><span class="name file">query.rs</span></div></li>
+                            <li>
+                              <div class="row"><span class="name dir">tests/</span><span class="hint">colocated · not __tests__</span></div>
+                              <ul>
+                                <li><div class="row"><span class="name file">query.rs</span></div></li>
+                              </ul>
+                            </li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </li>
+                    <li>
+                      <div class="row"><span class="name dir">tests/</span><span class="hint">crate-root · integration</span></div>
+                      <ul>
+                        <li><div class="row"><span class="name file">cli.rs</span></div></li>
+                      </ul>
+                    </li>
+                    <li><div class="row"><span class="name dir">scripts/</span><span class="hint">check-structure.sh</span></div></li>
+                    <li><div class="row"><span class="name file">CLAUDE.md</span></div></li>
+                    <li><div class="row"><span class="name file">README.md</span></div></li>
+                    <li><div class="row"><span class="name dir">.github/workflows/</span></div></li>
+                  </ul>
+                </li>
+              </ul>
+            </article>
+          </div>
+
+          <p class="marker" style="margin-top: 2.75rem">— TypeScript · stack variants</p>
+          <h3 class="subhead">Same idea, different route home</h3>
+          <p class="body">
+            Marketing, API, and mobile keep the shared folder words where they
+            fit. Only the route layer changes shape to match the framework.
+          </p>
+          <div class="variant-grid">
+            <article class="variant">
+              <p class="label">marketing</p>
+              <p>Public site: pages compose sections. No logged-in features folder.</p>
+              <ul class="tree-viz" aria-label="Marketing folder tree">
+                <li>
+                  <div class="row"><span class="name dir">src/</span></div>
+                  <ul>
+                    <li><div class="row"><span class="name dir">pages/</span><span class="hint">one file per URL</span></div></li>
+                    <li><div class="row"><span class="name dir">layouts/</span></div></li>
+                    <li><div class="row"><span class="name dir">sections/</span><span class="hint">hero, pricing…</span></div></li>
+                    <li><div class="row"><span class="name dir">ui/</span></div></li>
+                    <li><div class="row"><span class="name dir">content/</span></div></li>
+                    <li><div class="row"><span class="name dir">utilities/</span></div></li>
+                    <li><div class="row"><span class="name dir">constants/</span></div></li>
+                  </ul>
+                </li>
+              </ul>
+            </article>
+            <article class="variant">
+              <p class="label">backend-ts</p>
+              <p>API: typed product RPC vs plain HTTP; logic in services.</p>
+              <ul class="tree-viz" aria-label="Backend-ts folder tree">
+                <li>
+                  <div class="row"><span class="name dir">src/</span></div>
+                  <ul>
+                    <li><div class="row"><span class="name file">app.ts</span><span class="hint">wiring only</span></div></li>
+                    <li><div class="row"><span class="name file">index.ts</span><span class="hint">Worker entry</span></div></li>
+                    <li><div class="row"><span class="name dir">services/</span><span class="hint">+ __tests__/</span></div></li>
+                    <li><div class="row"><span class="name dir">rpc/</span><span class="hint">+ __tests__/</span></div></li>
+                    <li><div class="row"><span class="name dir">routes/</span><span class="hint">+ __tests__/</span></div></li>
+                    <li><div class="row"><span class="name dir">utilities/</span></div></li>
+                    <li><div class="row"><span class="name dir">constants/</span></div></li>
+                  </ul>
+                </li>
+              </ul>
+            </article>
+            <article class="variant">
+              <p class="label">expo</p>
+              <p>Mobile: Expo Router at repo-root <code class="code">app/</code>; features under <code class="code">src/</code>.</p>
+              <ul class="tree-viz" aria-label="Expo folder tree">
+                <li>
+                  <div class="row"><span class="name dir">&lt;app&gt;/</span></div>
+                  <ul>
+                    <li><div class="row"><span class="name dir">app/</span><span class="hint">routes only</span></div></li>
+                    <li>
+                      <div class="row"><span class="name dir">src/</span></div>
+                      <ul>
+                        <li><div class="row"><span class="name dir">features/</span></div></li>
+                        <li><div class="row"><span class="name dir">ui/</span></div></li>
+                        <li><div class="row"><span class="name dir">api/</span></div></li>
+                        <li><div class="row"><span class="name dir">utilities/</span></div></li>
+                      </ul>
+                    </li>
+                    <li><div class="row"><span class="name dir">assets/</span></div></li>
+                  </ul>
+                </li>
+              </ul>
+            </article>
+          </div>
+
+          
+          <ul class="note-list">
+                <li>No barrel <code>index.ts</code> / <code>mod.rs</code> whose only job is re-exporting.</li>
+                <li>Filename matches the primary export (<code>shift-card.tsx</code> → <code>ShiftCard</code>; <code>shift_store.rs</code> → <code>ShiftStore</code>).</li>
+                <li>Colocated tests: TypeScript sibling <code>__tests__/</code>; Rust sibling <code>tests/</code> (never in the logic file). Crate-root <code>tests/</code> is for integration only. No centralized <code>src/tests</code> dump that is not sibling-colocated.</li>
+                <li>Every top-level source folder ships a <code>README.md</code> map for agents.</li>
+                <li>Canonical detail lives in each stack’s <code>STRUCTURE.md</code>.</li>
+              </ul>
+
+        </div>
+      </section>
+
+      <hr class="band-seam" aria-hidden="true" />
+      <section class="band band-light" id="rules" aria-labelledby="rules-title">
+        <div class="wrap">
+          <p class="marker">— §05 · house rules</p>
+          <h2 id="rules-title" class="display">
+            Rules that make
+            <span class="line-2">code findable.</span>
+          </h2>
+          <p class="body">
+            These apply to every stack. They exist so a human or an agent can
+            open a repo cold and still know where things live, what a file is
+            for, and whether a change is safe.
+          </p>
+          <ol class="rule-list">
+            <li>
+              <div class="num">01</div>
+              <h3 class="subhead">One file, one job</h3>
+              <p class="body">A file does one thing and is named after that thing. Small and clear beats a grab-bag module nobody wants to open.</p>
+              
+              <p class="detail">One primary named export per file. Filename ↔ export <code>shift-card.tsx</code> → <code>ShiftCard</code>. Max 300 code lines (TS) / 500 (Rust), blanks and comments excluded. No barrel <code>index.ts</code> re-export files (framework route entries are the only sanctioned exception).</p>
+
+            </li>
+            <li>
+              <div class="num">02</div>
+              <h3 class="subhead">Imports point at the real file</h3>
+              <p class="body">You always import from the file that defines something. That keeps ownership obvious and stops “junk drawer” folders from forming.</p>
+              
+              <p class="detail">Named exports by default. Default export only where a framework forces it (Expo Router route files; Cloudflare Worker <code>src/index.ts</code>). Console TanStack routes export a named <code>Route</code>.</p>
+
+            </li>
+            <li>
+              <div class="num">03</div>
+              <h3 class="subhead">Tests sit next to the code</h3>
+              <p class="body">
+                Tests live beside the module they prove — not in a central
+                <code class="code">src/tests</code> dump. They use realistic inputs.
+                A test that only proves a fake returns what you told it to return
+                does not count.
+              </p>
+              <p class="detail">
+                TypeScript (console, marketing, backend-ts, expo): sibling
+                <code>__tests__/</code>, named after the module. Rust: sibling
+                <code>tests/</code> (same shape, different folder name) —
+                <strong>never</strong> in the same file as the logic. Keep test
+                trees flat. No centralized test directories under <code>src/</code>.
+              </p>
+              <div class="structure-split" style="margin-top: 1.25rem">
+                <article class="structure-panel">
+                  <p class="label">TypeScript · colocated</p>
+                  <ul class="tree-viz" aria-label="TypeScript colocated tests">
+                    <li>
+                      <div class="row"><span class="name dir">ui/</span><span class="hint">or features/…/components</span></div>
+                      <ul>
+                        <li>
+                          <div class="row"><span class="name dir">my-component/</span><span class="hint">module folder</span></div>
+                          <ul>
+                            <li><div class="row"><span class="name file">my-component.tsx</span></div></li>
+                            <li>
+                              <div class="row"><span class="name dir">__tests__/</span><span class="hint">sibling of the module</span></div>
+                              <ul>
+                                <li><div class="row"><span class="name file">my-component.test.tsx</span></div></li>
+                              </ul>
+                            </li>
+                          </ul>
+                        </li>
+                        <li><div class="row"><span class="name file">button.tsx</span><span class="hint">still a single file</span></div></li>
+                        <li>
+                          <div class="row"><span class="name dir">__tests__/</span><span class="hint">sibling in the same dir</span></div>
+                          <ul>
+                            <li><div class="row"><span class="name file">button.test.tsx</span></div></li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </li>
+                  </ul>
+                </article>
+                <article class="structure-panel">
+                  <p class="label">Rust · colocated</p>
+                  <ul class="tree-viz" aria-label="Rust colocated tests">
+                    <li>
+                      <div class="row"><span class="name dir">project/</span></div>
+                      <ul>
+                        <li>
+                          <div class="row"><span class="name dir">src/</span></div>
+                          <ul>
+                            <li><div class="row"><span class="name file">parse_config.rs</span></div></li>
+                            <li>
+                              <div class="row"><span class="name dir">tests/</span><span class="hint">colocated · not __tests__</span></div>
+                              <ul>
+                                <li><div class="row"><span class="name file">parse_config.rs</span></div></li>
+                              </ul>
+                            </li>
+                            <li>
+                              <div class="row"><span class="name dir">shift_store/</span><span class="hint">module parts</span></div>
+                              <ul>
+                                <li><div class="row"><span class="name file">query.rs</span></div></li>
+                                <li>
+                                  <div class="row"><span class="name dir">tests/</span></div>
+                                  <ul>
+                                    <li><div class="row"><span class="name file">query.rs</span></div></li>
+                                  </ul>
+                                </li>
+                              </ul>
+                            </li>
+                          </ul>
+                        </li>
+                        <li>
+                          <div class="row"><span class="name dir">tests/</span><span class="hint">crate-root · integration</span></div>
+                          <ul>
+                            <li><div class="row"><span class="name file">cli.rs</span></div></li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </li>
+                  </ul>
+                </article>
+              </div>
+            </li>
+            <li>
+              <div class="num">04</div>
+              <h3 class="subhead">Trust nothing at the edge</h3>
+              <p class="body">Anything that enters the program from outside — forms, APIs, env vars, storage — is checked before use. Inside our own code, types are enough.</p>
+              
+              <p class="detail">Zod at every boundary; TypeScript types come from <code>z.infer</code>, never a parallel hand-written type. No <code>any</code>, no <code>as unknown as T</code>. Secrets never land in committed files.</p>
+                  <pre class="snippet">const Shift = z.object({ id: z.string(), startsAt: z.iso.datetime() });
+type Shift = z.infer&lt;typeof Shift&gt;;</pre>
+
+            </li>
+            <li>
+              <div class="num">05</div>
+              <h3 class="subhead">Docs move with the change</h3>
+              <p class="body">If behavior people rely on changes, the prose that describes it changes in the same commit. Modules also carry a short doc line so search and agents can orient quickly.</p>
+              
+              <p class="detail">Every module and public symbol gets a concise doc line <code>/** … */</code> / <code>///</code>. User-facing surfaces update README / guides / release notes in the same change.</p>
+
+            </li>
+            <li>
+              <div class="num">06</div>
+              <h3 class="subhead">No debug leftovers, no silent rot</h3>
+              <p class="body">Committed code does not leave print-debugging behind. Unused files and copy-paste clones are treated as failures, not as “cleanup later.”</p>
+              
+              <p class="detail">No <code>console.log</code> / <code>debugger</code> in committed TS; prefer <code>console.warn</code> / <code>console.error</code>. Gate includes knip (unused) and jscpd at threshold 0 (duplication).</p>
+
+            </li>
+          </ol>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+      <section class="band" id="defaults" aria-labelledby="defaults-title">
+        <div class="wrap">
+          <p class="marker">— §06 · platform defaults</p>
+          <h2 id="defaults-title" class="display">
+            One answer
+            <span class="line-2">per job.</span>
+          </h2>
+          <p class="body">
+            These are the house choices so a new project does not re-litigate
+            hosting, database, auth, or HTTP clients. Deviating is allowed when
+            you document it in the project’s agent readme.
+          </p>
+          <dl class="defaults">
+            <div class="default-row">
+              <dt>Hosting</dt>
+              <dd>Cloudflare Workers<span class="why">Same runtime story for site, app assets, and API.</span></dd>
+            </div>
+            <div class="default-row">
+              <dt>Database</dt>
+              <dd>Turso<span class="why">SQLite-compatible, server-side only, fetch-friendly on Workers.</span></dd>
+            </div>
+            <div class="default-row">
+              <dt>Auth</dt>
+              <dd>better-auth<span class="why">House auth. Server owns tables and secrets; clients only hold createAuthClient.</span></dd>
+            </div>
+            <div class="default-row">
+              <dt>Server state</dt>
+              <dd>TanStack Query (<code class="code">@tanstack/react-query</code>)<span class="why">Caching, mutations, refetch. With oRPC: query keys come from the procedure path.</span></dd>
+            </div>
+            <div class="default-row">
+              <dt>Forms</dt>
+              <dd>TanStack Form (<code class="code">@tanstack/react-form</code>) + Zod<span class="why">Pass Zod schemas directly (Standard Schema). Do not add @tanstack/zod-form-adapter.</span></dd>
+            </div>
+            <div class="default-row">
+              <dt>Our API</dt>
+              <dd>oRPC + TanStack Query bindings<span class="why">Procedures typed end to end via @orpc/tanstack-query.</span></dd>
+            </div>
+            <div class="default-row">
+              <dt>Other HTTP</dt>
+              <dd>Kit <code class="code">http.ts</code> over fetch<span class="why">axios is banned in lint and in the structure check.</span></dd>
+            </div>
+            <div class="default-row">
+              <dt>Validation</dt>
+              <dd>Zod<span class="why">One validator everywhere; types inferred from schemas.</span></dd>
+            </div>
+            <div class="default-row">
+              <dt>Packages</dt>
+              <dd>bun (TypeScript) · cargo (Rust)<span class="why">oxlint + oxfmt; Lefthook pre-commit on every stack.</span></dd>
+            </div>
+          </dl>
+          
+          <p class="body" style="margin-top: 1.25rem">UI stacks ship CodaSignal “Signal” tokens from <code>DESIGN.md</code>: alternating dark/light bands, one chromatic signal (or chalk for docs), Archivo + JetBrains Mono. Theme values live in <code>theme/*.ts</code>; the markdown file is the rules.</p>
+
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+      <section class="band band-light" id="gates" aria-labelledby="gates-title">
+        <div class="wrap">
+          <p class="marker">— §07 · guard rails</p>
+          <h2 id="gates-title" class="display">
+            Four layers,
+            <span class="line-2">none optional.</span>
+          </h2>
+          <p class="body">
+            Rules only matter if something enforces them. Every generated project
+            ships four layers. None may be disabled “just this once” to get a
+            green build — fix the check, or change the check deliberately and say
+            so.
+          </p>
+          <ol class="layers">
+            <li class="layer">
+              <h3 class="subhead">Rules in the repo</h3>
+              <p>A project <code class="code">CLAUDE.md</code> encodes the house rules, blocked patterns, repo map, and gate commands. Agents read it first. Invisible rules do not exist.</p>
+            </li>
+            <li class="layer">
+              <h3 class="subhead">Pre-commit hooks</h3>
+              <p>Lefthook runs fast format and lint checks on staged files before the commit lands. Same idea on Rust and TypeScript stacks.</p>
+            </li>
+            <li class="layer">
+              <h3 class="subhead">One gate command</h3>
+              <p>Before every push: a single check command that type-checks, lints, formats, validates structure, hunts dead code and copy-paste, and runs tests. CI mirrors those steps by name.</p>
+            </li>
+            <li class="layer">
+              <h3 class="subhead">AI code review on PRs</h3>
+              <p>Each pull request is reviewed against the repo’s own convention files from the base branch, so a PR cannot rewrite the rules it is judged by.</p>
+            </li>
+          </ol>
+          
+          <p class="body" style="margin-top: 1.25rem">TypeScript stacks:</p>
+              <pre class="snippet">bun run check
+# tsc|astro check → oxlint → oxfmt → check-structure.sh → knip → jscpd → tests</pre>
+              <p class="body" style="margin-top: 1.25rem">Rust:</p>
+              <pre class="snippet">cargo fmt --check &amp;&amp; cargo clippy --all-targets -- -D warnings \
+  &amp;&amp; bash scripts/check-structure.sh &amp;&amp; cargo test</pre>
+              <p class="body" style="margin-top: 1.25rem">Structure is machine-enforced (no axios, no barrels, kebab-case filenames, max-lines, feature isolation). This conventions repo validates its own templates via <code>scripts/validate-templates.sh</code>.</p>
+
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+      <section class="band" id="use" aria-labelledby="use-title">
+        <div class="wrap">
+          <p class="marker">— §08 · how to use</p>
+          <h2 id="use-title" class="display">
+            Hand the kit
+            <span class="line-2">to an agent.</span>
+          </h2>
+          <p class="body">
+            Humans decide the product intent. The agent executes the scaffold.
+            You finish the checklist only a person can complete (logins, store
+            credentials, secrets).
+          </p>
+          <ol class="steps">
+            <li>
+              <h3 class="subhead">Create an empty project folder</h3>
+              <p>New repo or directory where the app will live.</p>
+            </li>
+            <li>
+              <h3 class="subhead">Make the kit readable</h3>
+              <p>Clone or place this kit where the coding agent can open it.</p>
+            </li>
+            <li>
+              <h3 class="subhead">Start the agent on SETUP.md</h3>
+              <p>Tell it: set up this project by following <code class="code">SETUP.md</code>.</p>
+            </li>
+            <li>
+              <h3 class="subhead">Answer the intake</h3>
+              <p>Stack, project name, staging?, integrations, and (for UI stacks) a short design context.</p>
+            </li>
+            <li>
+              <h3 class="subhead">Finish the human-only checklist</h3>
+              <p>Secrets, required GitHub checks, and vendor logins the agent cannot complete for you.</p>
+            </li>
+          </ol>
+          <p class="body" style="margin-top: 2rem">
+            When a convention changes, update the markdown and the matching
+            templates together. Run the kit’s validation script before you
+            distribute a change.
+          </p>
+          <div class="doc-links">
+            <a href="../README.md">README</a>
+            <a href="../SETUP.md">SETUP.md</a>
+            <a href="../CORE.md">CORE.md</a>
+            <a href="../DESIGN.md">DESIGN.md</a>
+            <a href="toolu/specs/2026-07-17-conventions-kit-design.md">Design spec</a>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer band">
+      <p class="meta">toolu-conventions · v0.2 · Signal / chalk</p>
+      <p class="meta">
+        <a href="#top">Back to top</a>
+        ·
+        <a href="../CORE.md">Canonical rules</a>
+      </p>
+    </footer>
+  </body>
+</html>

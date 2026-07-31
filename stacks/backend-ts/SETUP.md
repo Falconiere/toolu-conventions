@@ -302,9 +302,9 @@ Skip any the user declined. Add a README line under the relevant folder for each
 ### 6a. Auth (better-auth)
 
 ```bash
-# @libsql/kysely-libsql is the Kysely dialect the sample below imports —
-# better-auth pulls in kysely itself, but not the libSQL dialect for it.
-bun add better-auth @libsql/kysely-libsql
+# @libsql/kysely-libsql is the Kysely dialect the sample below imports.
+# better-auth depends on kysely; pin it explicitly so the dialect resolves.
+bun add better-auth @libsql/kysely-libsql kysely
 ```
 
 better-auth is the house auth library, and this service owns the **server** half
@@ -321,14 +321,19 @@ import { betterAuth } from 'better-auth';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 import { tursoConfig } from '@/constants/env';
 
-/** Builds the auth instance for this request. */
-export function createAuth() {
+/** Builds the auth instance for this request from Worker bindings. */
+export function createAuth(env: {
+  BETTER_AUTH_SECRET: string;
+  BETTER_AUTH_URL: string;
+}) {
   const { url, authToken } = tursoConfig();
   return betterAuth({
     database: {
       dialect: new LibsqlDialect({ url, authToken }),
       type: 'sqlite',
     },
+    secret: env.BETTER_AUTH_SECRET,
+    baseURL: env.BETTER_AUTH_URL,
     emailAndPassword: { enabled: true },
   });
 }
@@ -336,13 +341,21 @@ export function createAuth() {
 
 ```ts
 // in src/app.ts
-app.on(['GET', 'POST'], '/api/auth/*', (c) => createAuth().handler(c.req.raw));
+app.on(['GET', 'POST'], '/api/auth/*', (c) =>
+  createAuth(c.env).handler(c.req.raw),
+);
 ```
 
 Add `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` to `.dev.vars` (and
-`wrangler secret put` per environment), and generate the auth tables with
-better-auth's CLI before the first request. Check better-auth's current docs for
-the exact option names — it moves faster than this kit.
+`wrangler secret put` / vars per environment). Generate or migrate the auth
+tables with the current CLI before the first request:
+
+```bash
+npx auth@latest generate   # or: npx auth@latest migrate
+```
+
+Check better-auth's current docs if the CLI subcommands move — the package
+moves faster than this kit.
 
 ### 6b. Structured logging
 

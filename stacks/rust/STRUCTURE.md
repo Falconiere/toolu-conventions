@@ -22,10 +22,13 @@ project-name/
 │   ├── main.rs           # binary entry point …
 │   │                     #   (or lib.rs if this crate is a library)
 │   ├── <module>.rs       # one module per responsibility, snake_case
+│   ├── tests/            # colocated module tests (sibling; not __tests__)
+│   │   └── <module>.rs
 │   └── <module>/         # a module that outgrew one file becomes a folder:
-│       ├── <module>.rs   #   declared from the parent as `mod <module>;`
-│       └── <part>.rs     #   sub-parts, each one responsibility
-├── tests/                # integration tests — one file per surface
+│       ├── <part>.rs     #   sub-parts declared from <module>.rs
+│       └── tests/        #   colocated tests for those parts
+│           └── <part>.rs
+├── tests/                # crate-root integration tests — one file per surface
 │   └── <surface>.rs
 ├── scripts/
 │   └── check-structure.sh # structure gate: snake_case, 500-line ceiling, .yml
@@ -72,26 +75,47 @@ under `src/`/`tests/` must match `^[a-z0-9_]+\.rs$`) as part of the gate.
 
 ## Tests
 
-Two tiers, both required to use **real data — no mock-data tests** (a test that
-only proves a mock returned what it was told is banned; it hides integration
-breakage):
+**Tests never share a file with production logic.** No in-file
+`#[cfg(test)] mod tests { … }` bodies. Same idea as TypeScript’s `__tests__/`,
+with the Rust folder name `tests/`. Real data only — no mock-data tests.
 
-- **Unit tests live in-file** under `#[cfg(test)] mod tests` at the bottom of the
-  file they cover. They can reach private items via `use super::*;`. A test module
-  that needs `unwrap()`/`expect()` opts out at its top:
-  ```rust
-  #[cfg(test)]
-  mod tests {
-      #![allow(clippy::unwrap_used, clippy::expect_used)]
-      use super::*;
-      // …
-  }
-  ```
-- **Integration tests live in the sibling top-level `tests/` directory**, one
-  file per surface (`tests/cli.rs`, `tests/http_api.rs`). Each file is its own
-  crate that exercises the public API the way a real consumer would.
+### Colocated module tests — sibling `tests/`
 
-Keep the `tests/` tree flat. Tests are exempt from the line ceiling.
+```
+src/
+├── parse_config.rs              # production module
+├── tests/
+│   └── parse_config.rs          # colocated tests (sibling tests/ folder)
+├── shift_store.rs               # module root (declares submodules)
+└── shift_store/
+    ├── query.rs
+    └── tests/
+        └── query.rs             # colocated next to the part under test
+```
+
+Keep each `tests/` tree **flat**. Filename matches the module under test.
+
+The production file may include the test module with a **one-line** path include
+so unit tests can `use super::*` and reach private items — the test *code* still
+lives in the sibling file:
+
+```rust
+#[cfg(test)]
+#[path = "tests/parse_config.rs"]
+mod tests;
+```
+
+`scripts/check-structure.sh` fails the gate if a non-`tests/` `.rs` file contains
+an inline `#[cfg(test)] mod … {` body.
+
+### Crate-root integration tests
+
+Integration tests live in the **top-level** `tests/` directory (sibling of
+`src/`), one file per public surface (`tests/cli.rs`, `tests/http_api.rs`). Each
+file is its own crate that exercises the public API the way a real consumer
+would.
+
+Tests are exempt from the line ceiling.
 
 ## Hard conventions
 
@@ -106,8 +130,8 @@ Inherited from CORE, stated here in Rust terms — enforced by the `[lints]` tab
    plus `-D warnings` makes an undocumented public item a CI failure.
 3. **No `unwrap()` / `expect()` outside tests and the `main` bootstrap.** Return
    `Result` and propagate with `?`. `clippy::unwrap_used` / `expect_used` enforce
-   it; the only exemptions are the two explicit `#[allow(...)]` sites above (test
-   modules, fail-fast startup).
+   it; the only exemptions are colocated/crate-root test modules (with an
+   explicit `#[allow(...)]`) and fail-fast startup.
 4. **No `unsafe`.** `unsafe_code = "forbid"`.
 5. **No stray `println!` debugging** — `println!` is for real program stdout;
    diagnostics go through `eprintln!` or `tracing`.

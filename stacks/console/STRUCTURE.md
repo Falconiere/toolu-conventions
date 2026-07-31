@@ -258,8 +258,19 @@ and cannot drift from the queries it is meant to match. Hand-writing
 happen — two places to keep in sync, and an invalidation that silently matches
 nothing once they disagree.
 
+Use the v5 object API only (`useQuery({ … })` / `queryOptions` /
+`mutationOptions`). Prefer `isPending` over the old query `isLoading` naming
+when reading session or query status.
+
 Feature hooks like the two above live in `src/features/<feature>/hooks/` when
 one feature owns them, or `src/api/queries/` when several do.
+
+### Forms: TanStack Form + Zod
+
+House default (CORE). Install `@tanstack/react-form` with the baseline deps.
+Validate with Zod via Standard Schema — pass the schema in `validators` (for
+example `validators: { onSubmit: ShiftForm }`). Do not add
+`@tanstack/zod-form-adapter`. Full example: [`LIBRARIES.md`](./LIBRARIES.md).
 
 ### Everything else: the `http` client
 

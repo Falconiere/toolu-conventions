@@ -92,8 +92,10 @@ Follow [`STRUCTURE.md`](./STRUCTURE.md). In short:
   item (`shift_store.rs` → `struct ShiftStore`).
 - **No `mod.rs` barrels** — declare submodules from the parent file. When `foo.rs`
   grows into a folder, keep `src/foo.rs` beside `src/foo/`.
-- Unit tests in-file under `#[cfg(test)] mod tests`; integration tests in the
-  sibling top-level `tests/` directory, one file per surface. Real data, no mocks.
+- Unit tests in a sibling `tests/` folder (`parse_config.rs` →
+  `tests/parse_config.rs`) — **never** in the same file as the logic. Integration
+  tests in the top-level `tests/` directory, one file per surface. Real data, no
+  mocks.
 
 ## 4. Install git hooks
 

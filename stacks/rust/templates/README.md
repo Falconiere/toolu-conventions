@@ -32,7 +32,8 @@ lefthook install
 ## Layout
 
 - `src/` — one module per responsibility, `snake_case` filenames.
-- `tests/` — integration tests, one file per surface.
+- `src/**/tests/` — colocated module tests (sibling `tests/` folders; never in-file).
+- `tests/` — crate-root integration tests, one file per surface.
 - `CLAUDE.md` — conventions and blocked patterns (read first if you are an agent).
 
 ## Conventions
