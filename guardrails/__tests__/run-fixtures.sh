@@ -268,6 +268,48 @@ if [ -z "$ONLY" ]; then
   rm -rf "$SC"
 fi
 
+# ---------------------------------------------------------------- variadic --file
+# Lefthook expands {staged_files} to EVERY staged file at once, so --file has to
+# take a list. A single-path flag would have broken every multi-file commit.
+if [ -z "$ONLY" ]; then
+  gr_in "$DIRTY" --file src/ui/index.ts src/features/shifts/utils/helper.ts; out=$OUT
+  if [ "$STATUS" -eq 1 ] \
+    && [ "$(count_check "$out" no-barrels)" -eq 1 ] \
+    && [ "$(count_check "$out" folder-tree)" -ge 1 ]; then
+    ok 'AC-4  --file accepts several paths and reports each'
+  else
+    bad 'AC-4  --file must handle the Lefthook multi-file shape' "exit=$STATUS out=$out"
+  fi
+
+  # A PostToolUse hook fires on EVERY Edit/Write, including prose and config.
+  # ast-grep has no grammar for these, and that must read as "nothing to say"
+  # rather than as a broken scan.
+  SC=$(bash "$HERE/lib/mkrepo.sh" clean)
+  printf '# notes\n' > "$SC/src/utilities/notes.md"
+  printf 'key: value\n' > "$SC/src/utilities/data.yaml"
+  gr_in "$SC" --file src/utilities/notes.md src/utilities/data.yaml; out=$OUT
+  if [ "$STATUS" -eq 0 ] && [ -z "$out" ]; then
+    ok 'AC-4  --file on files no rule can parse: silent exit 0'
+  else
+    bad 'AC-4  a .md/.yaml edit must not trip the hook' "exit=$STATUS out=$out"
+  fi
+  rm -rf "$SC"
+fi
+
+# ---------------------------------------------------------------- filename-case
+if tagged filename-case || [ -z "$ONLY" ]; then
+  gr_in "$DIRTY" --file src/utilities/BadName.ts; out=$OUT
+  if [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" filename-case)" -eq 1 ]; then
+    ok 'AC-4  filename-case reports in --file mode too'
+  else
+    bad 'AC-4  filename-case must be file-addressable for the hook' "exit=$STATUS out=$out"
+  fi
+  gr_in "$DIRTY" --file src/utilities/plain.ts; out=$OUT
+  [ "$(count_check "$out" filename-case)" -eq 0 ] \
+    && ok 'AC-4  filename-case silent on a correctly named file' \
+    || bad 'AC-4  filename-case fired on a kebab-case name' "$out"
+fi
+
 # ---------------------------------------------------------------- fail-closed
 # A malformed rule file must not silence the pattern checks while the gate still
 # reports green. This is the regression test for exactly that bug.
