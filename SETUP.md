@@ -18,9 +18,12 @@ gh --version           # optional — repo creation
 
 `jq` is not optional: the guard-rail gate exits 3 without it rather than
 silently passing. Install with `apt-get install jq` · `brew install jq` ·
-`apk add jq`. ast-grep powers the guard rails' pattern checks and arrives as the
-`@ast-grep/cli` devDependency on the TypeScript stacks; the Rust stack needs the
-binary (`cargo install ast-grep --locked`).
+`apk add jq`.
+
+ast-grep is needed by the **Rust stack only** (`cargo install ast-grep --locked`),
+for the two pattern rules clippy does not cover. The TypeScript stacks need no
+extra tool: their pattern and structure rules run inside oxlint, via the house
+plugin at `scripts/guardrails/oxlint-plugin/`.
 
 Read [`CORE.md`](./CORE.md) now. Every rule in it binds the project you are
 about to create — including the platform defaults (Cloudflare Workers, Turso,

@@ -149,12 +149,23 @@ two numbers drift apart, and how an `oxlint-disable` silences half a rule.
   exempt) and `max-lines-per-function` (50; 80 in `.tsx`, where a component's
   JSX body legitimately runs longer). Rust's equivalents are clippy's
   `too_many_lines` and rustfmt.
-- **agent-guardrails** (`scripts/guardrails/`) owns what a linter structurally
-  cannot see: the folder tree and the shape *inside* each domain folder,
-  per-folder READMEs, barrels, colocated tests, banned dependencies in the
-  manifest, required files, config files that shadow each other, committed
-  secrets, filename casing where no linter covers it, and contextual code
-  patterns via ast-grep.
+- **oxlint also owns the structural rules**, through the house plugin at
+  `scripts/guardrails/oxlint-plugin/` (`jsPlugins` in `.oxlintrc.json`): the
+  folder tree and the shape *inside* each domain folder, colocated tests,
+  barrels, bare `fetch`, and hardcoded colours. oxlint has the file open and its
+  AST parsed already, so these belong there rather than in a second pass — and
+  the agent sees the error at the moment it writes the file.
+- **agent-guardrails** (`scripts/guardrails/`) is left with what oxlint never
+  sees: per-folder READMEs, required files, config files that shadow each other,
+  banned dependencies in the manifest, committed secrets — facts about files the
+  linter is never asked to lint — plus **the whole Rust stack**, which oxlint
+  cannot parse at all.
+
+Which side owns what is **declared**, not implied: `ownedByLinter` in
+`guardrails.config.json` lists the checks the linter enforces, and the bash
+module skips exactly those. The Rust stack lists none. `validate-templates.sh`
+fails if a check is declared linter-owned without a matching oxlint rule, so the
+two can never both go quiet.
 
 Both read their numbers from **one declaration**, `guardrails.config.json`, and
 the kit's own CI asserts that the ceiling declared there matches the one oxlint

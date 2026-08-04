@@ -123,7 +123,7 @@ bun add zod
 bun add -d vitest
 
 # Lint / format / gate + git hooks + deploy CLI
-bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook @ast-grep/cli wrangler
+bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook wrangler
 ```
 
 Copy and adapt these templates into the project root, **overwriting** what the

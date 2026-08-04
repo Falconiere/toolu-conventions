@@ -44,7 +44,8 @@ One answer per job, so no project re-litigates them:
   `fetch` — **axios is banned**, in lint *and* in the structure check
 - **Package manager:** bun · **Lint/format:** oxlint + oxfmt · **Hooks:** Lefthook
 - **Gate extras:** knip (unused files/exports/deps) + jscpd (copy-paste)
-- **Structure gate:** `agent-guardrails` (needs `jq`; patterns need ast-grep)
+- **Structure gate:** oxlint house plugin (folder tree, barrels, patterns) +
+  `agent-guardrails` for what the linter cannot see (needs `jq`)
 
 A full product is usually three repos from this kit — `marketing` (the public
 site), `console` (the app behind the login), and `backend-ts` (the API they both
@@ -62,12 +63,14 @@ read from the base branch. Details in [`CORE.md`](./CORE.md).
 
 **`agent-guardrails`** ([`guardrails/`](./guardrails/)) is the kit's structural
 gate — one config-driven module, copied verbatim into every project, that
-enforces what a linter cannot see: the folder tree and the shape inside each
-domain, per-folder READMEs, barrels, colocated tests, banned dependencies,
-required files, shadowing configs, committed secrets, filename casing, and
-contextual code patterns via ast-grep. Stack differences are data
-(`guardrails.config.json`), not code. It replaced five hand-written per-stack
-scripts that had already drifted apart.
+enforces what a linter cannot see: per-folder READMEs, required files, shadowing
+configs, banned dependencies, committed secrets — and the whole Rust stack.
+Everything that *is* visible to a linter (folder tree, intra-domain shape,
+barrels, colocated tests, bare `fetch`, hardcoded colours) runs inside **oxlint**
+via the house plugin it ships, so those rules fire as the file is written and
+there is exactly one enforcer each. Stack differences are data
+(`guardrails.config.json`), not code; `ownedByLinter` there declares the split.
+It replaced five hand-written per-stack scripts that had already drifted apart.
 
 **The kit runs them on itself.** `.github/workflows/ci.yml` runs
 `scripts/validate-templates.sh` on every PR, and `.github/workflows/code-review.yml`

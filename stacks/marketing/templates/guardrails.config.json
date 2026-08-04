@@ -70,5 +70,12 @@
       "use": "lefthook.yml",
       "why": "the lefthook 2.x installer shadows a .yaml, so the hooks never run"
     }
+  ],
+  "ownedByLinter": [
+    "folder-tree",
+    "colocated-tests",
+    "no-barrels",
+    "filename-case",
+    "patterns"
   ]
 }

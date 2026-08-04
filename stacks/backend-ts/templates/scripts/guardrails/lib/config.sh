@@ -10,7 +10,7 @@
 GR_SCRIPTS_VERSION=1
 
 GR_REQUIRED_KEYS='version srcRoot src fileSize functionSize testDir testGlob barrelNames bannedDeps shadowConfigs'
-GR_OPTIONAL_KEYS='$schema barrelExempt requiredFiles secrets filenameCase'
+GR_OPTIONAL_KEYS='$schema barrelExempt requiredFiles secrets filenameCase ownedByLinter'
 
 gr_require_jq() {
   command -v jq >/dev/null 2>&1 || gr_fatal \
@@ -74,6 +74,7 @@ gr_cache_config() {
     read -r GR_NESTED_MAP
     read -r GR_SIZE_OVERRIDES
     read -r GR_FILENAME_CASE
+    read -r GR_OWNED_BY_LINTER
   } < <(jq -r '
     [ .srcRoot,
       (.fileSize.max | tostring),
@@ -90,7 +91,8 @@ gr_cache_config() {
       ((.secrets.neverTracked // []) | join(" ")),
       ((.src.nested // {}) | to_entries | map("\(.key)|\(.value | join(" "))") | join(";")),
       ((.fileSize.overrides // {}) | to_entries | map("\(.key)|\(.value)") | join(";")),
-      ((.filenameCase // []) | map("\(.glob)|\(.regex)|\(.describe)") | join(";"))
+      ((.filenameCase // []) | map("\(.glob)|\(.regex)|\(.describe)") | join(";")),
+      ((.ownedByLinter // []) | join(" "))
     ] | .[]
   ' "$GR_CONFIG_FILE")
 }

@@ -79,5 +79,12 @@
       "use": "wrangler.jsonc",
       "why": "two Worker configs is how you deploy one thing and test another"
     }
+  ],
+  "ownedByLinter": [
+    "folder-tree",
+    "colocated-tests",
+    "no-barrels",
+    "filename-case",
+    "patterns"
   ]
 }

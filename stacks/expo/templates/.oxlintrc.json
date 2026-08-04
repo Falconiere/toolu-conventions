@@ -1,5 +1,8 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": [
+    "./scripts/guardrails/oxlint-plugin/index.js"
+  ],
   "options": {
     "typeAware": true
   },
@@ -170,7 +173,12 @@
       }
     ],
     "prefer-const": "error",
-    "no-var": "error"
+    "no-var": "error",
+    "house/folder-tree": "error",
+    "house/colocated-tests": "error",
+    "house/no-barrels": "error",
+    "house/no-bare-fetch": "error",
+    "house/no-hardcoded-hex": "error"
   },
   "overrides": [
     {
@@ -274,6 +282,15 @@
       ],
       "rules": {
         "max-lines-per-function": "off"
+      }
+    },
+    {
+      "files": [
+        "scripts/guardrails/oxlint-plugin/**/*.js"
+      ],
+      "rules": {
+        "import/no-default-export": "off",
+        "no-restricted-globals": "off"
       }
     }
   ]

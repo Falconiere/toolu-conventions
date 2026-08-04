@@ -278,7 +278,7 @@ done
 #       company;
 #   (c) a lingering reference to the script guardrails replaced, which would
 #       leave a generated project invoking a file that no longer exists.
-gr_manifest='run.sh lib checks patterns schema.json'
+gr_manifest='run.sh lib checks patterns schema.json oxlint-plugin'
 for stack_dir in stacks/*/; do
   stack=$(basename "$stack_dir")
   copy="$stack_dir/templates/scripts/guardrails"
@@ -324,6 +324,28 @@ for stack_dir in stacks/*/; do
     fi
   fi
 
+  # Every check declared linter-owned must actually be a rule oxlint runs.
+  # Without this, moving a check to ownedByLinter and forgetting the oxlint side
+  # silently disables it in BOTH places — the fail-open this whole module exists
+  # to prevent, one level up.
+  owned=$(jq -r '.ownedByLinter // [] | .[]' "$cfg")
+  if [ -n "$owned" ]; then
+    [ -f "$oxlintrc" ] || bad "guardrails: $stack declares ownedByLinter but ships no .oxlintrc.json"
+    jq -e '.jsPlugins | index("./scripts/guardrails/oxlint-plugin/index.js")' "$oxlintrc" >/dev/null 2>&1 \
+      || bad "guardrails: $stack declares ownedByLinter but .oxlintrc.json does not load the house plugin"
+    for check in $owned; do
+      case "$check" in
+        # These are enforced by oxlint built-ins rather than the house plugin.
+        filename-case) jq -e '.rules["unicorn/filename-case"]' "$oxlintrc" >/dev/null 2>&1 \
+          || bad "guardrails: $stack owns filename-case by linter but unicorn/filename-case is not configured" ;;
+        patterns) jq -e '.rules["house/no-bare-fetch"] and .rules["house/no-hardcoded-hex"]' "$oxlintrc" >/dev/null 2>&1 \
+          || bad "guardrails: $stack owns patterns by linter but the house pattern rules are not configured" ;;
+        *) jq -e --arg r "house/$check" '.rules[$r]' "$oxlintrc" >/dev/null 2>&1 \
+          || bad "guardrails: $stack owns $check by linter but rule house/$check is not configured" ;;
+      esac
+    done
+  fi
+
   hooks="$stack_dir/templates/.claude/settings.json"
   [ -f "$hooks" ] || bad "guardrails: $stack ships no .claude/settings.json — the agent-hook layer is mandatory"
 done
@@ -341,6 +363,8 @@ gr_stale=$(grep -rl "$old_gate" stacks/ scripts/ CORE.md README.md .github/ \
 # The kit runs the guard rails on itself.
 bash guardrails/__tests__/run-fixtures.sh >/dev/null 2>&1 \
   || bad "guardrails: the fixture suite is red — run: bash guardrails/__tests__/run-fixtures.sh"
+bash guardrails/__tests__/run-plugin.sh >/dev/null 2>&1 \
+  || bad "guardrails: the oxlint plugin suite is red — run: bash guardrails/__tests__/run-plugin.sh"
 
 # --- Rust skeleton: materialize into temp crate, fmt + clippy offline ---
 tmpcrate="$(mktemp -d)/skel"

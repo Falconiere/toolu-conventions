@@ -35,8 +35,14 @@ gr_list() {
   for check in $GR_CHECKS_ALL; do printf '%s\n' "$check"; done
 }
 
-# gr_selected <check> — honours --only; everything runs when --only is absent.
+# gr_selected <check> — honours --only, and skips whatever the linter owns.
+#
+# ownedByLinter is how "one rule, one enforcer" survives the split: oxlint's
+# house plugin enforces the per-file rules on the TypeScript stacks, so this
+# module must NOT also enforce them. The Rust stack lists nothing, because
+# oxlint cannot parse Rust at all — there every check still runs here.
 gr_selected() {
+  case " $GR_OWNED_BY_LINTER " in *" $1 "*) return 1 ;; esac
   [ -z "$GR_ONLY" ] && return 0
   case ",$GR_ONLY," in *",$1,"*) return 0 ;; *) return 1 ;; esac
 }

@@ -177,7 +177,7 @@ Install the exact testing + lint/format tooling and always-on runtime libs:
 bun add -d jest@~29.7.0 jest-expo @testing-library/react-native @types/jest@^29 test-renderer@^1
 
 # Lint / format / gate + git hooks
-bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook @ast-grep/cli
+bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook
 
 # Always-on runtime libs (see LIBRARIES.md "Baseline")
 bunx expo install react-native-svg react-native-reanimated react-native-gesture-handler react-native-safe-area-context

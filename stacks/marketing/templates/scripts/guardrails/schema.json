@@ -208,6 +208,13 @@
           }
         }
       }
+    },
+    "ownedByLinter": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Checks the LINTER enforces, which this module therefore skips. oxlint's house plugin owns the per-file rules on the TypeScript stacks; the Rust stack lists nothing because oxlint cannot parse Rust. Listing a check here without a matching oxlint rule is caught by validate-templates.sh."
     }
   }
 }

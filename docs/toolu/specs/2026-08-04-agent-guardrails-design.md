@@ -477,3 +477,42 @@ historical document.
    green. It now distinguishes ast-grep's contract (0 = clean, 1 = matched,
    anything else = broken) and exits 3. A regression test covers it.
 
+## Amendment — consolidating on OXC (2026-08-04)
+
+The original split gave the bash module every structural rule. That was wrong by
+this spec's own principle: oxlint already has each source file open and parsed,
+so any rule that is a *fact about a source file* belongs there, and a second
+bash pass over the same tree is a second enforcer waiting to drift.
+
+**Moved into oxlint**, as the house plugin at `scripts/guardrails/oxlint-plugin/`:
+`folder-tree` (including intra-domain shape), `colocated-tests`, `no-barrels`,
+`no-bare-fetch`, `no-hardcoded-hex`. `filename-case` was already covered by
+`unicorn/filename-case`. The plugin reads the same `guardrails.config.json`, so
+"one declaration" survives the split.
+
+**Stayed in bash**, because oxlint never lints these files: `banned-deps`,
+`shadow-configs`, `required-files`, `secrets`, and `file-size` for `.astro`/`.rs`.
+Ten checks became five.
+
+**Rust keeps everything in bash.** oxlint cannot parse Rust, so `ownedByLinter`
+is empty there and all ten checks still run — including the ast-grep patterns.
+ast-grep is consequently a **Rust-only** prerequisite now; the four TypeScript
+stacks dropped the `@ast-grep/cli` devDependency entirely.
+
+Three things this surfaced, all caught by the kit's own gate:
+
+1. The plugin rules were not scoped to `srcRoot`, unlike the bash checks they
+   replaced (which all walked `find $srcRoot`). Unscoped, `no-barrels` read
+   Expo's root-level `app/index.tsx` **routes** as barrels and `no-hardcoded-hex`
+   fired on a legitimate literal in `app.config.ts`.
+2. `config.js` re-threw without `cause`, which the stacks' own
+   `preserve-caught-error` rule rejects.
+3. The plugin must default-export and must use `process`, both of which the
+   house rules ban. Each is now an explicit, scoped override with its reason —
+   the plugin runs in the linter's node process, not in workerd.
+
+*Open risk:* oxlint's `jsPlugins` is documented as **alpha**. Verified
+empirically that a missing or throwing plugin fails the lint run (exit 1, clear
+error) rather than passing quietly, so the failure mode is safe; the API surface
+may still shift.
+

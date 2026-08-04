@@ -84,5 +84,12 @@
       "use": "vite.config.ts",
       "why": "a vitest config REPLACES vite.config.ts rather than merging, so the router plugin and the @/* alias vanish under test"
     }
+  ],
+  "ownedByLinter": [
+    "folder-tree",
+    "colocated-tests",
+    "no-barrels",
+    "filename-case",
+    "patterns"
   ]
 }

@@ -96,7 +96,7 @@ bun add @orpc/server zod
 bun add -d wrangler vitest @cloudflare/vitest-pool-workers
 
 # Types, lint, format, gate, hooks
-bun add -d typescript oxlint oxfmt oxlint-tsgolint knip jscpd lefthook @ast-grep/cli
+bun add -d typescript oxlint oxfmt oxlint-tsgolint knip jscpd lefthook
 ```
 
 > Vitest must be **4.1 or newer** for `@cloudflare/vitest-pool-workers`. If the
