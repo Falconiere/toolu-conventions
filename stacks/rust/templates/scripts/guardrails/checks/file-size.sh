@@ -58,8 +58,14 @@ gr_fs_skipped() {
 # gr_fs_eligible <path> — is this file ours to measure at all?
 gr_fs_eligible() {
   gr_fs_skipped "$1" && return 1
-  # Tests are exempt: a thorough test file is a feature, not a smell.
-  case "$1" in *"/$GR_TEST_DIR/"*) return 1 ;; esac
+  # Tests are exempt: a thorough test file is a feature, not a smell. Both
+  # shapes count — a nested sibling (src/parser/tests/lexer.rs) and Rust's
+  # crate-root integration surface (tests/cli.rs), which has no leading slash
+  # and so does not match the nested pattern.
+  case "$1" in
+    *"/$GR_TEST_DIR/"*) return 1 ;;
+    "$GR_TEST_DIR"/*) return 1 ;;
+  esac
   return 0
 }
 

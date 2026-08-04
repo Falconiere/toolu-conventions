@@ -146,8 +146,9 @@ Astro template generated where they overlap:
   use the `.yml` name (lefthook 2.x's `install` writes a stub `lefthook.yml`
   that silently shadows a `lefthook.yaml`, so hooks never fire). Then run
   `bunx lefthook install`.
-- `templates/scripts/guardrails/run.sh` → `scripts/guardrails/run.sh`
-  (`mkdir -p scripts` first)
+- `templates/scripts/guardrails/` → `scripts/guardrails/` — the WHOLE
+  directory (`mkdir -p scripts` first). `run.sh` sources `lib/` and
+  `checks/` from beside itself, so copying it alone fails at runtime.
 
 Set the `package.json` scripts:
 

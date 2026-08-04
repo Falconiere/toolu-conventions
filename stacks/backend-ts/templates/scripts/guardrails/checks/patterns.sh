@@ -32,9 +32,12 @@ gr_check_patterns() {
 
   bin=$(gr_pat_bin)
   if [ -z "$bin" ]; then
-    # Not a violation and not a silent pass: the gate must say what it skipped.
-    gr_warn 'ast-grep not found — pattern checks skipped (add @ast-grep/cli as a devDependency, or install the binary)'
-    return 0
+    # Fail CLOSED, exactly like a missing jq. Warning-and-continuing meant a
+    # project without ast-grep — the Rust stack has no bun to fall back on —
+    # reported a green gate while every pattern rule silently went unenforced.
+    # ast-grep is a documented prerequisite, so its absence is a broken setup,
+    # not an optional extra.
+    gr_fatal 'ast-grep not found — the pattern checks cannot run (add @ast-grep/cli as a devDependency, or: cargo install ast-grep --locked)'
   fi
 
   if [ "$mode" = 'file' ]; then

@@ -123,8 +123,8 @@ generated):
   stops throwing and would otherwise report clones and exit 0.
 - `templates/lefthook.yml` → `lefthook.yml` (must be `.yml`, not `.yaml` — see
   the install note below)
-- `templates/scripts/guardrails/run.sh` → `scripts/guardrails/run.sh`
-  (`mkdir -p scripts` first; `chmod +x` it) — the structure gate that
+- `templates/scripts/guardrails/` → `scripts/guardrails/` — the WHOLE directory — `run.sh` sources `lib/` and `checks/` from beside itself, so copying it alone fails at runtime
+  (`mkdir -p scripts` first; `chmod +x run.sh`) — the structure gate that
   machine-checks what the linter can't (allowed `src/` dirs, per-folder READMEs,
   no barrel files, exactly one wrangler config, no committed `.dev.vars`, no
   banned dependency)

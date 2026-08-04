@@ -196,7 +196,7 @@ Copy these templates into the project root:
 | `templates/jest.setup.ts` | `jest.setup.ts` |
 | `templates/knip.json` | `knip.json` (unused files/exports/dependencies) |
 | `templates/.jscpd.json` | `.jscpd.json` (copy-paste detection; **keep both `"threshold": 0` and `"exitCode": 1`** — the threshold is what fails the gate, the exit code only matters if it is later raised) |
-| `templates/scripts/guardrails/run.sh` | `scripts/guardrails/run.sh` (`mkdir -p scripts` first) |
+| `templates/scripts/guardrails/` | `scripts/guardrails/` — the WHOLE directory — `run.sh` sources `lib/` and `checks/` from beside itself, so copying it alone fails at runtime (`mkdir -p scripts` first) |
 
 Copy the lefthook config **before** installing hooks. Use the `.yml` extension:
 lefthook 2.x's `install` generates a `lefthook.yml` stub that **shadows** a

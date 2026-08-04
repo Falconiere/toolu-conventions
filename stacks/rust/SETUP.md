@@ -71,7 +71,8 @@ cp "$KIT/stacks/rust/templates/README.md"             README.md
 cp "$KIT/stacks/rust/templates/CLAUDE.md.template"    CLAUDE.md
 
 mkdir -p scripts
-cp "$KIT/stacks/rust/templates/scripts/guardrails/run.sh" scripts/guardrails/run.sh
+# The WHOLE directory — run.sh sources lib/ and checks/ from beside itself.
+cp -R "$KIT/stacks/rust/templates/scripts/guardrails" scripts/guardrails
 chmod +x scripts/guardrails/run.sh
 
 mkdir -p .github/workflows

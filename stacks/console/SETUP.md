@@ -158,7 +158,7 @@ Copy and adapt these templates into the project root, **overwriting** what
   that silently shadows a `lefthook.yaml`, so hooks never fire). Then run
   `bunx lefthook install`; if the installer already dropped a stub `lefthook.yml`,
   overwrite it with the template.
-- `templates/scripts/guardrails/run.sh` → `scripts/guardrails/run.sh`
+- `templates/scripts/guardrails/` → `scripts/guardrails/` — the WHOLE directory — `run.sh` sources `lib/` and `checks/` from beside itself, so copying it alone fails at runtime
   (`mkdir -p scripts` first). This is the folder-tree half of the gate — it
   enforces the STRUCTURE rules oxlint can't see (allowed `src/` dirs, per-folder
   READMEs, no barrel files, no second Vitest config, no banned dependency, no

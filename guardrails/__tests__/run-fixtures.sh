@@ -310,6 +310,28 @@ if tagged filename-case || [ -z "$ONLY" ]; then
     || bad 'AC-4  filename-case fired on a kebab-case name' "$out"
 fi
 
+# ------------------------------------------------- crate-root test exemption
+# Rust's integration surface is tests/<file>.rs at the crate root — no leading
+# slash, so it does not match the nested */tests/* pattern and was NOT exempt
+# from the size ceiling. Caught by the CI reviewer.
+if tagged file-size || [ -z "$ONLY" ]; then
+  SC=$(bash "$HERE/lib/mkrepo.sh" clean)
+  jq '.testDir = "tests" | .fileSize.max = 20 | .fileSize.skipExtensions = []' \
+    "$SC/guardrails.config.json" > "$SC/t" && mv "$SC/t" "$SC/guardrails.config.json"
+  mkdir -p "$SC/tests" "$SC/src/mod/tests"
+  { for i in $(seq 1 40); do echo "line $i;"; done; } > "$SC/tests/cli.rs"
+  { for i in $(seq 1 40); do echo "line $i;"; done; } > "$SC/src/mod/tests/unit.rs"
+  gr_in "$SC" --file tests/cli.rs; out=$OUT
+  [ "$(count_check "$out" file-size)" -eq 0 ] \
+    && ok 'AC-10 crate-root tests/<f> is exempt from the size ceiling' \
+    || bad 'AC-10 a crate-root integration test must be exempt' "$out"
+  gr_in "$SC" --file src/mod/tests/unit.rs; out=$OUT
+  [ "$(count_check "$out" file-size)" -eq 0 ] \
+    && ok 'AC-10 nested tests/<f> is exempt too' \
+    || bad 'AC-10 a nested colocated test must be exempt' "$out"
+  rm -rf "$SC"
+fi
+
 # ---------------------------------------------------------------- fail-closed
 # A malformed rule file must not silence the pattern checks while the gate still
 # reports green. This is the regression test for exactly that bug.
