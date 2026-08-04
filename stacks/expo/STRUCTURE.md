@@ -81,7 +81,7 @@ for the full "blocked patterns" list. What enforces what:
   `no-restricted-imports` (bans `**/index*`, `../../*`, and `@/features/*` outside
   `app/**`).
 - **No barrel *files*, allowed `src/` dirs, per-folder READMEs, `lefthook.yml` not
-  `.yaml`, test colocation** — `scripts/check-structure.sh` (walks the tree the
+  `.yaml`, test colocation** — `scripts/guardrails/run.sh` (walks the tree the
   linter can't see). Tests must sit in a sibling `__tests__/`; a centralized test
   dir (`src/__tests__`, `src/tests`, root `tests`/`test`) or any `*.test.*` under
   `src/` outside a `__tests__/` fails the gate.

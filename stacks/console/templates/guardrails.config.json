@@ -1,0 +1,88 @@
+{
+  "$schema": "./scripts/guardrails/schema.json",
+  "version": 1,
+  "srcRoot": "src",
+  "src": {
+    "topLevel": [
+      "app",
+      "ui",
+      "features",
+      "api",
+      "utilities",
+      "providers",
+      "constants",
+      "types"
+    ],
+    "nested": {
+      "features/*": [
+        "screens",
+        "components",
+        "hooks",
+        "api",
+        "__tests__"
+      ],
+      "ui": [
+        "theme",
+        "__tests__"
+      ],
+      "api": [
+        "clients",
+        "queries"
+      ]
+    },
+    "requireReadme": [
+      "ui",
+      "features",
+      "api",
+      "utilities",
+      "providers"
+    ]
+  },
+  "fileSize": {
+    "max": 300,
+    "skipExtensions": [
+      ".ts",
+      ".tsx"
+    ]
+  },
+  "functionSize": {
+    "max": 50,
+    "overrides": {
+      "**/*.tsx": 80
+    }
+  },
+  "testDir": "__tests__",
+  "testGlob": "*.test.ts *.test.tsx",
+  "barrelNames": [
+    "index.ts",
+    "index.tsx"
+  ],
+  "barrelExempt": [
+    "src/app/**"
+  ],
+  "bannedDeps": [
+    "axios",
+    "yup",
+    "joi",
+    "valibot",
+    "superstruct",
+    "ajv"
+  ],
+  "secrets": {
+    "neverTracked": [
+      ".env"
+    ]
+  },
+  "shadowConfigs": [
+    {
+      "found": "lefthook.yaml",
+      "use": "lefthook.yml",
+      "why": "the lefthook 2.x installer shadows a .yaml, so the hooks never run"
+    },
+    {
+      "found": "vitest.config.ts",
+      "use": "vite.config.ts",
+      "why": "a vitest config REPLACES vite.config.ts rather than merging, so the router plugin and the @/* alias vanish under test"
+    }
+  ]
+}

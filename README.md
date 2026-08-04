@@ -44,6 +44,7 @@ One answer per job, so no project re-litigates them:
   `fetch` — **axios is banned**, in lint *and* in the structure check
 - **Package manager:** bun · **Lint/format:** oxlint + oxfmt · **Hooks:** Lefthook
 - **Gate extras:** knip (unused files/exports/deps) + jscpd (copy-paste)
+- **Structure gate:** `agent-guardrails` (needs `jq`; patterns need ast-grep)
 
 A full product is usually three repos from this kit — `marketing` (the public
 site), `console` (the app behind the login), and `backend-ts` (the API they both
@@ -51,12 +52,22 @@ talk to). They share one design language and one token set.
 
 ## Guard rails
 
-Every generated project ships four layers, and the kit treats all four as
-mandatory: the rules in `CLAUDE.md`, Lefthook pre-commit, a CI gate
-(`ci.yml`) whose steps mirror `bun run check` one-for-one and end in a real
-build, and an AI code review (`code-review.yml`) that judges each PR against the
-repo's own convention files read from the base branch. Details in
-[`CORE.md`](./CORE.md).
+Every generated project ships five layers, and the kit treats all five as
+mandatory: the rules in `CLAUDE.md`; **agent hooks** (`.claude/settings.json`)
+that run `agent-guardrails` on every file an agent writes and again before it
+finishes a turn; Lefthook pre-commit; a CI gate (`ci.yml`) whose steps mirror
+`bun run check` one-for-one and end in a real build; and an AI code review
+(`code-review.yml`) that judges each PR against the repo's own convention files
+read from the base branch. Details in [`CORE.md`](./CORE.md).
+
+**`agent-guardrails`** ([`guardrails/`](./guardrails/)) is the kit's structural
+gate — one config-driven module, copied verbatim into every project, that
+enforces what a linter cannot see: the folder tree and the shape inside each
+domain, per-folder READMEs, barrels, colocated tests, banned dependencies,
+required files, shadowing configs, committed secrets, filename casing, and
+contextual code patterns via ast-grep. Stack differences are data
+(`guardrails.config.json`), not code. It replaced five hand-written per-stack
+scripts that had already drifted apart.
 
 **The kit runs them on itself.** `.github/workflows/ci.yml` runs
 `scripts/validate-templates.sh` on every PR, and `.github/workflows/code-review.yml`

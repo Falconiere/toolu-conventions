@@ -28,6 +28,21 @@ fails you say so straight. This same house style is baked into the app's
 
 ---
 
+
+Copy the guard-rail module and its configuration:
+
+- `templates/scripts/guardrails/` → `scripts/guardrails/` (the whole directory,
+  **verbatim** — it is the kit's copy and is never hand-edited; change
+  `guardrails.config.json` instead)
+- `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
+  ceilings, allowed directories and banned dependencies)
+- `templates/.claude/settings.json` → `.claude/settings.json` (**committed** —
+  the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
+  still writing the code; CORE guard-rail layer 2)
+
+`scripts/guardrails/run.sh` needs `jq` on PATH and exits 3 without it, so a
+missing dependency can never look like a clean run.
+
 ## Phase 0 — Prerequisites & intake
 
 ### 0.1 Check the toolchain
@@ -116,7 +131,7 @@ bun add -d vitest @vitejs/plugin-react vite-tsconfig-paths jsdom \
   @testing-library/react @testing-library/jest-dom @testing-library/user-event
 
 # Lint / format / gate + git hooks + deploy CLI
-bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook wrangler
+bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook @ast-grep/cli wrangler
 ```
 
 Copy and adapt these templates into the project root, **overwriting** what
@@ -143,7 +158,7 @@ Copy and adapt these templates into the project root, **overwriting** what
   that silently shadows a `lefthook.yaml`, so hooks never fire). Then run
   `bunx lefthook install`; if the installer already dropped a stub `lefthook.yml`,
   overwrite it with the template.
-- `templates/scripts/check-structure.sh` → `scripts/check-structure.sh`
+- `templates/scripts/guardrails/run.sh` → `scripts/guardrails/run.sh`
   (`mkdir -p scripts` first). This is the folder-tree half of the gate — it
   enforces the STRUCTURE rules oxlint can't see (allowed `src/` dirs, per-folder
   READMEs, no barrel files, no second Vitest config, no banned dependency, no
@@ -166,7 +181,7 @@ Set the `package.json` scripts (merge with what `create-vite` generated;
     "fmt:check": "oxfmt --check",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check:structure": "bash scripts/check-structure.sh",
+    "check:structure": "bash scripts/guardrails/run.sh",
     "check:unused": "knip",
     "check:dupes": "jscpd",
     "check": "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run check:unused && bun run check:dupes && bun run test",
@@ -177,7 +192,7 @@ Set the `package.json` scripts (merge with what `create-vite` generated;
 
 `bun run check` is the single quality gate =
 `tsc --noEmit` + `oxlint --deny-warnings` + `oxfmt --check` +
-`bash scripts/check-structure.sh` + `knip` + `jscpd` + `vitest run` (the CORE
+`bash scripts/guardrails/run.sh` + `knip` + `jscpd` + `vitest run` (the CORE
 gate order).
 
 ---
@@ -215,7 +230,7 @@ Then:
    from `templates/folder-README.md` (fill in the folder's purpose + a short
    "what's inside" list — seed it now, keep it updated as you add files). Every
    top-level `src/` directory except `src/app` carries one —
-   `scripts/check-structure.sh` fails the gate without it.
+   `scripts/guardrails/run.sh` fails the gate without it.
 6. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the app name +
    specifics. This is the rulebook + repo map agents read first.
 
@@ -344,7 +359,7 @@ Add `cloudflare()` to the `vite.config.ts` plugin list, create `src/worker.ts`
 `"compatibility_flags": ["nodejs_compat"]`. Turso credentials are Worker secrets
 (`.dev.vars` locally, `wrangler secret put` deployed) and are read from the
 Worker's `env` — they never touch `src/constants/env.ts`. `src/worker.ts` is a
-new top-level entry: add `worker` handling to `scripts/check-structure.sh` if you
+new top-level entry: add `worker` handling to `scripts/guardrails/run.sh` if you
 move it into a folder.
 
 Add a `"cf-typegen": "wrangler types"` script and run it, then commit the
@@ -509,7 +524,7 @@ project layout table, environments, scripts, deploy, and CI. Fill the
 Run the full gate and fix anything red before calling setup done:
 
 ```bash
-bun run check      # tsc + oxlint + oxfmt + check-structure + knip + jscpd + vitest run
+bun run check      # tsc + oxlint + oxfmt + guardrails + knip + jscpd + vitest run
 bun run build      # production build succeeds
 ```
 

@@ -23,6 +23,21 @@ rock-solid. Welcome to the bit. 🎬
 
 ---
 
+
+Copy the guard-rail module and its configuration:
+
+- `templates/scripts/guardrails/` → `scripts/guardrails/` (the whole directory,
+  **verbatim** — it is the kit's copy and is never hand-edited; change
+  `guardrails.config.json` instead)
+- `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
+  ceilings, allowed directories and banned dependencies)
+- `templates/.claude/settings.json` → `.claude/settings.json` (**committed** —
+  the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
+  still writing the code; CORE guard-rail layer 2)
+
+`scripts/guardrails/run.sh` needs `jq` on PATH and exits 3 without it, so a
+missing dependency can never look like a clean run.
+
 ## Phase 0 — Prerequisites & intake
 
 ### 0.1 Check the toolchain
@@ -108,7 +123,7 @@ bun add zod
 bun add -d vitest
 
 # Lint / format / gate + git hooks + deploy CLI
-bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook wrangler
+bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook @ast-grep/cli wrangler
 ```
 
 Copy and adapt these templates into the project root, **overwriting** what the
@@ -131,7 +146,7 @@ Astro template generated where they overlap:
   use the `.yml` name (lefthook 2.x's `install` writes a stub `lefthook.yml`
   that silently shadows a `lefthook.yaml`, so hooks never fire). Then run
   `bunx lefthook install`.
-- `templates/scripts/check-structure.sh` → `scripts/check-structure.sh`
+- `templates/scripts/guardrails/run.sh` → `scripts/guardrails/run.sh`
   (`mkdir -p scripts` first)
 
 Set the `package.json` scripts:
@@ -151,7 +166,7 @@ Set the `package.json` scripts:
     "fmt:check": "oxfmt --check",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check:structure": "bash scripts/check-structure.sh",
+    "check:structure": "bash scripts/guardrails/run.sh",
     "check:unused": "knip",
     "check:dupes": "jscpd",
     "check": "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run check:unused && bun run check:dupes && bun run test",
@@ -194,7 +209,7 @@ Then:
 5. Copy `templates/src/layouts/base-layout.astro` → `src/layouts/`,
    `templates/src/sections/hero-section.astro` → `src/sections/`, and
    `templates/src/pages/{index,404}.astro` → `src/pages/`. Fill in the
-   placeholders. `404.astro` is **required** — `check-structure.sh` fails
+   placeholders. `404.astro` is **required** — `guardrails` fails
    without it.
 6. Drop a `README.md` into each of `src/layouts`, `src/sections`, `src/ui`,
    `src/utilities`, `src/constants`, and `src/types`, generated from
@@ -306,7 +321,7 @@ table, environments, scripts, deploy, CI. Cross-link `CLAUDE.md`.
 
 ```bash
 bun run sync       # generate .astro/types.d.ts first
-bun run check      # astro check + oxlint + oxfmt + check-structure + knip + jscpd + vitest
+bun run check      # astro check + oxlint + oxfmt + guardrails + knip + jscpd + vitest
 bun run build      # production build succeeds
 ```
 

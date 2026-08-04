@@ -38,6 +38,14 @@
         "skipComments": true
       }
     ],
+    "max-lines-per-function": [
+      "error",
+      {
+        "max": 50,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
+    ],
     "no-restricted-imports": [
       "error",
       {
@@ -169,7 +177,8 @@
         "typescript/no-unsafe-member-access": "off",
         "typescript/no-unsafe-argument": "off",
         "typescript/no-floating-promises": "off",
-        "no-console": "off"
+        "no-console": "off",
+        "max-lines-per-function": "off"
       }
     },
     {
@@ -179,7 +188,16 @@
       ],
       "rules": {
         "max-lines": "off",
-        "import/no-default-export": "off"
+        "import/no-default-export": "off",
+        "max-lines-per-function": "off"
+      }
+    },
+    {
+      "files": [
+        "**/utilities/http.ts"
+      ],
+      "rules": {
+        "max-lines-per-function": "off"
       }
     }
   ]

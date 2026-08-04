@@ -26,6 +26,21 @@ Read [`../../CORE.md`](../../CORE.md), [`STRUCTURE.md`](./STRUCTURE.md), and
 
 ---
 
+
+Copy the guard-rail module and its configuration:
+
+- `templates/scripts/guardrails/` → `scripts/guardrails/` (the whole directory,
+  **verbatim** — it is the kit's copy and is never hand-edited; change
+  `guardrails.config.json` instead)
+- `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
+  ceilings, allowed directories and banned dependencies)
+- `templates/.claude/settings.json` → `.claude/settings.json` (**committed** —
+  the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
+  still writing the code; CORE guard-rail layer 2)
+
+`scripts/guardrails/run.sh` needs `jq` on PATH and exits 3 without it, so a
+missing dependency can never look like a clean run.
+
 ## Phase 0 — Prerequisites & intake
 
 ### 0.1 Check the toolchain
@@ -81,7 +96,7 @@ bun add @orpc/server zod
 bun add -d wrangler vitest @cloudflare/vitest-pool-workers
 
 # Types, lint, format, gate, hooks
-bun add -d typescript oxlint oxfmt oxlint-tsgolint knip jscpd lefthook
+bun add -d typescript oxlint oxfmt oxlint-tsgolint knip jscpd lefthook @ast-grep/cli
 ```
 
 > Vitest must be **4.1 or newer** for `@cloudflare/vitest-pool-workers`. If the
@@ -108,7 +123,7 @@ generated):
   stops throwing and would otherwise report clones and exit 0.
 - `templates/lefthook.yml` → `lefthook.yml` (must be `.yml`, not `.yaml` — see
   the install note below)
-- `templates/scripts/check-structure.sh` → `scripts/check-structure.sh`
+- `templates/scripts/guardrails/run.sh` → `scripts/guardrails/run.sh`
   (`mkdir -p scripts` first; `chmod +x` it) — the structure gate that
   machine-checks what the linter can't (allowed `src/` dirs, per-folder READMEs,
   no barrel files, exactly one wrangler config, no committed `.dev.vars`, no
@@ -127,7 +142,7 @@ Set the `package.json` `scripts` block to exactly this:
     "lint:fix": "oxlint --fix --deny-warnings",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "check:structure": "bash scripts/check-structure.sh",
+    "check:structure": "bash scripts/guardrails/run.sh",
     "check:unused": "knip",
     "check:dupes": "jscpd",
     "test": "vitest run",
@@ -265,7 +280,7 @@ run on a Worker. `@libsql/client` is the legacy name — only reach for it via t
 Drizzle path in Phase 6c.)
 
 Adding `src/db/` introduces a new top-level dir, so add `db` to `allowed_dirs`
-in `scripts/check-structure.sh` and give it a `README.md`, or the structure gate
+in `scripts/guardrails/run.sh` and give it a `README.md`, or the structure gate
 rejects it.
 
 ```ts

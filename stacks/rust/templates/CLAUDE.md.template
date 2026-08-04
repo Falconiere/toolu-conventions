@@ -12,12 +12,12 @@ workspace. (Replace this line with a one-sentence description of the program.)
 ## Quality gate — run before calling anything done
 
 ```bash
-cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/check-structure.sh && cargo test
+cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/guardrails/run.sh && cargo test
 ```
 
 Never advance while any error, warning, or test failure stands — even an
 unrelated one. `-D warnings` means every clippy `warn` (including `missing_docs`
-and the pedantic group) is a hard failure. `scripts/check-structure.sh`
+and the pedantic group) is a hard failure. `scripts/guardrails/run.sh`
 machine-enforces the structure rules the compiler can't see — snake_case `.rs`
 filenames, the 500 code-line ceiling (tests exempt), and that the lefthook config
 is `.yml`. Fix the code, do not silence the lint.
@@ -79,7 +79,7 @@ project-name/
 │   └── tests/            # colocated module tests (sibling; not __tests__)
 ├── tests/                # crate-root integration tests, one file per surface
 ├── scripts/
-│   └── check-structure.sh # structure gate (snake_case · 500-line ceiling · .yml)
+│   └── guardrails/run.sh # structure gate (snake_case · 500-line ceiling · .yml)
 └── .github/workflows/ci.yml
 ```
 

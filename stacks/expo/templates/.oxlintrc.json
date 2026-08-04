@@ -47,6 +47,14 @@
         "skipComments": true
       }
     ],
+    "max-lines-per-function": [
+      "error",
+      {
+        "max": 50,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
+    ],
     "no-restricted-imports": [
       "error",
       {
@@ -231,7 +239,8 @@
         "typescript/no-unsafe-argument": "off",
         "typescript/no-floating-promises": "off",
         "import/no-unassigned-import": "off",
-        "no-console": "off"
+        "no-console": "off",
+        "max-lines-per-function": "off"
       }
     },
     {
@@ -240,7 +249,31 @@
         "*.d.ts"
       ],
       "rules": {
-        "max-lines": "off"
+        "max-lines": "off",
+        "max-lines-per-function": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.tsx"
+      ],
+      "rules": {
+        "max-lines-per-function": [
+          "error",
+          {
+            "max": 80,
+            "skipBlankLines": true,
+            "skipComments": true
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "**/utilities/http.ts"
+      ],
+      "rules": {
+        "max-lines-per-function": "off"
       }
     }
   ]

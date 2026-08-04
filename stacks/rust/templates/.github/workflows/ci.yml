@@ -25,7 +25,7 @@ jobs:
         run: cargo clippy --all-targets -- -D warnings
 
       - name: Structure
-        run: bash scripts/check-structure.sh
+        run: bash scripts/guardrails/run.sh
 
       - name: Test
         run: cargo test

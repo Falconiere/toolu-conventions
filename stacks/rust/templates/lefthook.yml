@@ -9,6 +9,9 @@ pre-commit:
     fmt:
       glob: "*.rs"
       run: cargo fmt --check
+    guardrails:
+      glob: '*'
+      run: bash scripts/guardrails/run.sh --file {staged_files}
 
 # Clippy compiles the crate, so it runs on push rather than on every commit.
 pre-push:

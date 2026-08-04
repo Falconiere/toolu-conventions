@@ -1,0 +1,9 @@
+id: no-bare-fetch-ts
+language: typescript
+severity: error
+message: bare fetch() — call the configured http client instead, so auth headers, baseUrl, timeouts and error shaping stay in one place
+ignores:
+  - "**/utilities/http.ts"
+  - "**/__tests__/**"
+rule:
+  pattern: fetch($$$ARGS)

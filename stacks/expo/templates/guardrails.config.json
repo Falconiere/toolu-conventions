@@ -1,0 +1,80 @@
+{
+  "$schema": "./scripts/guardrails/schema.json",
+  "version": 1,
+  "srcRoot": "src",
+  "src": {
+    "topLevel": [
+      "ui",
+      "features",
+      "api",
+      "utilities",
+      "providers",
+      "constants",
+      "types"
+    ],
+    "nested": {
+      "features/*": [
+        "screens",
+        "components",
+        "hooks",
+        "api",
+        "__tests__"
+      ],
+      "ui": [
+        "theme",
+        "__tests__"
+      ],
+      "api": [
+        "clients",
+        "queries"
+      ]
+    },
+    "requireReadme": [
+      "ui",
+      "features",
+      "api",
+      "utilities",
+      "providers"
+    ]
+  },
+  "fileSize": {
+    "max": 300,
+    "skipExtensions": [
+      ".ts",
+      ".tsx"
+    ]
+  },
+  "functionSize": {
+    "max": 50,
+    "overrides": {
+      "**/*.tsx": 80
+    }
+  },
+  "testDir": "__tests__",
+  "testGlob": "*.test.*",
+  "barrelNames": [
+    "index.ts",
+    "index.tsx"
+  ],
+  "barrelExempt": [],
+  "bannedDeps": [
+    "axios",
+    "yup",
+    "joi",
+    "valibot",
+    "superstruct",
+    "ajv"
+  ],
+  "secrets": {
+    "neverTracked": [
+      ".env"
+    ]
+  },
+  "shadowConfigs": [
+    {
+      "found": "lefthook.yaml",
+      "use": "lefthook.yml",
+      "why": "the lefthook 2.x installer shadows a .yaml, so the hooks never run"
+    }
+  ]
+}

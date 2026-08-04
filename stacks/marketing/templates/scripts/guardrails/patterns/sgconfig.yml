@@ -1,0 +1,6 @@
+# ast-grep project config for the guardrails pattern rules. Lives inside the
+# module so a generated project needs no root sgconfig.yml of its own — one
+# fewer template file, one fewer surface that can drift.
+ruleDirs:
+  - ts
+  - rust

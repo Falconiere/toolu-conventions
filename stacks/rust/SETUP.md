@@ -14,6 +14,21 @@ KIT=/path/to/toolu-conventions          # this kit's checkout
 PROJECT=project-name                      # kebab-case name from intake
 ```
 
+
+Copy the guard-rail module and its configuration:
+
+- `templates/scripts/guardrails/` → `scripts/guardrails/` (the whole directory,
+  **verbatim** — it is the kit's copy and is never hand-edited; change
+  `guardrails.config.json` instead)
+- `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
+  ceilings, allowed directories and banned dependencies)
+- `templates/.claude/settings.json` → `.claude/settings.json` (**committed** —
+  the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
+  still writing the code; CORE guard-rail layer 2)
+
+`scripts/guardrails/run.sh` needs `jq` on PATH and exits 3 without it, so a
+missing dependency can never look like a clean run.
+
 ## 0. Prerequisites
 
 ```bash
@@ -56,8 +71,8 @@ cp "$KIT/stacks/rust/templates/README.md"             README.md
 cp "$KIT/stacks/rust/templates/CLAUDE.md.template"    CLAUDE.md
 
 mkdir -p scripts
-cp "$KIT/stacks/rust/templates/scripts/check-structure.sh" scripts/check-structure.sh
-chmod +x scripts/check-structure.sh
+cp "$KIT/stacks/rust/templates/scripts/guardrails/run.sh" scripts/guardrails/run.sh
+chmod +x scripts/guardrails/run.sh
 
 mkdir -p .github/workflows
 cp "$KIT/stacks/rust/templates/.github/workflows/ci.yml"          .github/workflows/ci.yml
@@ -156,11 +171,11 @@ This is the one command that must be green before the scaffold is done — the s
 sequence CI and the pre-push hook run:
 
 ```bash
-cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/check-structure.sh && cargo test
+cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/guardrails/run.sh && cargo test
 ```
 
 `-D warnings` promotes every clippy `warn` (pedantic group, `missing_docs`,
-`unwrap_used`/`expect_used`) to a hard error. `scripts/check-structure.sh`
+`unwrap_used`/`expect_used`) to a hard error. `scripts/guardrails/run.sh`
 enforces the structure rules the compiler can't see — snake_case `.rs` filenames,
 the 500 code-line ceiling (tests exempt), and that the lefthook config is `.yml`.
 Fix the code; never silence a lint to pass. The freshly scaffolded skeleton passes

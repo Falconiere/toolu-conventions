@@ -48,7 +48,7 @@ jobs:
             stacks/console/templates/utilities/http.ts.
 
             A defect here is therefore: a template that contradicts its own
-            stack's gate (its .oxlintrc.json, scripts/check-structure.sh, or
+            stack's gate (its .oxlintrc.json, scripts/guardrails/run.sh, or
             package.json scripts); a SETUP.md step that would fail if followed
             literally; a config key that does not exist in the tool it
             configures; prose that claims behaviour the shipped config does not
@@ -56,7 +56,7 @@ jobs:
             that does not resolve.
 
             Two real examples from this branch's own review, for calibration: a
-            stack shipped a vitest.config.ts that its own check-structure.sh
+            stack shipped a vitest.config.ts that its own guardrails/run.sh
             rejects, and an unpinned `typescript` dependency resolved to a major
             version that made `astro check` refuse to run — both of which made a
             freshly scaffolded project red on its first gate run.

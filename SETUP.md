@@ -12,8 +12,15 @@ Run and confirm each; stop and report anything missing:
 git --version
 bun --version          # TS stacks only
 cargo --version        # rust only
+jq --version           # required — agent-guardrails reads guardrails.config.json
 gh --version           # optional — repo creation
 ```
+
+`jq` is not optional: the guard-rail gate exits 3 without it rather than
+silently passing. Install with `apt-get install jq` · `brew install jq` ·
+`apk add jq`. ast-grep powers the guard rails' pattern checks and arrives as the
+`@ast-grep/cli` devDependency on the TypeScript stacks; the Rust stack needs the
+binary (`cargo install ast-grep --locked`).
 
 Read [`CORE.md`](./CORE.md) now. Every rule in it binds the project you are
 about to create — including the platform defaults (Cloudflare Workers, Turso,

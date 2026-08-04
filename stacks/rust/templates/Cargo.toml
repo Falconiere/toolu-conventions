@@ -19,6 +19,10 @@ pedantic = { level = "warn", priority = -1 }
 # Test modules and bootstrap sites opt out explicitly with `#[allow(...)]`.
 unwrap_used = "warn"
 expect_used = "warn"
+# The function-length ceiling. Declared in guardrails.config.json
+# (functionSize.max), thresholded in clippy.toml, denied here — one rule, one
+# enforcer. `pedantic` only warns it, and this is a hard house rule.
+too_many_lines = "deny"
 # Practical relaxations of the two noisiest pedantic lints.
 module_name_repetitions = "allow"
 must_use_candidate = "allow"

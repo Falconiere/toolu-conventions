@@ -740,7 +740,7 @@
                         <li><div class="row"><span class="name file">cli.rs</span></div></li>
                       </ul>
                     </li>
-                    <li><div class="row"><span class="name dir">scripts/</span><span class="hint">check-structure.sh</span></div></li>
+                    <li><div class="row"><span class="name dir">scripts/</span><span class="hint">guardrails/ — the structure gate</span></div></li>
                     <li><div class="row"><span class="name file">CLAUDE.md</span></div></li>
                     <li><div class="row"><span class="name file">README.md</span></div></li>
                     <li><div class="row"><span class="name dir">.github/workflows/</span></div></li>
@@ -1037,12 +1037,13 @@ type Shift = z.infer&lt;typeof Shift&gt;;</pre>
         <div class="wrap">
           <p class="marker">— §07 · guard rails</p>
           <h2 id="gates-title" class="display">
-            Four layers,
+            Five layers,
             <span class="line-2">none optional.</span>
           </h2>
           <p class="body">
             Rules only matter if something enforces them. Every generated project
-            ships four layers. None may be disabled “just this once” to get a
+            ships five layers, ordered by how early they catch a mistake — the
+            earliest is the cheapest. None may be disabled “just this once” to get a
             green build — fix the check, or change the check deliberately and say
             so.
           </p>
@@ -1052,12 +1053,16 @@ type Shift = z.infer&lt;typeof Shift&gt;;</pre>
               <p>A project <code class="code">CLAUDE.md</code> encodes the house rules, blocked patterns, repo map, and gate commands. Agents read it first. Invisible rules do not exist.</p>
             </li>
             <li class="layer">
+              <h3 class="subhead">Agent hooks, while the code is written</h3>
+              <p>A committed <code class="code">.claude/settings.json</code> runs <strong>agent-guardrails</strong> on every file an agent writes, and again over the whole repo before it finishes a turn. The first reports in milliseconds; the second blocks, so an agent cannot hand over red code. Agents only — which is why it replaces nothing below it.</p>
+            </li>
+            <li class="layer">
               <h3 class="subhead">Pre-commit hooks</h3>
               <p>Lefthook runs fast format and lint checks on staged files before the commit lands. Same idea on Rust and TypeScript stacks.</p>
             </li>
             <li class="layer">
               <h3 class="subhead">One gate command</h3>
-              <p>Before every push: a single check command that type-checks, lints, formats, validates structure, hunts dead code and copy-paste, and runs tests. CI mirrors those steps by name.</p>
+              <p>Before every push: a single check command that type-checks, lints, formats, validates structure, hunts dead code and copy-paste, and runs tests. CI mirrors those steps by name. Structure is <strong>agent-guardrails</strong> — one config-driven module, copied into every project, enforcing what a linter cannot see: the folder tree and the shape inside each domain, READMEs, barrels, colocated tests, banned dependencies, required files, shadowing configs, committed secrets, and code patterns via ast-grep.</p>
             </li>
             <li class="layer">
               <h3 class="subhead">AI code review on PRs</h3>
@@ -1067,10 +1072,10 @@ type Shift = z.infer&lt;typeof Shift&gt;;</pre>
           
           <p class="body" style="margin-top: 1.25rem">TypeScript stacks:</p>
               <pre class="snippet">bun run check
-# tsc|astro check → oxlint → oxfmt → check-structure.sh → knip → jscpd → tests</pre>
+# tsc|astro check → oxlint → oxfmt → guardrails/run.sh → knip → jscpd → tests</pre>
               <p class="body" style="margin-top: 1.25rem">Rust:</p>
               <pre class="snippet">cargo fmt --check &amp;&amp; cargo clippy --all-targets -- -D warnings \
-  &amp;&amp; bash scripts/check-structure.sh &amp;&amp; cargo test</pre>
+  &amp;&amp; bash scripts/guardrails/run.sh &amp;&amp; cargo test</pre>
               <p class="body" style="margin-top: 1.25rem">Structure is machine-enforced (no axios, no barrels, kebab-case filenames, max-lines, feature isolation). This conventions repo validates its own templates via <code>scripts/validate-templates.sh</code>.</p>
 
         </div>

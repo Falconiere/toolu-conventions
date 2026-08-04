@@ -92,40 +92,78 @@ in the project's `CLAUDE.md` is not optional.
 
 ## Quality gates & guardrails
 
-Four layers. A project is only correct when all four are green, and **none of
+Five layers. A project is only correct when all five are green, and **none of
 them may be disabled to get there** — not for an unrelated failure, not "just
 this once". If a check is wrong, fix the check deliberately and say so; don't
 route around it.
+
+They are ordered by how early they catch a mistake, and the earliest is the
+cheapest: a rule that fires while the agent is still writing the file costs one
+edit, the same rule at PR time costs a review cycle.
 
 **1. The rules, in the repo.** Every generated project ships a `CLAUDE.md` (from
 the stack kit's `CLAUDE.md.template`) — the agent's read-first file, encoding
 these core rules, the stack's hard conventions and blocked patterns, a repo map,
 and the exact gate commands. Rules an agent can't see are rules that don't exist.
 
-**2. Pre-commit (Lefthook), on every stack including Rust.** Fast staged-file
+**2. Agent hooks (`.claude/settings.json`), while the code is being written.**
+Committed, so every agent working in the repo inherits them.
+
+- `PostToolUse` on `Edit|Write` runs `bash scripts/guardrails/run.sh --hook`
+  against the single file just written, in milliseconds. It cannot block — the
+  write already happened — but exit 2 puts the violation and its remedy in front
+  of the agent, which fixes it in the same turn.
+- `Stop` runs `bash scripts/guardrails/run.sh --stop` over the whole repo. This
+  one *does* block: exit 2 means the agent keeps working instead of handing over
+  red code. It early-outs (exit 0) when nothing changed this turn or when it is
+  already continuing from a previous block, and Claude Code caps the loop at 8
+  consecutive blocks, so it cannot trap a session.
+
+This layer fires for **coding agents only** — never for a human in an editor.
+That is exactly why it does not replace any of the layers below it.
+
+**3. Pre-commit (Lefthook), on every stack including Rust.** Fast staged-file
 checks only — format + lint. Config must be `lefthook.yml`; a `lefthook.yaml` is
 silently shadowed by the 2.x installer's stub, and the hooks then never run.
 
-**3. The gate — ONE command, run before every push.**
+**4. The gate — ONE command, run before every push.**
 
 - **TypeScript stacks** — `bun run check` =
   type-check + `bunx oxlint --deny-warnings` + `bunx oxfmt --check` +
-  `bash scripts/check-structure.sh` + `bunx knip` + `bunx jscpd` + the test
+  `bash scripts/guardrails/run.sh` + `bunx knip` + `bunx jscpd` + the test
   runner, in that order. ("Type-check" is `tsc --noEmit`, except in the marketing
   stack, where it is `astro check` — the only tool that reads an `.astro`
   file's TEMPLATE body. oxlint reads its frontmatter too; oxfmt cannot parse
   `.astro` at all.)
 - **Rust** —
-  `cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/check-structure.sh && cargo test`.
+  `cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/guardrails/run.sh && cargo test`.
 
-Structure rules are machine-enforced, not doc-only: oxlint carries
-`no-restricted-imports` (no barrel imports, no deep relatives, feature
-isolation, **no axios**, no competing validation library),
-`import/no-default-export`, `unicorn/filename-case`
-(kebab-case), and `max-lines` (300, code lines, tests exempt); each stack ships a
-small `scripts/check-structure.sh` that checks what a linter cannot see — the
-folder tree, per-folder READMEs, absence of barrel files, banned dependencies in
-`package.json`, config files that shadow each other, and committed secrets.
+Structure rules are machine-enforced, not doc-only. The division of labour is
+deliberate: **one rule, one enforcer.** Two enforcers of one ceiling is how the
+two numbers drift apart, and how an `oxlint-disable` silences half a rule.
+
+- **oxlint** owns what it can see in TypeScript: `no-restricted-imports` (no
+  barrel imports, no deep relatives, feature isolation, **no axios**, no
+  competing validation library), `import/no-default-export`,
+  `unicorn/filename-case` (kebab-case), `max-lines` (300 code lines, tests
+  exempt) and `max-lines-per-function` (50; 80 in `.tsx`, where a component's
+  JSX body legitimately runs longer). Rust's equivalents are clippy's
+  `too_many_lines` and rustfmt.
+- **agent-guardrails** (`scripts/guardrails/`) owns what a linter structurally
+  cannot see: the folder tree and the shape *inside* each domain folder,
+  per-folder READMEs, barrels, colocated tests, banned dependencies in the
+  manifest, required files, config files that shadow each other, committed
+  secrets, filename casing where no linter covers it, and contextual code
+  patterns via ast-grep.
+
+Both read their numbers from **one declaration**, `guardrails.config.json`, and
+the kit's own CI asserts that the ceiling declared there matches the one oxlint
+and clippy actually enforce. The declaration is the source of truth; the linters
+are the enforcers.
+
+`scripts/guardrails/` is copied verbatim from the kit and is not hand-edited —
+change `guardrails.config.json` instead. It needs `jq`, and its pattern checks
+need ast-grep (`@ast-grep/cli`, a devDependency on the TypeScript stacks).
 
 Two of the gate steps exist to keep the codebase from rotting quietly:
 
@@ -148,7 +186,7 @@ The same steps run in CI (`.github/workflows/ci.yml`) on every PR and push to
 instead of burying it in one aggregate command. CI ends with a real build (or a
 dry-run deploy), because a type-clean project can still fail to ship.
 
-**4. AI code review (`.github/workflows/code-review.yml`).** Every stack ships
+**5. AI code review (`.github/workflows/code-review.yml`).** Every stack ships
 it. It reviews each PR against the repo's own convention files — read from the
 **base** ref, so a PR cannot rewrite the rules it is judged by — and posts inline
 findings. It needs a `DEEPSEEK_API_KEY` repository secret.

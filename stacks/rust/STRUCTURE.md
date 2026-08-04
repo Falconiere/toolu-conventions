@@ -31,7 +31,7 @@ project-name/
 ├── tests/                # crate-root integration tests — one file per surface
 │   └── <surface>.rs
 ├── scripts/
-│   └── check-structure.sh # structure gate: snake_case, 500-line ceiling, .yml
+│   └── guardrails/       # the structure gate, copied from the kit; never hand-edited
 ├── .github/workflows/ci.yml
 ├── CLAUDE.md             # agent rules + repo map (read first)
 └── README.md             # human + agent entry point
@@ -70,7 +70,7 @@ a barrel. Don't. Concretely:
 One primary item per file. Small tightly-coupled helpers can share the file with
 the item they serve; a second unrelated public type means a second file.
 
-`scripts/check-structure.sh` enforces the `snake_case` filename rule (every `.rs`
+`scripts/guardrails/run.sh` enforces the `snake_case` filename rule (every `.rs`
 under `src/`/`tests/` must match `^[a-z0-9_]+\.rs$`) as part of the gate.
 
 ## Tests
@@ -105,7 +105,7 @@ lives in the sibling file:
 mod tests;
 ```
 
-`scripts/check-structure.sh` fails the gate if a non-`tests/` `.rs` file contains
+`scripts/guardrails/run.sh` fails the gate if a non-`tests/` `.rs` file contains
 an inline `#[cfg(test)] mod … {` body.
 
 ### Crate-root integration tests
@@ -120,10 +120,10 @@ Tests are exempt from the line ceiling.
 ## Hard conventions
 
 Inherited from CORE, stated here in Rust terms — enforced by the `[lints]` table,
-`scripts/check-structure.sh`, and Lefthook:
+`scripts/guardrails/run.sh`, and Lefthook:
 
 1. **500 code-line ceiling per file** (blanks/comments excluded; tests exempt) —
-   script-enforced by `scripts/check-structure.sh` in the gate. Split the design
+   script-enforced by `scripts/guardrails/run.sh` in the gate. Split the design
    before you fight the gate.
 2. **Doc line on every public item and module.** `///` on every `pub` fn, struct,
    enum, trait, and field; `//!` at the top of each module. `missing_docs = warn`

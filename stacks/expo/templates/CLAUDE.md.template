@@ -66,7 +66,7 @@ on staged files only. Run tests non-interactively
 
 The structure rules are **enforced, not doc-only**: oxlint (`no-restricted-imports`
 for barrel/deep-relative/feature-isolation, `unicorn/filename-case`, `max-lines`)
-plus `scripts/check-structure.sh` (allowed `src/` dirs, per-folder READMEs, no
+plus `scripts/guardrails/run.sh` (allowed `src/` dirs, per-folder READMEs, no
 barrel files, `lefthook.yml`). A violation fails the gate.
 
 ## Tooling

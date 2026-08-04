@@ -35,7 +35,7 @@ before adding files, and add a line when you add something notable.
 - Structure rules are **machine-enforced**, not doc-only: oxlint carries
   `no-restricted-imports` (no barrel imports, no deep relatives, feature
   isolation, no axios), `unicorn/filename-case` (kebab-case), and `max-lines`
-  (300); `scripts/check-structure.sh` checks the folder tree (allowed `src/`
+  (300); `scripts/guardrails/run.sh` checks the folder tree (allowed `src/`
   dirs, per-folder READMEs, no barrel files, no second Vitest config, no banned
   dependency in `package.json`).
 - `bun run dev` starts Vite; `bun run build` produces the production build;
