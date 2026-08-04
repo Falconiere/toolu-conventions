@@ -222,16 +222,17 @@ fi
 # ---------------------------------------------------------------- AC-11
 if tagged patterns; then
   gr_in "$DIRTY"; out=$OUT
-  if printf '%s' "$out" | grep -q 'no-bare-fetch.*bad.tsx' \
-    || printf '%s' "$out" | grep -q 'bad.tsx.*no-bare-fetch'; then
-    ok 'AC-11 patterns: no-bare-fetch fires in a feature file'
+  # ast-grep is Rust-only now; the TS pattern rules live in the oxlint plugin
+  # and are covered by run-plugin.sh.
+  if printf '%s' "$out" | grep -q 'no-direct-env-var'; then
+    ok 'AC-11 patterns: no-direct-env-var fires on a rust source file'
   else
-    bad 'AC-11 no-bare-fetch must fire on a feature file' "$(printf '%s' "$out" | grep patterns)"
+    bad 'AC-11 the rust pattern rule must fire' "$(printf '%s' "$out" | grep patterns)"
   fi
   gr_in "$CLEAN"; out=$OUT
   [ "$(count_check "$out" patterns)" -eq 0 ] \
-    && ok 'AC-11 patterns: silent on fetch inside utilities/http.ts' \
-    || bad 'AC-11 the http client must be exempt from no-bare-fetch' "$out"
+    && ok 'AC-11 patterns: silent on a clean tree' \
+    || bad 'AC-11 patterns must be silent on the clean fixture' "$out"
 fi
 
 # ---------------------------------------------------------------- AC-16
@@ -337,8 +338,8 @@ fi
 # reports green. This is the regression test for exactly that bug.
 if tagged patterns || [ -z "$ONLY" ]; then
   SC=$(bash "$HERE/lib/mkrepo.sh" violating)
-  broken="$HERE/../patterns/ts/zz-broken.yml"
-  printf 'id: zz-broken\nlanguage: tsx\nrule:\n  pattern: "((("\n' > "$broken"
+  broken="$HERE/../patterns/rust/zz-broken.yml"
+  printf 'id: zz-broken\nlanguage: rust\nrule:\n  pattern: "((("\n' > "$broken"
   gr_in "$SC" --only patterns; out=$OUT
   s=$STATUS
   rm -f "$broken"
