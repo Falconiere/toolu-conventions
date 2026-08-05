@@ -172,9 +172,10 @@ two numbers drift apart, and how an `oxlint-disable` silences half a rule.
 - **The rule set itself is shared, not five copies drifting apart.** It ships
   from the kit as `lint/base.oxlintrc.json` (+ `lint/base-react.oxlintrc.json`
   for the two React stacks) and is copied byte-identically into every stack's
-  `templates/` — the same pattern `scripts/guardrails/` uses, and the same
-  gate: `validate-templates.sh` diffs each stack's copy against `lint/` and
-  fails on any drift. Each stack's `.oxlintrc.json` is a thin `extends` child
+  `templates/`, and `validate-templates.sh` diffs each stack's copy against
+  `lint/` and fails on any drift. The guard-rail module used to be distributed
+  this way too; as of v0.3 it is not — a scaffold copies it straight out of the
+  kit's `guardrails/`, so there are no per-stack mirrors left to diff. Each stack's `.oxlintrc.json` is a thin `extends` child
   of `base.oxlintrc.json` holding only what genuinely differs per stack:
   `env`, `globals`, `ignorePatterns`, the `max-lines`/`max-lines-per-function`
   ceilings, `no-console` severity, and `no-restricted-imports`.

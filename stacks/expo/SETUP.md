@@ -329,8 +329,10 @@ Then:
    `src/utilities`, `src/providers`, `src/constants`, `src/types`, and `assets`,
    generated from `templates/folder-README.md` (fill in the folder's purpose + a
    short "what's inside" list — seed it now, keep it updated as you add files).
-   Every top-level `src/` directory carries one — `scripts/guardrails/run.sh`
-   enforces it.
+   The gate enforces five of them — `ui`, `features`, `api`, `utilities`,
+   `providers`, this stack's `requireReadme` — and `scripts/guardrails/run.sh`
+   fails without those. `constants`, `types`, and `assets` get one by house
+   convention; `assets` sits outside `src/`, so the check never looks at it.
 6. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` (drop the `.template`
    suffix). Fill in the project name + one-line description. This is the rulebook
    + repo map agents read first.

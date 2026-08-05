@@ -251,9 +251,11 @@ Then:
 5. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
    `src/utilities`, `src/providers`, `src/constants`, and `src/types`, generated
    from `$KIT/shared/folder-README.md` (fill in the folder's purpose + a short
-   "what's inside" list — seed it now, keep it updated as you add files). Every
-   top-level `src/` directory except `src/app` carries one —
-   `scripts/guardrails/run.sh` fails the gate without it.
+   "what's inside" list — seed it now, keep it updated as you add files). The
+   gate enforces five of them — `ui`, `features`, `api`, `utilities`,
+   `providers`, this stack's `requireReadme` — and `scripts/guardrails/run.sh`
+   fails without those. `constants` and `types` get one by house convention
+   rather than by the gate; `src/app` gets none.
 6. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the app name +
    specifics. This is the rulebook + repo map agents read first.
 
