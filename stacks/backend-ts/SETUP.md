@@ -289,7 +289,8 @@ Drizzle path in Phase 6c.)
 Adding `src/db/` introduces a new top-level dir, so add `db` to `src.topLevel`
 in `guardrails.config.json` and give it a `README.md`, or the structure gate
 rejects it. Never hand-edit `scripts/guardrails/` — it is copied verbatim from
-the kit, and the kit's CI diffs it.
+the kit's one `guardrails/` source, so the next re-copy reverts any local edit.
+Change `guardrails.config.json` instead.
 
 ```ts
 // src/db/client.ts

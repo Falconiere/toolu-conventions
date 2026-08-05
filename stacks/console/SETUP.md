@@ -372,8 +372,9 @@ Add `cloudflare()` to the `vite.config.ts` plugin list, create `src/worker.ts`
 Worker's `env` — they never touch `src/constants/env.ts`. `src/worker.ts` is a
 new top-level entry: if you move it into a folder, add that folder to
 `src.topLevel` in `guardrails.config.json`. Never hand-edit
-`scripts/guardrails/` — it is copied verbatim from the kit, and the kit's CI
-diffs it.
+`scripts/guardrails/` — it is copied verbatim from the kit's one `guardrails/`
+source, so the next re-copy reverts any local edit. Change
+`guardrails.config.json` instead.
 
 Add a `"cf-typegen": "wrangler types"` script and run it, then commit the
 generated `worker-configuration.d.ts` **and add it to `tsconfig.json`'s
