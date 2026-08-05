@@ -117,7 +117,9 @@ these core rules, the stack's hard conventions and blocked patterns, a repo map,
 and the exact gate commands. Rules an agent can't see are rules that don't exist.
 
 **2. Agent hooks (`.claude/settings.json`), while the code is being written.**
-Committed, so every agent working in the repo inherits them.
+Copied from the kit's `shared/.claude/settings.json` into the project's
+`.claude/settings.json` and committed, so every agent working in the repo
+inherits them.
 
 - `PostToolUse` on `Edit|Write` runs `bash scripts/guardrails/run.sh --hook`
   against the single file just written, in milliseconds. It cannot block — the
@@ -208,11 +210,14 @@ the kit's own CI asserts that the ceiling declared there matches the one oxlint
 and clippy actually enforce. The declaration is the source of truth; the linters
 are the enforcers.
 
-`scripts/guardrails/` is copied verbatim from the kit and is not hand-edited —
-change `guardrails.config.json` instead. It needs `jq` everywhere, and ast-grep
-on **Rust only** (`cargo install ast-grep --locked`), where the pattern rules
-have no other enforcer. The TypeScript stacks carry no ast-grep dependency at
-all: their pattern rules run inside oxlint.
+A generated project's `scripts/guardrails/` is copied verbatim from the kit's
+`guardrails/` — its manifest (`run.sh`, `lib/`, `checks/`, `patterns/`,
+`schema.json`, `oxlint-plugin/`), never the kit's `__tests__/` fixtures, which
+deliberately violate the gate to test it — and is not hand-edited; change
+`guardrails.config.json` instead. It needs `jq` everywhere, and ast-grep on
+**Rust only** (`cargo install ast-grep --locked`), where the pattern rules have
+no other enforcer. The TypeScript stacks carry no ast-grep dependency at all:
+their pattern rules run inside oxlint.
 
 Two of the gate steps exist to keep the codebase from rotting quietly:
 

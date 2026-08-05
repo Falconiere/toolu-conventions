@@ -17,14 +17,16 @@ PROJECT=project-name                      # kebab-case name from intake
 
 Copy the guard-rail module and its configuration:
 
-- `templates/scripts/guardrails/` → `scripts/guardrails/` (the whole directory,
-  **verbatim** — it is the kit's copy and is never hand-edited; change
-  `guardrails.config.json` instead)
+- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+  (`run.sh lib checks patterns schema.json oxlint-plugin`), never
+  `__tests__/` (that's a deliberately-violating fixture tree — copying it would
+  trip the very gate it tests). The manifest travels together — **verbatim** —
+  and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `templates/.claude/settings.json` → `.claude/settings.json` (**committed** —
-  the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
-  still writing the code; CORE guard-rail layer 2)
+- `../../shared/.claude/settings.json` → `.claude/settings.json`
+  (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
+  while an agent is still writing the code; CORE guard-rail layer 2)
 
 `scripts/guardrails/run.sh` needs `jq` **and ast-grep** on PATH and exits 3
 without either, so a missing dependency can never look like a clean run. Rust is
@@ -73,10 +75,15 @@ cp "$KIT/stacks/rust/templates/src/main.rs"           src/main.rs
 cp "$KIT/stacks/rust/templates/README.md"             README.md
 cp "$KIT/stacks/rust/templates/CLAUDE.md.template"    CLAUDE.md
 
-mkdir -p scripts
-# The WHOLE directory — run.sh sources lib/ and checks/ from beside itself.
-cp -R "$KIT/stacks/rust/templates/scripts/guardrails" scripts/guardrails
+mkdir -p scripts/guardrails
+for item in run.sh lib checks patterns schema.json oxlint-plugin; do
+  cp -R "$KIT/guardrails/$item" scripts/guardrails/
+done
 chmod +x scripts/guardrails/run.sh
+# run.sh exits 3 without its config, and layer 2 is inert without the hooks.
+cp "$KIT/stacks/rust/templates/guardrails.config.json" guardrails.config.json
+mkdir -p .claude
+cp "$KIT/shared/.claude/settings.json" .claude/settings.json
 
 mkdir -p .github/workflows
 cp "$KIT/stacks/rust/templates/.github/workflows/ci.yml"          .github/workflows/ci.yml

@@ -31,14 +31,16 @@ fails you say so straight. This same house style is baked into the app's
 
 Copy the guard-rail module and its configuration:
 
-- `templates/scripts/guardrails/` → `scripts/guardrails/` (the whole directory,
-  **verbatim** — it is the kit's copy and is never hand-edited; change
-  `guardrails.config.json` instead)
+- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+  (`run.sh lib checks patterns schema.json oxlint-plugin`), never
+  `__tests__/` (that's a deliberately-violating fixture tree — copying it would
+  trip the very gate it tests). The manifest travels together — **verbatim** —
+  and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `templates/.claude/settings.json` → `.claude/settings.json` (**committed** —
-  the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
-  still writing the code; CORE guard-rail layer 2)
+- `../../shared/.claude/settings.json` → `.claude/settings.json`
+  (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
+  while an agent is still writing the code; CORE guard-rail layer 2)
 
 `scripts/guardrails/run.sh` needs `jq` on PATH and exits 3 without it, so a
 missing dependency can never look like a clean run.
@@ -164,10 +166,13 @@ Copy and adapt these templates into the project root, **overwriting** what
   that silently shadows a `lefthook.yaml`, so hooks never fire). Then run
   `bunx lefthook install`; if the installer already dropped a stub `lefthook.yml`,
   overwrite it with the template.
-- `templates/scripts/guardrails/` → `scripts/guardrails/` — the WHOLE directory — `run.sh` sources `lib/` and `checks/` from beside itself, so copying it alone fails at runtime
-  (`mkdir -p scripts` first). This is the folder-tree half of the gate — it
-  enforces the STRUCTURE rules oxlint can't see (allowed `src/` dirs, per-folder
-  READMEs, no barrel files, no second Vitest config, no banned dependency, no
+- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+  (`run.sh lib checks patterns schema.json oxlint-plugin` — never
+  `__tests__/`), `mkdir -p scripts` first. `run.sh` sources `lib/` and
+  `checks/` from beside itself, so copying less than the whole manifest fails
+  at runtime. This is the folder-tree half of the gate — it enforces the
+  STRUCTURE rules oxlint can't see (allowed `src/` dirs, per-folder READMEs,
+  no barrel files, no second Vitest config, no banned dependency, no
   shadowing `lefthook.yaml`).
 
 Set the `package.json` scripts (merge with what `create-vite` generated;
@@ -233,7 +238,7 @@ Then:
    a dynamic index collapses every var to `undefined` in the production bundle.
 5. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
    `src/utilities`, `src/providers`, `src/constants`, and `src/types`, generated
-   from `templates/folder-README.md` (fill in the folder's purpose + a short
+   from `../../shared/folder-README.md` (fill in the folder's purpose + a short
    "what's inside" list — seed it now, keep it updated as you add files). Every
    top-level `src/` directory except `src/app` carries one —
    `scripts/guardrails/run.sh` fails the gate without it.
