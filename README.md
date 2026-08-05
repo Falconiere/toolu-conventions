@@ -128,8 +128,13 @@ are decorative — which is why they're on the generated checklist.
 [`guardrails/`](./guardrails/) is the kit's structural gate: **one config-driven module**,
 copied verbatim into every project, that enforces what a linter structurally cannot see.
 
+> **Two paths, one module.** The source of truth lives at `guardrails/` here in the kit.
+> A scaffold copies it to **`scripts/guardrails/`** inside the generated project — which is
+> the path [`CORE.md`](./CORE.md) and every `.claude/settings.json` hook reference, and the
+> path under `stacks/*/templates/`. Neither is stale; it's source vs. destination.
+
 ```
-guardrails/
+guardrails/                # in a generated project: scripts/guardrails/
 ├── run.sh                # entry point — repo · --file · --hook · --stop modes
 ├── checks/               # 12 checks: folder-tree, secrets, banned-deps, required-files, …
 ├── oxlint-plugin/        # 5 house rules that run inside oxlint, as the file is written
