@@ -112,10 +112,13 @@ generated):
   name; keep `compatibility_flags: ["nodejs_compat"]`)
 - `templates/vitest.config.ts` → `vitest.config.ts` (points the pool at
   `wrangler.jsonc`, so tests and the deploy read one config)
-- `templates/.oxlintrc.json` → `.oxlintrc.json`
-- `templates/.oxfmtrc.json` → `.oxfmtrc.json` (oxfmt uses single quotes — the
-  house style; without this config oxfmt defaults to double quotes and the gate
-  fails)
+- `templates/.oxlintrc.json` → `.oxlintrc.json` (thin `extends` child; the
+  shared rules live in `templates/base.oxlintrc.json`)
+- `templates/base.oxlintrc.json` → `base.oxlintrc.json` (copied verbatim from
+  the kit's `lint/base.oxlintrc.json` — do not hand-edit)
+- `templates/.oxfmtrc.json` → `.oxfmtrc.json` (copied from the kit's
+  `lint/.oxfmtrc.json`; oxfmt uses single quotes — the house style; without
+  this config oxfmt defaults to double quotes and the gate fails)
 - `templates/knip.json` → `knip.json` (unused files/exports/dependencies)
 - `templates/.jscpd.json` → `.jscpd.json` (copy-paste detection). **Keep both
   `"threshold": 0` and `"exitCode": 1`.** The threshold is what fails the gate;

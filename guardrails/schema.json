@@ -159,6 +159,13 @@
           "items": {
             "type": "string"
           }
+        },
+        "scanExempt": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Path prefixes/globs exempt from secret-content scanning. scripts/guardrails/ is exempt unconditionally regardless of this list."
         }
       }
     },

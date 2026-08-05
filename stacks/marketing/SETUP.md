@@ -135,9 +135,13 @@ Astro template generated where they overlap:
   staging never advertises canonical URLs pointing at production.
 - `templates/tsconfig.json` → `tsconfig.json` (strictest + `@/*` alias)
 - `templates/vitest.config.ts` → `vitest.config.ts`
-- `templates/.oxlintrc.json` → `.oxlintrc.json`
-- `templates/.oxfmtrc.json` → `.oxfmtrc.json` (sets `singleQuote: true` — oxfmt
-  defaults to double quotes, so without this the templates fail `oxfmt --check`)
+- `templates/.oxlintrc.json` → `.oxlintrc.json` (thin `extends` child; the
+  shared rules live in `templates/base.oxlintrc.json`)
+- `templates/base.oxlintrc.json` → `base.oxlintrc.json` (copied verbatim from
+  the kit's `lint/base.oxlintrc.json` — do not hand-edit)
+- `templates/.oxfmtrc.json` → `.oxfmtrc.json` (copied from the kit's
+  `lint/.oxfmtrc.json`; sets `singleQuote: true` — oxfmt defaults to double
+  quotes, so without this the templates fail `oxfmt --check`)
 - `templates/knip.json` → `knip.json` (unused files/exports/dependencies)
 - `templates/.jscpd.json` → `.jscpd.json` (copy-paste detection). **Keep both
   `"threshold": 0` and `"exitCode": 1`.** The threshold is what fails the gate;

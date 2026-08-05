@@ -515,7 +515,7 @@
           </h1>
           <p class="lede">
             The written guide says what the kit enforces. This page shows it
-            happening: the scaffold run, the tree it produces, the twelve
+            happening: the scaffold run, the tree it produces, the thirteen
             structure checks, the hooks that fire while an agent types, the CI
             gate on a pull request, and the motion rules the UI itself obeys.
           </p>
@@ -672,7 +672,7 @@
         <div class="wrap">
           <p class="marker">— §03 · agent-guardrails</p>
           <h2 id="guardrails-title" class="display">
-            Twelve checks,
+            Thirteen checks,
             <span class="line-2">one owner each.</span>
           </h2>
           <p class="body">
@@ -680,14 +680,15 @@
             <code class="code">scripts/guardrails/run.sh</code> and driven by
             <code class="code">guardrails.config.json</code>. It enforces the
             structure — the tree, colocated tests, barrels, banned dependencies,
-            required files, shadowing configs, committed secrets, and contextual
+            required files, shadowing configs, committed secrets — both tracked
+            secret files and credential shapes inside tracked content — and contextual
             code patterns via ast-grep. Anything oxlint, oxfmt, clippy or rustfmt
             already enforces stays with them: two enforcers of one rule is how
             ceilings drift apart. That is why half the run below stands down —
             on a TypeScript stack those ids are declared
             <code class="code">ownedByLinter</code> and oxlint reports them
             instead. On Rust, where oxlint cannot parse the source at all,
-            every one of the twelve runs here.
+            every one of the thirteen runs here.
           </p>
 
           <figure class="viz runner" data-anim>
@@ -709,6 +710,7 @@
                 <li style="--i: 9" data-state="fail"><span class="glyph"><span class="vh">failed</span></span><span class="id">shadow-configs</span><span class="why">vitest.config.ts found — use vite.config.ts</span></li>
                 <li style="--i: 10" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">required-files</span><span class="why">nothing declared here — marketing pins src/pages/404.astro</span></li>
                 <li style="--i: 11" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">secrets</span><span class="why">.env is never tracked</span></li>
+                <li style="--i: 12" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">secret-content</span><span class="why">no credential shapes in tracked files — keys live in .dev.vars</span></li>
               </ol>
             </div>
             <div class="viz-foot">
