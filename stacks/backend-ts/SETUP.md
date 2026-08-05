@@ -29,14 +29,15 @@ Read [`../../CORE.md`](../../CORE.md), [`STRUCTURE.md`](./STRUCTURE.md), and
 
 Copy the guard-rail module and its configuration:
 
-- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+  → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin`), never
   `__tests__/` (that's a deliberately-violating fixture tree — copying it would
   trip the very gate it tests). The manifest travels together — **verbatim** —
   and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `../../shared/.claude/settings.json` → `.claude/settings.json`
+- `../../shared/.claude/settings.json` (kit root `shared/`) → `.claude/settings.json`
   (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
   while an agent is still writing the code; CORE guard-rail layer 2)
 
@@ -128,7 +129,8 @@ generated):
   stops throwing and would otherwise report clones and exit 0.
 - `templates/lefthook.yml` → `lefthook.yml` (must be `.yml`, not `.yaml` — see
   the install note below)
-- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+  → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin` — never
   `__tests__/`), `mkdir -p scripts` first, `chmod +x run.sh`. `run.sh` sources
   `lib/` and `checks/` from beside itself, so copying less than the whole

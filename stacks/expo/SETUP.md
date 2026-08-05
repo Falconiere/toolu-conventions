@@ -22,14 +22,15 @@ you start — the theme tokens copied in Phase 3 already implement DESIGN.md.
 
 Copy the guard-rail module and its configuration:
 
-- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+  → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin`), never
   `__tests__/` (that's a deliberately-violating fixture tree — copying it would
   trip the very gate it tests). The manifest travels together — **verbatim** —
   and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `../../shared/.claude/settings.json` → `.claude/settings.json`
+- `../../shared/.claude/settings.json` (kit root `shared/`) → `.claude/settings.json`
   (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
   while an agent is still writing the code; CORE guard-rail layer 2)
 
@@ -200,7 +201,7 @@ Copy these templates into the project root:
 | `templates/jest.setup.ts` | `jest.setup.ts` |
 | `templates/knip.json` | `knip.json` (unused files/exports/dependencies) |
 | `templates/.jscpd.json` | `.jscpd.json` (copy-paste detection; **keep both `"threshold": 0` and `"exitCode": 1`** — the threshold is what fails the gate, the exit code only matters if it is later raised) |
-| `../../guardrails/` (manifest items `run.sh lib checks patterns schema.json oxlint-plugin` — never `__tests__/`) | `scripts/guardrails/` — `run.sh` sources `lib/` and `checks/` from beside itself, so copying less than the whole manifest fails at runtime (`mkdir -p scripts` first) |
+| `../../guardrails/` (the kit root's `guardrails/`; manifest items `run.sh lib checks patterns schema.json oxlint-plugin` — never `__tests__/`) | `scripts/guardrails/` — `run.sh` sources `lib/` and `checks/` from beside itself, so copying less than the whole manifest fails at runtime (`mkdir -p scripts` first) |
 
 Copy the lefthook config **before** installing hooks. Use the `.yml` extension:
 lefthook 2.x's `install` generates a `lefthook.yml` stub that **shadows** a
