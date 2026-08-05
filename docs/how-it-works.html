@@ -707,7 +707,7 @@
                 <li style="--i: 7" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">test-tree</span><span class="why">tests live in __tests__, next to the code</span></li>
                 <li style="--i: 8" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">banned-deps</span><span class="why">no axios · no second validator</span></li>
                 <li style="--i: 9" data-state="fail"><span class="glyph"><span class="vh">failed</span></span><span class="id">shadow-configs</span><span class="why">vitest.config.ts found — use vite.config.ts</span></li>
-                <li style="--i: 10" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">required-files</span><span class="why">the files a stack cannot run without</span></li>
+                <li style="--i: 10" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">required-files</span><span class="why">nothing declared here — marketing pins src/pages/404.astro</span></li>
                 <li style="--i: 11" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">secrets</span><span class="why">.env is never tracked</span></li>
               </ol>
             </div>
@@ -716,7 +716,7 @@
                 <span class="code-1">1 violation · exit 1 — the gate is red</span>
                 <span class="code-0">0 violations · exit 0 — the gate is green</span>
               </p>
-              <button class="replay" type="button" data-fix>
+              <button class="replay" type="button" data-fix aria-pressed="false">
                 <span data-fix-label>Delete vitest.config.ts</span>
               </button>
             </div>
@@ -870,8 +870,9 @@
               <figcaption>
                 The kit runs its own gate on itself:
                 <code class="code">scripts/validate-templates.sh</code> parses every
-                JSON/JSONC/YAML/TOML template, lints and format-checks the TS
-                templates against each stack's real config, type-checks the
+                JSON/JSONC/YAML/TOML template, lints and format-checks every TS
+                template twice — once against a minimal config, then against each
+                stack's real <code class="code">.oxlintrc.json</code> — type-checks the
                 dependency-free ones, diffs the theme tokens against both
                 stylesheets, and materializes the Rust skeleton into a temp crate
                 for fmt and clippy.
@@ -910,9 +911,10 @@
                   <div class="rail" data-curve="signal" data-rail="signal"><span class="pip"></span></div>
                   <div class="rail" data-curve="linear" data-rail="linear"><span class="pip"></span></div>
                   <p>
-                    <code class="code">SIGNAL_BEZIER = cubic-bezier(0.2, 0, 0, 1)</code> —
-                    leaves quickly, arrives calmly. Do not introduce a second
-                    curve; a system with two easings has none.
+                    <code class="code">easing.signal = 'cubic-bezier(0.2, 0, 0, 1)'</code> on
+                    the web, the same four numbers as <code class="code">SIGNAL_BEZIER</code>
+                    on Expo — it leaves quickly and arrives calmly. Do not introduce
+                    a second curve; a system with two easings has none.
                   </p>
                 </div>
                 <div class="motion-cell">
@@ -1104,6 +1106,7 @@
             var runner = fix.closest('.runner');
             if (!runner) return;
             var fixed = runner.classList.toggle('is-fixed');
+            fix.setAttribute('aria-pressed', String(fixed));
             fix.querySelector('[data-fix-label]').textContent = fixed
               ? 'Put it back'
               : 'Delete vitest.config.ts';
