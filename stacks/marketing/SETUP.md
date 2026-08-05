@@ -235,7 +235,10 @@ Then:
 6. Drop a `README.md` into each of `src/layouts`, `src/sections`, `src/ui`,
    `src/utilities`, `src/constants`, and `src/types`, generated from
    `$KIT/shared/folder-README.md`. Every `src/` directory except `src/pages`
-   carries one — the structure gate fails without it.
+   carries one — the structure gate fails without it. That includes
+   `src/content` the moment Phase 5 creates it for a blog or changelog:
+   `content` is in this stack's `requireReadme`, so the gate goes red on a
+   content collection without one.
 7. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the specifics.
 
 **Conventions reminder while you build:** pages compose sections and hold no
@@ -265,8 +268,9 @@ literal hex; no `client:*` directive without a reason in a comment.
    (`pricing-section.astro`, `faq-section.astro`).
 3. If there is a **blog or changelog**, create `src/content.config.ts` with a
    `defineCollection` per collection and put the markdown under `src/content/`.
-   See the example in [`STRUCTURE.md`](./STRUCTURE.md). Run `bunx astro sync`
-   afterwards so the generated types exist.
+   Drop a `README.md` in `src/content/` too — it is in `requireReadme`, so the
+   gate fails without it. See the example in [`STRUCTURE.md`](./STRUCTURE.md).
+   Run `bunx astro sync` afterwards so the generated types exist.
 4. Put `favicon.svg`, `robots.txt`, and the Open Graph image in `public/`.
 
 ---

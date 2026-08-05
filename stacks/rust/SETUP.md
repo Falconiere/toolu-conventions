@@ -69,13 +69,16 @@ kit's templates.
 ## 2. Copy templates
 
 Copy each template to its destination (source → destination). `CLAUDE.md.template`
-is renamed to `CLAUDE.md`; everything else keeps its name.
+is renamed to `CLAUDE.md`; everything else keeps its name. `src/` is copied
+**whole**, not file by file: `main.rs` declares `mod greeting;` and `greeting.rs`
+points its test module at `tests/greeting.rs`, so copying only `main.rs` leaves
+`cargo build` failing with `error[E0583]: file not found for module 'greeting'`.
 
 ```bash
 cp "$KIT/stacks/rust/templates/Cargo.toml"            Cargo.toml
 cp "$KIT/stacks/rust/templates/rustfmt.toml"          rustfmt.toml
 cp "$KIT/stacks/rust/templates/lefthook.yml"          lefthook.yml
-cp "$KIT/stacks/rust/templates/src/main.rs"           src/main.rs
+cp -R "$KIT/stacks/rust/templates/src/."              src/
 cp "$KIT/stacks/rust/templates/README.md"             README.md
 cp "$KIT/stacks/rust/templates/CLAUDE.md.template"    CLAUDE.md
 

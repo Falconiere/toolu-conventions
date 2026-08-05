@@ -160,7 +160,7 @@ Four properties are worth knowing:
 - **Stack differences are data, not code** — `guardrails.config.json`, validated by
   `schema.json`. It replaced five hand-written per-stack scripts that had already drifted.
 - **One copy, not six.** Each stack used to ship its own byte-identical mirror of the module
-  under `templates/scripts/guardrails/` — 130 files kept honest by a `diff -r` in CI. The
+  under `templates/scripts/guardrails/` — 135 files kept honest by a `diff -r` in CI. The
   scaffold now reads the kit's `guardrails/` directly, so there is nothing left to drift.
 - **A slow gate gets routed around**, so latency is a tested budget, measured on a
   generated 500-file / 20-feature tree: **repo mode < 2000 ms**, **`--file` mode < 250 ms**.

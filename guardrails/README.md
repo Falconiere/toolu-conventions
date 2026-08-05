@@ -23,7 +23,7 @@ project. A root-level `guardrails/` path and a `scripts/guardrails/` path are bo
 they are source and destination, not old and new.
 
 Until 2026-08 each stack also carried its own byte-identical copy at
-`stacks/<stack>/templates/scripts/guardrails/` — five copies, 130 files, kept honest only
+`stacks/<stack>/templates/scripts/guardrails/` — five copies, 135 files, kept honest only
 by a `diff -r` in CI. Those are gone. There is one source now, and the scaffold reads it
 directly.
 
@@ -73,9 +73,16 @@ id may not straddle what a linter can see and what it cannot.
 | | TS stacks (`console` · `marketing` · `backend-ts` · `expo`) | `rust` |
 | --- | --- | --- |
 | `ownedByLinter` | `folder-tree` · `colocated-tests` · `no-barrels` · `filename-case` · `patterns` | *(empty)* |
-| Runs in oxlint | those five, via `oxlint-plugin/` | nothing — oxlint cannot parse Rust |
+| Runs in oxlint | those five — three as house rules (`house/folder-tree`, `house/colocated-tests`, `house/no-barrels`), `filename-case` as the built-in `unicorn/filename-case`, and `patterns` as `house/no-bare-fetch` + `house/no-hardcoded-hex` | nothing — oxlint cannot parse Rust |
 | Runs here | the remaining eight | all thirteen |
 | Needs ast-grep | no — pattern rules run in oxlint | **yes** (`cargo install ast-grep --locked`) |
+
+Two of the five are not one-rule-per-id, which is why `validate-templates.sh` special-cases
+them when it checks that a linter-owned id is actually configured: `filename-case` maps to an
+oxlint built-in rather than anything in `oxlint-plugin/`, and `patterns` maps to two house
+rules at once. The plugin itself exports exactly five rules — `folder-tree`,
+`colocated-tests`, `no-bare-fetch`, `no-barrels`, `no-hardcoded-hex` — which is a different
+five from the `ownedByLinter` list above.
 
 ## What differs per stack
 
