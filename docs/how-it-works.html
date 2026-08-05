@@ -95,7 +95,9 @@
       a { color: inherit; text-underline-offset: 0.18em; }
       a:hover { color: var(--accent-lift); }
       .band-light a:hover { color: var(--primary-hover); }
-      :focus-visible { outline: 3px solid var(--accent-wash); outline-offset: 2px; }
+      /* The ink accent, not the wash: the wash sits ~1.2:1 against its own band,
+         which is a focus ring only in principle. */
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       .skip-link {
         position: absolute; left: var(--gutter); top: -3rem; z-index: 20;
         padding: 0.5rem 0.75rem; background: var(--primary); color: var(--on-primary);
@@ -375,11 +377,15 @@
       .track { position: relative; height: 1.5rem; border: 1px solid var(--border-strong); }
       .track .wall { position: absolute; top: -1px; bottom: -1px; right: 32%; width: 1px; background: var(--border-strong); }
       .track[data-outcome="blocked"] .wall { background: var(--incident); }
+      /* Base position is where the run ENDS — through the track, or stopped at
+         the wall. With motion off that is the whole story, told statically. */
       .token {
-        position: absolute; left: 0.4rem; top: 50%; margin-top: -0.3rem;
+        position: absolute; top: 50%; margin-top: -0.3rem;
         width: 0.55rem; height: 0.55rem;
         background: var(--accent); border: 1px solid var(--accent);
       }
+      .track[data-outcome="pass"] .token { left: calc(100% - 1rem); }
+      .track[data-outcome="blocked"] .token { left: calc(68% - 1rem); }
       .track[data-outcome="blocked"] .token { background: var(--incident); border-color: var(--incident); }
       @media (prefers-reduced-motion: no-preference) {
         .is-running .track[data-outcome="pass"] .token { animation: run-through 900ms var(--ease) both; }
@@ -419,6 +425,7 @@
       .job-steps li:nth-child(4) { --i: 3; }
       .job-steps li:nth-child(5) { --i: 4; }
       .job-steps li:nth-child(6) { --i: 5; }
+      .job-steps li:nth-child(7) { --i: 6; }
       @media (prefers-reduced-motion: no-preference) {
         /* Both jobs tick their steps at once — they run in parallel, and the
            gate waits for the slower one. */
@@ -696,7 +703,7 @@
                 <li style="--i: 3" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">no-barrels</span><span class="why">ownedByLinter — oxlint plugin rule</span></li>
                 <li style="--i: 4" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">filename-case</span><span class="why">ownedByLinter — unicorn/filename-case</span></li>
                 <li style="--i: 5" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">patterns</span><span class="why">ownedByLinter — house/no-bare-fetch · no-hardcoded-hex</span></li>
-                <li style="--i: 6" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">folder-readmes</span><span class="why">every sanctioned domain explains itself</span></li>
+                <li style="--i: 6" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">folder-readmes</span><span class="why">the five domains requireReadme names · every feature</span></li>
                 <li style="--i: 7" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">test-tree</span><span class="why">tests live in __tests__, next to the code</span></li>
                 <li style="--i: 8" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">banned-deps</span><span class="why">no axios · no second validator</span></li>
                 <li style="--i: 9" data-state="fail"><span class="glyph"><span class="vh">failed</span></span><span class="id">shadow-configs</span><span class="why">vitest.config.ts found — use vite.config.ts</span></li>
@@ -807,8 +814,10 @@
           </h2>
           <p class="body">
             <code class="code">bun run check</code> is the command before a push;
-            CI mirrors those steps by name, so a green terminal and a green pull
-            request mean the same thing. Alongside it, an AI reviewer reads the
+            CI mirrors those steps by name and then proves the production build,
+            so a green terminal and a green pull request mean the same thing —
+            each step separate, so a red run names the gate that failed instead of
+            burying it in one aggregate command. Alongside it, an AI reviewer reads the
             repo's own convention files <strong>from the base branch</strong> — a
             pull request cannot rewrite the rules it is judged by.
           </p>
@@ -821,23 +830,24 @@
             <div class="viz-body">
               <div class="pipe seq" style="--step: 200ms">
                 <div class="pipe-node" style="--i: 0">
-                  <strong>pull_request</strong> · opened · synchronize · ready_for_review · reopened
-                  <br />concurrency group per ref, cancel-in-progress — a force-push does not queue behind itself
+                  <strong>two workflows, two triggers</strong>
+                  <br />each has a concurrency group per ref with cancel-in-progress — a second push does not queue behind the first
                 </div>
                 <div class="pipe-jobs" style="--i: 1">
                   <div class="job">
-                    <p class="label">job · validate</p>
+                    <p class="label">ci.yml — pull_request → main · push → main</p>
                     <ul class="job-steps">
-                      <li>tsc — type-check</li>
-                      <li>oxlint</li>
-                      <li>oxfmt --check</li>
-                      <li>guardrails/run.sh</li>
-                      <li>knip · jscpd</li>
-                      <li>tests</li>
+                      <li>type-check</li>
+                      <li>lint</li>
+                      <li>format check</li>
+                      <li>structure — guardrails</li>
+                      <li>unused (knip) · dupes (jscpd)</li>
+                      <li>test</li>
+                      <li>build</li>
                     </ul>
                   </div>
                   <div class="job">
-                    <p class="label">job · ai review</p>
+                    <p class="label">code-review.yml — pull_request only</p>
                     <ul class="job-steps">
                       <li>checkout, full history</li>
                       <li>resolve the merge base</li>
@@ -848,7 +858,7 @@
                   </div>
                 </div>
                 <div class="pipe-node" style="--i: 2">
-                  Draft pull requests skip the review job — mark ready for review to trigger it.
+                  The review runs on <strong>opened · synchronize · ready_for_review · reopened</strong>, and skips draft pull requests — mark one ready for review to trigger it.
                 </div>
               </div>
               <div class="gate" style="margin-top: 1rem">
