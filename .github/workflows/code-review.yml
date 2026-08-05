@@ -38,7 +38,15 @@ jobs:
         with:
           PROVIDER: deepseek
           API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          RULES_GLOB: 'CORE.md'
+          # CORE.md holds the house rules; guardrails/README.md and shared/README.md
+          # hold the layout facts a reviewer needs to judge a path claim. Without
+          # the latter two, a reviewer reading only CORE.md sees the destination
+          # path scripts/guardrails/ and concludes the kit-side guardrails/ source
+          # is stale — which it did, three review rounds running.
+          RULES_GLOB: |
+            CORE.md
+            guardrails/README.md
+            shared/README.md
           CODEBASE_OVERVIEW: >-
             This repo is an AI-agent-runnable conventions kit, not an
             application. The product is the instructions and the copy-ready
@@ -46,6 +54,35 @@ jobs:
             scaffold new projects. There is almost no runtime code — the one
             file with real logic is
             stacks/console/templates/utilities/http.ts.
+
+            LAYOUT — one module, two legitimate paths. The agent-guardrails
+            source of truth is the repo-root guardrails/ directory (run.sh, lib/,
+            checks/, oxlint-plugin/, patterns/, schema.json, __tests__/). A
+            scaffold copies the manifest — run.sh lib checks patterns schema.json
+            oxlint-plugin, never __tests__/ — into a generated project at
+            scripts/guardrails/. So CORE.md, every stack SETUP.md, the
+            .claude/settings.json hooks and every lefthook.yml name
+            scripts/guardrails/, because they describe a generated project, while
+            the kit itself only ever has guardrails/. Both paths are correct; one
+            is source, the other destination. No stack carries its own copy of
+            the module any more — the five byte-identical
+            stacks/<stack>/templates/scripts/guardrails/ mirrors were deleted in
+            v0.3, and validate-templates.sh now fails if one reappears. The
+            shared/ directory holds the template files that are identical across
+            stacks: shared/.claude/settings.json (all five) and
+            shared/folder-README.md (console, marketing, backend-ts only — expo
+            and rust ship their own, which genuinely differ).
+
+            PATHS IN PROSE. Relative links inside stacks/<stack>/SETUP.md are
+            relative to that file's own directory, so ../../guardrails/ and
+            ../../shared/... resolve to the repo root — the same convention the
+            pre-existing ../../CORE.md and ../../DESIGN.md links use.
+
+            YOU SEE A DIFF, NOT THE REPO. Do not claim a file or directory is
+            missing, stale, fabricated, or renamed on the strength of its absence
+            from the diff or from CORE.md's prose: unchanged files are simply not
+            shown to you. Report a path only when the diff itself contains
+            evidence it is wrong.
 
             A defect here is therefore: a template that contradicts its own
             stack's gate (its .oxlintrc.json, scripts/guardrails/run.sh, or

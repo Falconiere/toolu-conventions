@@ -31,14 +31,15 @@ fails you say so straight. This same house style is baked into the app's
 
 Copy the guard-rail module and its configuration:
 
-- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+  → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin`), never
   `__tests__/` (that's a deliberately-violating fixture tree — copying it would
   trip the very gate it tests). The manifest travels together — **verbatim** —
   and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `../../shared/.claude/settings.json` → `.claude/settings.json`
+- `../../shared/.claude/settings.json` (kit root `shared/`) → `.claude/settings.json`
   (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
   while an agent is still writing the code; CORE guard-rail layer 2)
 
@@ -166,7 +167,8 @@ Copy and adapt these templates into the project root, **overwriting** what
   that silently shadows a `lefthook.yaml`, so hooks never fire). Then run
   `bunx lefthook install`; if the installer already dropped a stub `lefthook.yml`,
   overwrite it with the template.
-- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+  → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin` — never
   `__tests__/`), `mkdir -p scripts` first. `run.sh` sources `lib/` and
   `checks/` from beside itself, so copying less than the whole manifest fails
