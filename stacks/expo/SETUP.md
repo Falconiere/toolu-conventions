@@ -6,6 +6,16 @@ template, read it from this kit's `templates/` directory and copy it to the stat
 destination — do not invent config from memory. Replace every `<placeholder>` with
 the intake answer.
 
+Two locations matter, and they are not the same place. Set this once:
+
+```bash
+KIT=/path/to/toolu-conventions   # this kit's checkout — every copy SOURCE lives here
+```
+
+You work **in the new project directory**, never inside the kit. So every source
+path below is written `$KIT/…`, every destination is relative to the project, and
+`templates/…` is shorthand for `$KIT/stacks/expo/templates/…`.
+
 **Target baseline (non-negotiable):** Expo (latest SDK) · TypeScript (strict) ·
 Expo Router (typed routes) · bun · Jest (`jest-expo`) · oxlint + oxfmt · Lefthook
 · EAS · the layout and conventions in [`STRUCTURE.md`](./STRUCTURE.md) · the lean
@@ -22,7 +32,7 @@ you start — the theme tokens copied in Phase 3 already implement DESIGN.md.
 
 Copy the guard-rail module and its configuration:
 
-- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+- `$KIT/guardrails/`
   → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin`), never
   `__tests__/` (that's a deliberately-violating fixture tree — copying it would
@@ -30,7 +40,7 @@ Copy the guard-rail module and its configuration:
   and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `../../shared/.claude/settings.json` (kit root `shared/`) → `.claude/settings.json`
+- `$KIT/shared/.claude/settings.json` → `.claude/settings.json`
   (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
   while an agent is still writing the code; CORE guard-rail layer 2)
 
@@ -201,7 +211,7 @@ Copy these templates into the project root:
 | `templates/jest.setup.ts` | `jest.setup.ts` |
 | `templates/knip.json` | `knip.json` (unused files/exports/dependencies) |
 | `templates/.jscpd.json` | `.jscpd.json` (copy-paste detection; **keep both `"threshold": 0` and `"exitCode": 1`** — the threshold is what fails the gate, the exit code only matters if it is later raised) |
-| `../../guardrails/` (the kit root's `guardrails/`; manifest items `run.sh lib checks patterns schema.json oxlint-plugin` — never `__tests__/`) | `scripts/guardrails/` — `run.sh` sources `lib/` and `checks/` from beside itself, so copying less than the whole manifest fails at runtime (`mkdir -p scripts` first) |
+| `$KIT/guardrails/` (manifest items `run.sh lib checks patterns schema.json oxlint-plugin` — never `__tests__/`) | `scripts/guardrails/` — `run.sh` sources `lib/` and `checks/` from beside itself, so copying less than the whole manifest fails at runtime (`mkdir -p scripts` first) |
 
 Copy the lefthook config **before** installing hooks. Use the `.yml` extension:
 lefthook 2.x's `install` generates a `lefthook.yml` stub that **shadows** a
@@ -300,7 +310,7 @@ Then:
    They ship pre-filled with the house design language
    ([`../../DESIGN.md`](../../DESIGN.md)) — real values, not placeholders. Phase 7
    only changes them if the intake asked for a different brand.
-2. Copy [`../../DESIGN.md`](../../DESIGN.md) → `docs/design-language.md`
+2. Copy `$KIT/DESIGN.md` ([view](../../DESIGN.md)) → `docs/design-language.md`
    (`mkdir -p docs` first) **verbatim**. The kit is not on disk once this project
    is scaffolded, so without this copy the design rules — which the token files
    only carry values for — never reach the agents who build here. `CLAUDE.md`
@@ -580,13 +590,13 @@ Skip any the user declined. Add a README line under the relevant folder for each
 **8a. API layer** — two paths, same as the console stack.
 
 **Our own API → oRPC.** `bun add @orpc/client @orpc/tanstack-query`, then copy
-`../console/templates/src/api/orpc.ts` → `src/api/orpc.ts` and point its
+`$KIT/stacks/console/templates/src/api/orpc.ts` → `src/api/orpc.ts` and point its
 type-only `AppRouter` import at wherever the API's router type comes from. Query
 keys derive from the procedure path — never hand-write a `queryKey` array for an
 oRPC call.
 
 **Everything else → the kit's fetch client.** No HTTP dependency to install: copy
-`../console/templates/utilities/http.ts` → `src/utilities/http.ts` (**not axios**; it is written to run on Hermes, using a manual
+`$KIT/stacks/console/templates/utilities/http.ts` → `src/utilities/http.ts` (**not axios**; it is written to run on Hermes, using a manual
 `AbortController` rather than `AbortSignal.timeout`/`any`, which Hermes lacks).
 Then create `src/api/http-client.ts` (one `createHttpClient` instance reading the
 base URL and timeout from `@/constants/env`) and a sample `clients/` + `queries/`

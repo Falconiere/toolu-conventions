@@ -7,6 +7,16 @@ asking. When a step references a template, read it from this kit's `templates/`
 directory and adapt it (replace `{{PLACEHOLDERS}}`) — do not invent config from
 memory.
 
+Two locations matter, and they are not the same place. Set this once:
+
+```bash
+KIT=/path/to/toolu-conventions   # this kit's checkout — every copy SOURCE lives here
+```
+
+You work **in the new project directory**, never inside the kit. So every source
+path below is written `$KIT/…`, every destination is relative to the project, and
+`templates/…` is shorthand for `$KIT/stacks/backend-ts/templates/…`.
+
 **Target baseline (non-negotiable):** Cloudflare Workers (workerd) · Hono ·
 TypeScript (strict) · bun as package manager · Vitest through
 `@cloudflare/vitest-pool-workers` (tests run **inside the real runtime**) ·
@@ -29,7 +39,7 @@ Read [`../../CORE.md`](../../CORE.md), [`STRUCTURE.md`](./STRUCTURE.md), and
 
 Copy the guard-rail module and its configuration:
 
-- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+- `$KIT/guardrails/`
   → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin`), never
   `__tests__/` (that's a deliberately-violating fixture tree — copying it would
@@ -37,7 +47,7 @@ Copy the guard-rail module and its configuration:
   and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `../../shared/.claude/settings.json` (kit root `shared/`) → `.claude/settings.json`
+- `$KIT/shared/.claude/settings.json` → `.claude/settings.json`
   (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
   while an agent is still writing the code; CORE guard-rail layer 2)
 
@@ -129,7 +139,7 @@ generated):
   stops throwing and would otherwise report clones and exit 0.
 - `templates/lefthook.yml` → `lefthook.yml` (must be `.yml`, not `.yaml` — see
   the install note below)
-- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+- `$KIT/guardrails/`
   → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin` — never
   `__tests__/`), `mkdir -p scripts` first, `chmod +x run.sh`. `run.sh` sources
@@ -214,7 +224,7 @@ Then:
    "Procedures" before adding one.
 6. Drop a `README.md` into each of `src/rpc`, `src/routes`, `src/services`,
    `src/utilities`, `src/constants`, and `src/types`, generated from
-   `../../shared/folder-README.md`
+   `$KIT/shared/folder-README.md`
    (fill in the folder's purpose + a short "what's inside" list — seed it now,
    keep it updated as you add files).
 7. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the app name +

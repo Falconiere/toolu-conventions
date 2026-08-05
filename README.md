@@ -233,7 +233,10 @@ Specs, plans, and decision records live in [`docs/toolu/`](./docs/toolu/).
 > straight out of the kit's [`guardrails/`](./guardrails/). New [`shared/`](./shared/) holds
 > the template files that were identical across stacks — the agent-hook `settings.json` and
 > the folder-README. Stack `SETUP.md` files name the kit path and the project path
-> distinctly, and the paths are documented rather than inferred.
+> distinctly, and the paths are documented rather than inferred. Copy SOURCES in a stack
+> `SETUP.md` are anchored to `$KIT` rather than written relative to the file — the
+> scaffolding agent's CWD is the new project it's building, not the kit — and
+> `scripts/validate-templates.sh` now enforces it.
 >
 > **v0.2** (2026-07, plus `agent-guardrails` in 2026-08) — `web` renamed to `console` and rebuilt on React + Vite + TanStack Router; new
 > `marketing` (Astro) kit; `backend-ts` moved to Cloudflare Workers + Turso; better-auth

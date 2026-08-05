@@ -14,10 +14,13 @@ KIT=/path/to/toolu-conventions          # this kit's checkout
 PROJECT=project-name                      # kebab-case name from intake
 ```
 
+You work in the new project directory, never inside the kit: every source path
+below is written `$KIT/…`, and `templates/…` is shorthand for
+`$KIT/stacks/rust/templates/…`.
 
 Copy the guard-rail module and its configuration:
 
-- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+- `$KIT/guardrails/`
   → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin`), never
   `__tests__/` (that's a deliberately-violating fixture tree — copying it would
@@ -25,7 +28,7 @@ Copy the guard-rail module and its configuration:
   and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `../../shared/.claude/settings.json` (kit root `shared/`) → `.claude/settings.json`
+- `$KIT/shared/.claude/settings.json` → `.claude/settings.json`
   (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
   while an agent is still writing the code; CORE guard-rail layer 2)
 

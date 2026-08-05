@@ -7,6 +7,16 @@ references a template, read it from this kit's `templates/` directory and adapt
 it (replace `{{PLACEHOLDERS}}`, fill the folder's specifics) — do not invent
 config from memory.
 
+Two locations matter, and they are not the same place. Set this once:
+
+```bash
+KIT=/path/to/toolu-conventions   # this kit's checkout — every copy SOURCE lives here
+```
+
+You work **in the new project directory**, never inside the kit. So every source
+path below is written `$KIT/…`, every destination is relative to the project, and
+`templates/…` is shorthand for `$KIT/stacks/console/templates/…`.
+
 **Target baseline (non-negotiable):** React + Vite · TanStack Router (file-based,
 `src/app/`) · TypeScript (strict) · bun · Vitest + `@testing-library/react` ·
 oxlint + oxfmt · Lefthook · Cloudflare Workers as the deploy target · the folder
@@ -31,7 +41,7 @@ fails you say so straight. This same house style is baked into the app's
 
 Copy the guard-rail module and its configuration:
 
-- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+- `$KIT/guardrails/`
   → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin`), never
   `__tests__/` (that's a deliberately-violating fixture tree — copying it would
@@ -39,7 +49,7 @@ Copy the guard-rail module and its configuration:
   and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `../../shared/.claude/settings.json` (kit root `shared/`) → `.claude/settings.json`
+- `$KIT/shared/.claude/settings.json` → `.claude/settings.json`
   (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
   while an agent is still writing the code; CORE guard-rail layer 2)
 
@@ -167,7 +177,7 @@ Copy and adapt these templates into the project root, **overwriting** what
   that silently shadows a `lefthook.yaml`, so hooks never fire). Then run
   `bunx lefthook install`; if the installer already dropped a stub `lefthook.yml`,
   overwrite it with the template.
-- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+- `$KIT/guardrails/`
   → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin` — never
   `__tests__/`), `mkdir -p scripts` first. `run.sh` sources `lib/` and
@@ -229,7 +239,7 @@ Then:
    app calls **anything that is not our own API** (there is no axios in this
    kit); our API goes through oRPC in Phase 6a. Read its header comment before
    writing a request anywhere.
-3. Copy [`../../DESIGN.md`](../../DESIGN.md) → `docs/design-language.md`
+3. Copy `$KIT/DESIGN.md` ([view](../../DESIGN.md)) → `docs/design-language.md`
    (`mkdir -p docs` first) **verbatim**. The kit is not on disk once this project
    is scaffolded, so without this copy the design rules — which the token files
    only carry values for — never reach the agents who build here. `CLAUDE.md`
@@ -240,7 +250,7 @@ Then:
    a dynamic index collapses every var to `undefined` in the production bundle.
 5. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
    `src/utilities`, `src/providers`, `src/constants`, and `src/types`, generated
-   from `../../shared/folder-README.md` (fill in the folder's purpose + a short
+   from `$KIT/shared/folder-README.md` (fill in the folder's purpose + a short
    "what's inside" list — seed it now, keep it updated as you add files). Every
    top-level `src/` directory except `src/app` carries one —
    `scripts/guardrails/run.sh` fails the gate without it.
