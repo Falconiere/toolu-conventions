@@ -36,6 +36,7 @@ GR_FS_AWK='
 # gr_fs_ceiling_for <path> — first matching override, else fileSize.max. Reads
 # the cached override map; no subprocess per file.
 gr_fs_ceiling_for() {
+  local target rest_map entry glob
   target=$1
   rest_map=$GR_SIZE_OVERRIDES
   while [ -n "$rest_map" ]; do
@@ -52,6 +53,7 @@ gr_fs_ceiling_for() {
 }
 
 gr_fs_skipped() {
+  local ext
   for ext in $GR_SKIP_EXT; do
     case "$1" in *"$ext") return 0 ;; esac
   done

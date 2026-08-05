@@ -32,9 +32,13 @@ GR_DIR=$(cd "$(dirname "$0")" && pwd)
 # one skips the WHOLE check. So an id may not straddle what a linter can see and
 # what it cannot — folder-readmes and test-tree are split out of folder-tree and
 # colocated-tests for exactly that reason.
-GR_CHECKS_FILE='folder-tree file-size colocated-tests no-barrels filename-case patterns'
+GR_CHECKS_FILE='folder-tree file-size colocated-tests no-barrels filename-case'
+# Batch checks take EVERY path at once rather than one per call. ast-grep's
+# process startup dwarfs the scan, so spawning it per staged file made a 20-file
+# commit pay that cost 20 times — on the hook that fires for every single edit.
+GR_CHECKS_BATCH='patterns'
 GR_CHECKS_REPO='folder-readmes test-tree banned-deps shadow-configs required-files secrets'
-GR_CHECKS_ALL="$GR_CHECKS_FILE $GR_CHECKS_REPO"
+GR_CHECKS_ALL="$GR_CHECKS_FILE $GR_CHECKS_BATCH $GR_CHECKS_REPO"
 
 gr_list() {
   for check in $GR_CHECKS_ALL; do printf '%s\n' "$check"; done
@@ -52,16 +56,39 @@ gr_selected() {
   case ",$GR_ONLY," in *",$1,"*) return 0 ;; *) return 1 ;; esac
 }
 
+gr_call() {
+  "gr_check_$(printf '%s' "$1" | tr '-' '_')" "${@:2}"
+}
+
 gr_run_checks() {
   mode=$1
   path=${2-}
   case "$mode" in
-    repo) set_of_checks=$GR_CHECKS_ALL ;;
+    repo) set_of_checks="$GR_CHECKS_FILE $GR_CHECKS_BATCH $GR_CHECKS_REPO" ;;
     file) set_of_checks=$GR_CHECKS_FILE ;;
   esac
   for check in $set_of_checks; do
     gr_selected "$check" || continue
-    "gr_check_$(printf '%s' "$check" | tr '-' '_')" "$mode" "$path"
+    gr_call "$check" "$mode" "$path"
+  done
+}
+
+# gr_run_file_mode — per-path checks once per path, batch checks once for all.
+# The loop variable is gr_path, not `target`: the check helpers assign bare
+# `target`/`base` names, so a plain `for target in …` here is clobbered mid-body
+# — gr_ct_is_test sets target to the BASENAME, and every check after it then
+# received "index.ts" instead of "src/ui/index.ts" and silently passed. The
+# helpers now declare theirs `local`; the distinct name here is belt and braces.
+gr_run_file_mode() {
+  for gr_path in "${GR_PATHS[@]}"; do
+    for check in $GR_CHECKS_FILE; do
+      gr_selected "$check" || continue
+      gr_call "$check" file "$gr_path"
+    done
+  done
+  for check in $GR_CHECKS_BATCH; do
+    gr_selected "$check" || continue
+    gr_call "$check" batch "${GR_PATHS[@]}"
   done
 }
 
@@ -109,9 +136,7 @@ case "$GR_MODE" in
     ;;
 
   file)
-    for target in "${GR_PATHS[@]}"; do
-      gr_run_checks file "$target"
-    done
+    gr_run_file_mode
     [ "$GR_FAIL" -eq 0 ] && exit 0 || exit 1
     ;;
 

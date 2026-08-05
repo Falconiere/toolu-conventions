@@ -10,6 +10,7 @@
 # repo root, outside srcRoot, so every index.ts(x) under src/ is a true barrel.
 
 gr_nb_exempt() {
+  local target glob
   target=$1
   for glob in $GR_BARREL_EXEMPT; do
     # shellcheck disable=SC2254
@@ -19,6 +20,7 @@ gr_nb_exempt() {
 }
 
 gr_nb_one() {
+  local target base name
   target=$1
   base=${target##*/}
   for name in $GR_BARREL_NAMES; do

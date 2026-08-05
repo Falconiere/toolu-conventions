@@ -15,6 +15,7 @@
 # misplaced component test through.
 
 gr_ct_is_test() {
+  local target glob
   target=${1##*/}
   for glob in $GR_TEST_GLOB; do
     # shellcheck disable=SC2254

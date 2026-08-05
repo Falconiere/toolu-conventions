@@ -66,6 +66,12 @@ export const folderTree = {
           const parent = segments.slice(0, depth).join('/');
           const leaf = segments[depth];
           const allowed = allowFor(parent);
+          // The configured test directory is allowed inside ANY constrained
+          // directory, without every config listing it. CORE rule 6 requires a
+          // test to sit in a sibling test dir beside the code it covers, so an
+          // allowlist that omitted it would forbid what another house rule
+          // mandates — console's src/api/ hit exactly that.
+          if (leaf === config.testDir) continue;
           if (allowed && !allowed.includes(leaf)) {
             context.report({
               node,

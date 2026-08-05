@@ -26,7 +26,7 @@ gr_pat_bin() {
 
 gr_check_patterns() {
   mode=$1
-  path=${2-}
+  shift
   rules="$GR_DIR/patterns"
   [ -f "$rules/sgconfig.yml" ] || return 0
 
@@ -40,11 +40,16 @@ gr_check_patterns() {
     gr_fatal 'ast-grep not found — the pattern checks cannot run (add @ast-grep/cli as a devDependency, or: cargo install ast-grep --locked)'
   fi
 
-  if [ "$mode" = 'file' ]; then
-    target=$path
+  # Batch mode takes every staged path at once; repo mode scans srcRoot. Either
+  # way this is ONE ast-grep process — its startup dwarfs the scan itself, so
+  # spawning it per staged file made a 20-file commit pay that cost 20 times, on
+  # the hook that fires for every single edit.
+  if [ "$mode" = 'batch' ]; then
+    targets=("$@")
+    [ "${#targets[@]}" -gt 0 ] || return 0
   else
-    target=$GR_SRC_ROOT
-    [ -d "$target" ] || return 0
+    [ -d "$GR_SRC_ROOT" ] || return 0
+    targets=("$GR_SRC_ROOT")
   fi
 
   # ast-grep's exit codes: 0 = nothing matched, 1 = a rule matched, anything
@@ -53,11 +58,11 @@ gr_check_patterns() {
   # single malformed rule file silence EVERY pattern check while the gate still
   # reported green — a guard rail that fails open is worse than none, because
   # you stop looking at it.
-  output=$($bin scan -c "$rules/sgconfig.yml" --json=compact "$target" 2>/dev/null)
+  output=$($bin scan -c "$rules/sgconfig.yml" --json=compact "${targets[@]}" 2>/dev/null)
   status=$?
   case "$status" in
     0 | 1) ;;
-    *) gr_fatal "ast-grep exited $status scanning $target — a rule in $rules is malformed or unreadable; the pattern checks did NOT run" ;;
+    *) gr_fatal "ast-grep exited $status scanning ${targets[*]} — a rule in $rules is malformed or unreadable; the pattern checks did NOT run" ;;
   esac
   [ -n "$output" ] && [ "$output" != '[]' ] || return 0
 

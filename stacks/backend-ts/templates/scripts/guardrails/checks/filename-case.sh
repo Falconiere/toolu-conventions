@@ -6,6 +6,7 @@
 # of one rule is the drift this module exists to prevent. Omitted key, no-op.
 
 gr_fc_apply() {
+  local glob regex describe mode path base f
   glob=$1
   regex=$2
   describe=$3

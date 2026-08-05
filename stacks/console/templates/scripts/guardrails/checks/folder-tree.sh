@@ -77,6 +77,12 @@ gr_ft_check_dir() {
 
   allow=$(gr_ft_allow_for "$parent")
   [ -n "$allow" ] || return 0
+  # The configured test directory is allowed inside ANY constrained directory,
+  # without every config having to list it. CORE rule 6 requires a test to sit in a
+  # sibling test dir beside the code it covers, so an allowlist that omitted it
+  # would forbid what another house rule mandates — console's src/api/ hit
+  # exactly that, rejecting the __tests__/ its own orpc.ts tests must live in.
+  [ "$leaf" = "$GR_TEST_DIR" ] && return 0
   case " $allow " in
     *" $leaf "*) ;;
     *) gr_violation folder-tree "$shown" \
