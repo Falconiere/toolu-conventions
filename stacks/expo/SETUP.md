@@ -189,8 +189,10 @@ Copy these templates into the project root:
 | Source (in this kit) | Destination (in project) |
 | --- | --- |
 | `templates/tsconfig.json` | `tsconfig.json` |
-| `templates/.oxlintrc.json` | `.oxlintrc.json` |
-| `templates/.oxfmtrc.json` | `.oxfmtrc.json` (sets `singleQuote` — oxfmt defaults to double quotes) |
+| `templates/.oxlintrc.json` | `.oxlintrc.json` (thin `extends` child; shared rules live in `templates/base.oxlintrc.json`) |
+| `templates/base.oxlintrc.json` | `base.oxlintrc.json` (copied verbatim from the kit's `lint/base.oxlintrc.json` — do not hand-edit) |
+| `templates/base-react.oxlintrc.json` | `base-react.oxlintrc.json` (copied verbatim from the kit's `lint/base-react.oxlintrc.json` — do not hand-edit) |
+| `templates/.oxfmtrc.json` | `.oxfmtrc.json` (copied from the kit's `lint/.oxfmtrc.json`; sets `singleQuote` — oxfmt defaults to double quotes) |
 | `templates/lefthook.yml` | `lefthook.yml` |
 | `templates/jest.config.js` | `jest.config.js` |
 | `templates/jest.setup.ts` | `jest.setup.ts` |

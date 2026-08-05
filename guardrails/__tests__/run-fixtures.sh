@@ -53,7 +53,7 @@ DIRTY=$(bash "$HERE/lib/mkrepo.sh" violating)
 BROKEN_RULE=''
 trap 'rm -rf "$CLEAN" "$DIRTY" "${SCRATCH:-}"; rm -f "${BROKEN_RULE:-}"' EXIT
 
-ALL_CHECKS='folder-tree folder-readmes file-size colocated-tests test-tree no-barrels filename-case banned-deps shadow-configs required-files secrets patterns'
+ALL_CHECKS='folder-tree folder-readmes file-size colocated-tests test-tree no-barrels filename-case banned-deps shadow-configs required-files secrets secret-content patterns'
 
 echo 'guardrails fixtures'
 
@@ -258,6 +258,76 @@ if tagged secrets; then
   [ "$(count_check "$out" secrets)" -eq 0 ] \
     && ok 'AC-17 secrets silent when .dev.vars exists but is gitignored' \
     || bad 'AC-17 an untracked secret must not fail'
+fi
+
+# ---------------------------------------------------------------- AC-21
+if tagged secret-content; then
+  gr_in "$DIRTY"; out=$OUT
+  printf '%s' "$out" | grep -q 'leaked-key\.ts.*committed secret value (AWS access key id)' \
+    && ok 'AC-21 secret-content fires on a committed AWS access key id' \
+    || bad 'AC-21 secret-content must fire on a leaked AWS key' "$out"
+  gr_in "$CLEAN"; out=$OUT
+  [ "$(count_check "$out" secret-content)" -eq 0 ] \
+    && ok 'AC-21 secret-content silent on the clean fixture' \
+    || bad 'AC-21 secret-content must not fire on the clean fixture' "$out"
+
+  gr_in "$DIRTY" --file src/utilities/leaked-key.ts; out=$OUT
+  if [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" secret-content)" -eq 1 ]; then
+    ok 'AC-21 secret-content reports in --file mode too'
+  else
+    bad 'AC-21 secret-content must be file-addressable for the hook' "exit=$STATUS out=$out"
+  fi
+  gr_in "$DIRTY" --file src/utilities/plain.ts; out=$OUT
+  [ "$(count_check "$out" secret-content)" -eq 0 ] \
+    && ok 'AC-21 secret-content silent on a clean file' \
+    || bad 'AC-21 secret-content fired on a clean file' "$out"
+
+  # Repo-mode regression: a dash-prefixed tracked filename must not be parsed
+  # as grep OPTIONS (which drains the `git ls-files` loop's own input and ends
+  # the scan early), and a non-ASCII filename must not be silently skipped
+  # because plain `git ls-files` C-quotes it under core.quotepath=true and the
+  # quoted string then fails `[ -f "$path" ]`. Built inline, not from a
+  # committed fixture — git refuses to store a filename this way portably
+  # across the repo's own .gitattributes, so the three files are created and
+  # added here, the same "real repo, built at test time" approach mkrepo.sh
+  # uses. `git ls-files` sorts by path byte order, so naming them
+  # `-decoy.ts` / `café.ts` / `zzz-clean.ts` already puts the dash-prefixed
+  # decoy BEFORE the non-ASCII target and the clean file AFTER it, without
+  # needing to force the order any other way.
+  SC=$(bash "$HERE/lib/mkrepo.sh" clean)
+  printf 'export const decoy = 1;\n' > "$SC/src/utilities/-decoy.ts"
+  printf "export const leaked = 'AKIAIOSFODNN7EXAMPLE';\n" > "$SC/src/utilities/café.ts"
+  printf 'export const clean2 = 1;\n' > "$SC/src/utilities/zzz-clean.ts"
+  git -C "$SC" add -A
+  git -C "$SC" -c user.email=fixture@example.com -c user.name=fixture commit -qm 'secret-content regression' >/dev/null 2>&1
+  gr_in "$SC" --only secret-content; out=$OUT
+  if [ "$(count_check "$out" secret-content)" -eq 1 ] \
+    && printf '%s' "$out" | grep -q 'café\.ts.*committed secret value (AWS access key id)'; then
+    ok 'AC-21 secret-content: dash-prefixed + non-ASCII filenames do not break the repo scan'
+  else
+    bad 'AC-21 a dash-prefixed or non-ASCII filename must not drain/bypass the repo scan' "exit=$STATUS out=$out"
+  fi
+  rm -rf "$SC"
+
+  # Repo-mode regression: a COLON in a tracked filename must not corrupt the
+  # reported path. The batch pass hands filenames back NUL-delimited (-l -Z)
+  # precisely because "path:line:content" text is ambiguous — a colon is legal
+  # in both the filename and the matched content — so the full name, colon
+  # included, must survive into the violation line. Colons are legal on
+  # Linux/macOS filesystems but not on Windows, hence built inline like the
+  # dash/non-ASCII repo above rather than committed as a fixture.
+  SC=$(bash "$HERE/lib/mkrepo.sh" clean)
+  printf "export const leaked = 'AKIAIOSFODNN7EXAMPLE';\n" > "$SC/src/utilities/weird:name.ts"
+  git -C "$SC" add -A
+  git -C "$SC" -c user.email=fixture@example.com -c user.name=fixture commit -qm 'secret-content colon regression' >/dev/null 2>&1
+  gr_in "$SC" --only secret-content; out=$OUT
+  if [ "$(count_check "$out" secret-content)" -eq 1 ] \
+    && printf '%s' "$out" | grep -q 'weird:name\.ts.*committed secret value (AWS access key id)'; then
+    ok 'AC-21 secret-content: a colon in a tracked filename keeps the full path in the report'
+  else
+    bad 'AC-21 a colon-named tracked file must be reported under its full path' "exit=$STATUS out=$out"
+  fi
+  rm -rf "$SC"
 fi
 
 # ---------------------------------------------------------------- AC-18

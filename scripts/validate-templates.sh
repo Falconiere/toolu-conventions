@@ -302,7 +302,14 @@ for stack_dir in stacks/*/; do
 
   # (b) declaration vs enforcer.
   oxlintrc="$stack_dir/templates/.oxlintrc.json"
+  # The shared core lives in base.oxlintrc.json (synced from lint/); the stack
+  # file only carries what genuinely differs plus the ceilings guardrails.config
+  # declares. Assertions read whichever file actually owns the key.
+  oxbase="$stack_dir/templates/base.oxlintrc.json"
   if [ -f "$oxlintrc" ]; then
+    jq -e --arg b "./base.oxlintrc.json" '(.extends // []) | index($b)' "$oxlintrc" >/dev/null 2>&1 \
+      || bad "lint-base: $stack .oxlintrc.json does not extend ./base.oxlintrc.json — the shared core would be silently absent"
+    [ -f "$oxbase" ] || bad "lint-base: $stack has no base.oxlintrc.json copy"
     declared_file=$(jq -r '.fileSize.max' "$cfg")
     actual_file=$(jq -r '.rules["max-lines"][1].max // empty' "$oxlintrc")
     if [ -n "$actual_file" ] && [ "$declared_file" != "$actual_file" ]; then
@@ -347,23 +354,48 @@ for stack_dir in stacks/*/; do
   owned=$(jq -r '.ownedByLinter // [] | .[]' "$cfg")
   if [ -n "$owned" ]; then
     [ -f "$oxlintrc" ] || bad "guardrails: $stack declares ownedByLinter but ships no .oxlintrc.json"
-    jq -e '.jsPlugins | index("./scripts/guardrails/oxlint-plugin/index.js")' "$oxlintrc" >/dev/null 2>&1 \
-      || bad "guardrails: $stack declares ownedByLinter but .oxlintrc.json does not load the house plugin"
+    [ -f "$oxbase" ] || bad "guardrails: $stack declares ownedByLinter but ships no base.oxlintrc.json"
+    jq -e '.jsPlugins | index("./scripts/guardrails/oxlint-plugin/index.js")' "$oxbase" >/dev/null 2>&1 \
+      || bad "guardrails: $stack declares ownedByLinter but base.oxlintrc.json does not load the house plugin"
     for check in $owned; do
       case "$check" in
         # These are enforced by oxlint built-ins rather than the house plugin.
-        filename-case) jq -e '.rules["unicorn/filename-case"]' "$oxlintrc" >/dev/null 2>&1 \
-          || bad "guardrails: $stack owns filename-case by linter but unicorn/filename-case is not configured" ;;
-        patterns) jq -e '.rules["house/no-bare-fetch"] and .rules["house/no-hardcoded-hex"]' "$oxlintrc" >/dev/null 2>&1 \
-          || bad "guardrails: $stack owns patterns by linter but the house pattern rules are not configured" ;;
-        *) jq -e --arg r "house/$check" '.rules[$r]' "$oxlintrc" >/dev/null 2>&1 \
-          || bad "guardrails: $stack owns $check by linter but rule house/$check is not configured" ;;
+        filename-case) jq -e '.rules["unicorn/filename-case"]' "$oxbase" >/dev/null 2>&1 \
+          || bad "guardrails: $stack owns filename-case by linter but unicorn/filename-case is not configured in base.oxlintrc.json" ;;
+        patterns) jq -e '.rules["house/no-bare-fetch"] and .rules["house/no-hardcoded-hex"]' "$oxbase" >/dev/null 2>&1 \
+          || bad "guardrails: $stack owns patterns by linter but the house pattern rules are not configured in base.oxlintrc.json" ;;
+        *) jq -e --arg r "house/$check" '.rules[$r]' "$oxbase" >/dev/null 2>&1 \
+          || bad "guardrails: $stack owns $check by linter but rule house/$check is not configured in base.oxlintrc.json" ;;
       esac
     done
   fi
 
   hooks="$stack_dir/templates/.claude/settings.json"
   [ -f "$hooks" ] || bad "guardrails: $stack ships no .claude/settings.json — the agent-hook layer is mandatory"
+done
+
+# --- lint-base sync: lint/ is the single source; every TS stack ships a
+#     byte-identical copy. Same contract as guardrails/, same failure it ends.
+for stack in console marketing backend-ts expo; do
+  for item in base.oxlintrc.json .oxfmtrc.json; do
+    diff "lint/$item" "stacks/$stack/templates/$item" >/dev/null 2>&1 \
+      || bad "lint-base: $stack copy of $item differs from lint/ — re-copy, don't hand-edit"
+  done
+done
+for stack in console expo; do
+  diff "lint/base-react.oxlintrc.json" "stacks/$stack/templates/base-react.oxlintrc.json" >/dev/null 2>&1 \
+    || bad "lint-base: $stack copy of base-react.oxlintrc.json differs from lint/"
+  jq -e '(.extends // []) | index("./base-react.oxlintrc.json")' "stacks/$stack/templates/.oxlintrc.json" >/dev/null 2>&1 \
+    || bad "lint-base: $stack .oxlintrc.json does not extend ./base-react.oxlintrc.json"
+done
+# No non-react stack may ship or extend the react layer.
+for stack in marketing backend-ts; do
+  [ -e "stacks/$stack/templates/base-react.oxlintrc.json" ] \
+    && bad "lint-base: $stack ships base-react.oxlintrc.json but declares no react plugin"
+done
+# The kit source must parse too (the copies are covered by the JSON sweep above).
+for f in lint/*.json lint/.oxfmtrc.json; do
+  jq empty "$f" >/dev/null 2>&1 || bad "json parse: $f"
 done
 
 # (c) The old name must be gone everywhere the kit ships from. docs/toolu/ is

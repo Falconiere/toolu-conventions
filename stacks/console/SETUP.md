@@ -142,10 +142,16 @@ Copy and adapt these templates into the project root, **overwriting** what
 - `templates/vite.config.ts` → `vite.config.ts` (build **and** Vitest config; see
   the "One Vite config" rule in `STRUCTURE.md` — never add a `vitest.config.ts`)
 - `templates/vitest.setup.ts` → `vitest.setup.ts`
-- `templates/.oxlintrc.json` → `.oxlintrc.json`
-- `templates/.oxfmtrc.json` → `.oxfmtrc.json` (sets `singleQuote: true` — oxfmt
-  defaults to double quotes, so without this the single-quoted templates fail
-  `oxfmt --check` in the gate)
+- `templates/.oxlintrc.json` → `.oxlintrc.json` (thin `extends` child; the
+  shared rules live in `templates/base.oxlintrc.json`)
+- `templates/base.oxlintrc.json` → `base.oxlintrc.json` (copied verbatim from
+  the kit's `lint/base.oxlintrc.json` — do not hand-edit)
+- `templates/base-react.oxlintrc.json` → `base-react.oxlintrc.json` (copied
+  verbatim from the kit's `lint/base-react.oxlintrc.json` — do not hand-edit)
+- `templates/.oxfmtrc.json` → `.oxfmtrc.json` (copied from the kit's
+  `lint/.oxfmtrc.json`; sets `singleQuote: true` — oxfmt defaults to double
+  quotes, so without this the single-quoted templates fail `oxfmt --check` in
+  the gate)
 - `templates/knip.json` → `knip.json` (unused files/exports/dependencies)
 - `templates/.jscpd.json` → `.jscpd.json` (copy-paste detection). **Keep both
   `"threshold": 0` and `"exitCode": 1`.** The threshold is what fails the gate;

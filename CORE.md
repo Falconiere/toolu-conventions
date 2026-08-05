@@ -51,7 +51,9 @@ project read this file first, then the chosen stack kit.
     one env module per project; secrets live in the platform's secret store
     (`wrangler secret put`, EAS env, the host's settings) and in a git-ignored
     local file. Every TS stack ships an env module that says, in the file, which
-    half it holds.
+    half it holds. Enforced by two guardrail checks, not one: `secrets` bans the
+    secret files themselves from ever being tracked, `secret-content` scans
+    every tracked file's content for a value that looks like a real credential.
 13. **Validate every boundary with Zod.** Environment variables, HTTP response
     bodies, request bodies, webhook payloads, parsed files, anything from
     `localStorage` — if the data crosses into the program from outside, a Zod
@@ -68,6 +70,14 @@ project read this file first, then the chosen stack kit.
 
     const shifts = await http.get('/shifts', { parse: (b) => z.array(Shift).parse(b) });
     ```
+
+14. **No type assertions.** `value as Type`, a chained `as unknown as Type`, and
+    angle-bracket `<Type>value` all lie to the compiler — they claim a shape
+    without anything checking it. Derive the type instead: `z.infer` off a
+    schema (rule 13), `satisfies` when a value's own shape should be checked
+    against an interface, or a real generic. `as const` is the one exception —
+    it narrows a literal, it doesn't assert an unrelated one — and stays
+    allowed.
 
 ## Platform defaults
 
@@ -148,7 +158,24 @@ two numbers drift apart, and how an `oxlint-disable` silences half a rule.
   `unicorn/filename-case` (kebab-case), `max-lines` (300 code lines, tests
   exempt) and `max-lines-per-function` (50; 80 in `.tsx`, where a component's
   JSX body legitimately runs longer). Rust's equivalents are clippy's
-  `too_many_lines` and rustfmt.
+  `too_many_lines` and rustfmt. Type safety is oxlint's too:
+  `typescript/consistent-type-assertions` enforces rule 14 (it bans `value as
+  Type` and `<Type>value`, including a chained `as unknown as Type`, while
+  leaving `as const` and `satisfies` legal), alongside
+  `typescript/no-explicit-any` and `typescript/no-non-null-assertion`. The same
+  layer also bans the classic script-injection surface: `no-eval`,
+  `no-new-func`, and `no-script-url` on every stack, plus `react/no-danger` on
+  the two React stacks (console, expo) — `dangerouslySetInnerHTML` needs an
+  explicit inline disable, not a config change, to be used at all.
+- **The rule set itself is shared, not five copies drifting apart.** It ships
+  from the kit as `lint/base.oxlintrc.json` (+ `lint/base-react.oxlintrc.json`
+  for the two React stacks) and is copied byte-identically into every stack's
+  `templates/` — the same pattern `scripts/guardrails/` uses, and the same
+  gate: `validate-templates.sh` diffs each stack's copy against `lint/` and
+  fails on any drift. Each stack's `.oxlintrc.json` is a thin `extends` child
+  of `base.oxlintrc.json` holding only what genuinely differs per stack:
+  `env`, `globals`, `ignorePatterns`, the `max-lines`/`max-lines-per-function`
+  ceilings, `no-console` severity, and `no-restricted-imports`.
 - **oxlint also owns the structural rules**, through the house plugin at
   `scripts/guardrails/oxlint-plugin/` (`jsPlugins` in `.oxlintrc.json`): the
   folder tree and the shape *inside* each domain folder, colocated tests,
@@ -157,9 +184,18 @@ two numbers drift apart, and how an `oxlint-disable` silences half a rule.
   the agent sees the error at the moment it writes the file.
 - **agent-guardrails** (`scripts/guardrails/`) is left with what oxlint never
   sees: per-folder READMEs, a centralized test *directory*, required files,
-  config files that shadow each other, banned dependencies in the manifest,
-  committed secrets — facts about files and folders the linter is never asked to
-  lint — plus **the whole Rust stack**, which oxlint cannot parse at all.
+  config files that shadow each other, banned dependencies in the manifest, and
+  two secret checks — `secrets` bans the secret files themselves
+  (`.env`, `.dev.vars`) from ever being tracked; `secret-content` complements
+  it by scanning every tracked file's *content* for a high-signal secret value
+  (private-key blocks, AWS/GitHub/Slack/Stripe/Google token shapes), so a key
+  pasted inline in ordinary source is caught too, not just a whole secret file
+  — facts about files and folders the linter is never asked to lint — plus
+  **the whole Rust stack**, which oxlint cannot parse at all. An optional
+  `secrets.scanExempt` array in `guardrails.config.json` lists path globs the
+  content scan skips, the same shape as `barrelExempt`; `scripts/guardrails/`
+  itself is exempt unconditionally, since the kit's own fixtures plant fake
+  secrets on purpose.
 
 Which side owns what is **declared**, not implied: `ownedByLinter` in
 `guardrails.config.json` lists the checks the linter enforces, and the bash

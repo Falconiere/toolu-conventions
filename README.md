@@ -26,6 +26,7 @@ built from the theme tokens the kit actually ships. Served by GitHub Pages from
 | `stacks/backend-ts/` | The HTTP API — Hono on Cloudflare Workers (workerd) · Turso · Vitest in the real runtime. |
 | `stacks/expo/` | Expo (latest SDK) · TypeScript strict · Expo Router · bun · Jest. |
 | `stacks/rust/` | Single crate · clippy `-D warnings` · rustfmt · cargo test. |
+| `lint/` | Shared oxlint/oxfmt core (`base.oxlintrc.json`, `base-react.oxlintrc.json`, `.oxfmtrc.json`) copied byte-identically into every TS stack's `templates/`. Not distributed on its own. |
 | `scripts/` | Dev-only kit-maintenance tooling (template validation). Not part of the distributed kit. |
 
 Each `stacks/<stack>/` holds the same four things: `SETUP.md` (step-by-step

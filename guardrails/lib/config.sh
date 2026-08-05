@@ -71,6 +71,7 @@ gr_cache_config() {
     read -r GR_BANNED_DEPS
     read -r GR_SKIP_EXT
     read -r GR_SECRET_FILES
+    read -r GR_SECRET_SCAN_EXEMPT
     read -r GR_NESTED_MAP
     read -r GR_SIZE_OVERRIDES
     read -r GR_FILENAME_CASE
@@ -89,6 +90,7 @@ gr_cache_config() {
       (.bannedDeps | join(" ")),
       ((.fileSize.skipExtensions // []) | join(" ")),
       ((.secrets.neverTracked // []) | join(" ")),
+      ((.secrets.scanExempt // []) | join(" ")),
       ((.src.nested // {}) | to_entries | map("\(.key)|\(.value | join(" "))") | join(";")),
       ((.fileSize.overrides // {}) | to_entries | map("\(.key)|\(.value)") | join(";")),
       ((.filenameCase // []) | map("\(.glob)|\(.regex)|\(.describe)") | join(";")),

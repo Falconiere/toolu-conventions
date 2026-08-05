@@ -32,7 +32,7 @@ GR_DIR=$(cd "$(dirname "$0")" && pwd)
 # one skips the WHOLE check. So an id may not straddle what a linter can see and
 # what it cannot — folder-readmes and test-tree are split out of folder-tree and
 # colocated-tests for exactly that reason.
-GR_CHECKS_FILE='folder-tree file-size colocated-tests no-barrels filename-case'
+GR_CHECKS_FILE='folder-tree file-size colocated-tests no-barrels filename-case secret-content'
 # Batch checks take EVERY path at once rather than one per call. ast-grep's
 # process startup dwarfs the scan, so spawning it per staged file made a 20-file
 # commit pay that cost 20 times — on the hook that fires for every single edit.
