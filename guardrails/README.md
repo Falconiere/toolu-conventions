@@ -53,7 +53,7 @@ The project then gets its stack's `guardrails.config.json` (from
 guardrails/
 ├── run.sh              # entry point — repo · --file · --hook · --stop modes
 ├── lib/                # config.sh (load + validate), report.sh (output, exit codes)
-├── checks/             # 12 checks, one file each
+├── checks/             # 13 checks, one file each
 ├── oxlint-plugin/      # 5 house rules that run inside oxlint, as the file is written
 ├── patterns/rust/      # ast-grep rules for what clippy doesn't cover
 ├── schema.json         # the guardrails.config.json contract
@@ -74,7 +74,7 @@ id may not straddle what a linter can see and what it cannot.
 | --- | --- | --- |
 | `ownedByLinter` | `folder-tree` · `colocated-tests` · `no-barrels` · `filename-case` · `patterns` | *(empty)* |
 | Runs in oxlint | those five, via `oxlint-plugin/` | nothing — oxlint cannot parse Rust |
-| Runs here | the remaining seven | all twelve |
+| Runs here | the remaining eight | all thirteen |
 | Needs ast-grep | no — pattern rules run in oxlint | **yes** (`cargo install ast-grep --locked`) |
 
 ## What differs per stack
