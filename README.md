@@ -5,11 +5,14 @@ projects. Hand [`SETUP.md`](./SETUP.md) to a coding agent (Claude Code, Cursor,
 …) and it scaffolds a project with the same conventions, folder structure,
 tooling, and guard rails every time — across five stacks.
 
-Modeled on the Qwick native boilerplate pattern: markdown an agent executes,
+Modeled on a proven native boilerplate pattern: markdown an agent executes,
 plus copy-ready templates. No CLI, no generator.
 
-**Human-readable guide:** open [`docs/conventions.html`](./docs/conventions.html)
-in a browser — product shape, folder trees, rules, and guard rails in one page.
+**Human-readable guide:** <https://falconiere.github.io/toolu-conventions/> —
+product shape, folder trees, rules, and guard rails in one page, plus the
+[design system](https://falconiere.github.io/toolu-conventions/design-system.html)
+built from the theme tokens the kit actually ships. Served by GitHub Pages from
+[`docs/`](./docs/) on `main`; the same files open directly in a browser.
 
 ## Layout
 

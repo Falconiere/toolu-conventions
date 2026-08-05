@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>toolu-conventions — an AI-agent-runnable conventions kit</title>
+    <meta
+      name="description"
+      content="A distributable conventions kit for spinning up new projects: folder structure, tooling, and guard rails an agent can execute, across five stacks."
+    />
+    <style>
+      :root {
+        --font-sans: Archivo, Helvetica, -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+        --bg: #0e0f0d;
+        --surface: #1f1f1f;
+        --text: #f2f2ef;
+        --text-muted: #8a8d86;
+        --text-soft: #6c6f68;
+        --text-faint: #52554e;
+        --border: #23251f;
+        --border-strong: #33362e;
+        --seam: #262922;
+        --gutter: clamp(1.25rem, 4vw, 3rem);
+        --container: 52rem;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-sans);
+        font-size: 1rem;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .wrap {
+        max-width: var(--container);
+        margin: 0 auto;
+        padding: 0 var(--gutter);
+      }
+
+      .band {
+        border-bottom: 1px solid var(--seam);
+        padding: clamp(3rem, 9vw, 6rem) 0;
+      }
+
+      .marker {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        color: var(--text-faint);
+        margin: 0 0 1.5rem;
+        text-transform: lowercase;
+      }
+
+      .display {
+        font-size: clamp(2.25rem, 7vw, 4rem);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        font-weight: 500;
+        margin: 0 0 1.5rem;
+      }
+
+      .display .line-2 {
+        display: block;
+        color: var(--text-soft);
+      }
+
+      .lede {
+        font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+        color: var(--text-muted);
+        max-width: 40rem;
+        margin: 0 0 2rem;
+      }
+
+      .body {
+        color: var(--text-muted);
+        max-width: 40rem;
+      }
+
+      h2.subhead {
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 0 0 0.5rem;
+        color: var(--text);
+      }
+
+      /* Doors — the two guides. Border and ink only; no fills, no shadows. */
+      .doors {
+        display: grid;
+        gap: 1px;
+        background: var(--seam);
+        border: 1px solid var(--seam);
+        margin: 2.5rem 0 0;
+      }
+
+      @media (min-width: 44rem) {
+        .doors {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .door {
+        display: block;
+        background: var(--bg);
+        padding: clamp(1.5rem, 4vw, 2.25rem);
+        text-decoration: none;
+        transition: background 120ms ease;
+      }
+
+      .door:hover,
+      .door:focus-visible {
+        background: #131511;
+      }
+
+      .door .tag {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        color: var(--text-faint);
+        display: block;
+        margin-bottom: 0.75rem;
+      }
+
+      .door p {
+        color: var(--text-muted);
+        margin: 0.35rem 0 0;
+        font-size: 0.95rem;
+      }
+
+      .door .go {
+        display: inline-block;
+        margin-top: 1rem;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--text);
+      }
+
+      ul.plain {
+        list-style: none;
+        padding: 0;
+        margin: 1.5rem 0 0;
+        border-top: 1px solid var(--border);
+      }
+
+      ul.plain li {
+        border-bottom: 1px solid var(--border);
+        padding: 0.75rem 0;
+        display: flex;
+        gap: 1rem;
+        align-items: baseline;
+        flex-wrap: wrap;
+      }
+
+      ul.plain .k {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--text);
+        min-width: 9rem;
+      }
+
+      ul.plain .v {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        flex: 1;
+      }
+
+      code {
+        font-family: var(--font-mono);
+        font-size: 0.85em;
+        color: var(--text);
+      }
+
+      footer {
+        padding: 3rem 0;
+        color: var(--text-faint);
+        font-size: 0.85rem;
+      }
+
+      footer a {
+        color: var(--text-muted);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="band">
+        <div class="wrap">
+          <p class="marker">— toolu-conventions</p>
+          <h1 class="display">
+            House rules
+            <span class="line-2">an agent can run.</span>
+          </h1>
+          <p class="lede">
+            A distributable conventions kit for spinning up new projects — folder
+            structure, tooling, and guard rails, identical every time, across five
+            stacks. No CLI and no generator: it is markdown a coding agent executes,
+            plus copy-ready templates.
+          </p>
+
+          <div class="doors">
+            <a class="door" href="conventions.html">
+              <span class="tag">the guide</span>
+              <h2 class="subhead">Conventions</h2>
+              <p>
+                Product shape, folder trees, the hard rules, and the five guard-rail
+                layers — in one page.
+              </p>
+              <span class="go">Read →</span>
+            </a>
+            <a class="door" href="design-system.html">
+              <span class="tag">the ui language</span>
+              <h2 class="subhead">Design system</h2>
+              <p>
+                Built from the real theme tokens the kit ships, so what you see is
+                what a scaffolded project gets.
+              </p>
+              <span class="go">Read →</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="wrap">
+          <p class="marker">— the defaults</p>
+          <p class="body">
+            One answer per job, so no project re-litigates them.
+          </p>
+          <ul class="plain">
+            <li><span class="k">host · data</span><span class="v">Cloudflare Workers · Turso · better-auth</span></li>
+            <li><span class="k">validation</span><span class="v">Zod at every boundary, types from <code>z.infer</code></span></li>
+            <li><span class="k">our own api</span><span class="v">oRPC — typed end to end, query keys from the procedure path</span></li>
+            <li><span class="k">client data</span><span class="v">TanStack Query · TanStack Form</span></li>
+            <li><span class="k">tooling</span><span class="v">bun · oxlint + oxfmt · Lefthook · knip · jscpd</span></li>
+            <li><span class="k">guard rails</span><span class="v">agent hooks, pre-commit, one gate command, CI, AI review</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="wrap">
+          <p class="marker">— the source</p>
+          <p class="body">
+            The kit itself is markdown, and it reads best on GitHub where it renders
+            natively. These are the files an agent is pointed at.
+          </p>
+          <ul class="plain">
+            <li>
+              <span class="k">SETUP.md</span>
+              <span class="v">
+                ★ the entry point — prereq checks, intake questions, dispatch to a stack.
+                <a href="https://github.com/Falconiere/toolu-conventions/blob/main/SETUP.md">open →</a>
+              </span>
+            </li>
+            <li>
+              <span class="k">CORE.md</span>
+              <span class="v">
+                stack-agnostic house rules every stack inherits.
+                <a href="https://github.com/Falconiere/toolu-conventions/blob/main/CORE.md">open →</a>
+              </span>
+            </li>
+            <li>
+              <span class="k">DESIGN.md</span>
+              <span class="v">
+                the UI/UX language the theme tokens ship pre-filled with.
+                <a href="https://github.com/Falconiere/toolu-conventions/blob/main/DESIGN.md">open →</a>
+              </span>
+            </li>
+            <li>
+              <span class="k">repository</span>
+              <span class="v">
+                stacks, templates, and the guard-rail module.
+                <a href="https://github.com/Falconiere/toolu-conventions">github.com/Falconiere/toolu-conventions →</a>
+              </span>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        Hand <code>SETUP.md</code> to a coding agent and say “set up this project by
+        following SETUP.md”. ·
+        <a href="https://github.com/Falconiere/toolu-conventions">source</a>
+      </div>
+    </footer>
+  </body>
+</html>
