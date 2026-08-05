@@ -143,7 +143,7 @@ copied verbatim into every project, that enforces what a linter structurally can
 guardrails/               # in a generated project: scripts/guardrails/
 ├── run.sh                # entry point — repo · --file · --hook · --stop modes
 ├── lib/                  # config load + validate, output + exit codes
-├── checks/               # 12 checks: folder-tree, secrets, banned-deps, required-files, …
+├── checks/               # 13 checks: folder-tree, secrets, secret-content, banned-deps, …
 ├── oxlint-plugin/        # 5 house rules that run inside oxlint, as the file is written
 ├── patterns/rust/        # ast-grep rules for what clippy doesn't cover
 ├── schema.json           # guardrails.config.json contract
