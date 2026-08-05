@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en" data-signal="chalk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>toolu-conventions — how it works, in motion</title>
+    <meta
+      name="description"
+      content="Animated walkthrough of the toolu conventions kit: the scaffold run, the folder tree, agent-guardrails, the hooks, CI/CD, and the design language."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Tokens — identical to conventions.html. Signal / chalk.
+         Motion here obeys the kit's own rule: it measures, it never performs.
+         One curve (the house bezier), no bounce, no shimmer, no spin. Every
+         animation is a stagger (sequence), a translation along a track
+         (progress), or a colour change (state). */
+      :root {
+        --font-sans: Archivo, Helvetica, -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+        --bg: #0e0f0d;
+        --surface: #1f1f1f;
+        --surface-inset: #0e0f0d;
+        --surface-hover: #131511;
+        --text: #f2f2ef;
+        --text-muted: #8a8d86;
+        --text-soft: #6c6f68;
+        --text-faint: #52554e;
+        --primary: #f2f2ef;
+        --primary-hover: #d0d1ce;
+        --on-primary: #0e0f0d;
+        --accent: #f2f2ef;
+        --accent-lift: #ffffff;
+        --accent-wash: #1f211c;
+        --border: #23251f;
+        --border-inner: #1e201c;
+        --border-strong: #33362e;
+        --grid: #191b17;
+        --seam: #262922;
+        --incident: #c9553a;
+        --degraded: #c99a3a;
+        --gutter: clamp(1.25rem, 4vw, 3rem);
+        --container: 52rem;
+        --container-wide: 68rem;
+        --ease: cubic-bezier(0.2, 0, 0, 1);
+        --duration: 220ms;
+      }
+      .band-light {
+        --bg: #f2f2ee;
+        --surface: #ffffff;
+        --surface-inset: #f2f2ee;
+        --surface-hover: #f7f7f3;
+        --text: #16170f;
+        --text-muted: #55574f;
+        --text-soft: #8c8e85;
+        --text-faint: #b3b5ab;
+        --primary: #16170f;
+        --primary-hover: #2c2e24;
+        --on-primary: #f2f2ee;
+        --accent: #16170f;
+        --accent-lift: #f2f2ef;
+        --accent-wash: #e6e6df;
+        --border: #e3e3dc;
+        --border-inner: #ecece5;
+        --border-strong: #b3b5ab;
+        --grid: #e6e6df;
+        --seam: #dcdcd4;
+        background-color: var(--bg);
+        color: var(--text);
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+        font-size: 0.9375rem;
+        line-height: 1.7;
+        background: var(--bg);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: inherit; text-underline-offset: 0.18em; }
+      a:hover { color: var(--accent-lift); }
+      .band-light a:hover { color: var(--primary-hover); }
+      :focus-visible { outline: 3px solid var(--accent-wash); outline-offset: 2px; }
+      .skip-link {
+        position: absolute; left: var(--gutter); top: -3rem; z-index: 20;
+        padding: 0.5rem 0.75rem; background: var(--primary); color: var(--on-primary);
+        font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.18em;
+        text-transform: uppercase; text-decoration: none;
+      }
+      .skip-link:focus { top: 0.75rem; }
+      .band { position: relative; background-color: var(--bg); color: var(--text); isolation: isolate; }
+      .band::before {
+        content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+        background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), var(--grid) calc(25% - 1px), var(--grid) 25%);
+        background-position: var(--gutter) 0; opacity: 0.9;
+      }
+      @media (max-width: 640px) {
+        .band::before {
+          background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(50% - 1px), var(--grid) calc(50% - 1px), var(--grid) 50%);
+        }
+      }
+      .band > * { position: relative; z-index: 1; }
+      .band-seam { position: relative; height: 0; border: 0; margin: 0; }
+      .band-seam::before, .band-seam::after {
+        content: "┼"; position: absolute; top: -0.55em; font-family: var(--font-mono);
+        font-size: 0.625rem; color: var(--seam); line-height: 1; z-index: 2;
+      }
+      .band-seam::before { left: var(--gutter); }
+      .band-seam::after { right: var(--gutter); }
+      .wrap {
+        width: min(100% - (var(--gutter) * 2), var(--container));
+        margin-inline: auto; padding-block: clamp(3.5rem, 8vw, 6.5rem);
+      }
+      .wrap-wide { width: min(100% - (var(--gutter) * 2), var(--container-wide)); }
+      .marker {
+        display: block; font-family: var(--font-mono); font-size: 0.59375rem; line-height: 1.5;
+        letter-spacing: 0.24em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 1.25rem;
+      }
+      .display {
+        font-size: clamp(1.875rem, 3.6vw, 3.125rem); line-height: 1.04; font-weight: 600;
+        letter-spacing: -0.035em; margin: 0 0 1.25rem; text-wrap: balance;
+      }
+      .display-lg {
+        font-size: clamp(2.5rem, 4.8vw, 4.25rem); line-height: 1.03; font-weight: 600;
+        letter-spacing: -0.038em; margin: 0 0 1.5rem; text-wrap: balance;
+      }
+      .display .line-2, .display-lg .line-2 { color: var(--accent); display: block; }
+      .lede {
+        font-size: 1.125rem; line-height: 1.55; font-weight: 500; letter-spacing: -0.01em;
+        max-width: 38rem; margin: 0 0 1.75rem; color: var(--text); text-wrap: pretty;
+      }
+      .body { max-width: 42rem; margin: 0 0 1.1rem; color: var(--text-muted); text-wrap: pretty; }
+      .body strong { color: var(--text); font-weight: 500; }
+      .subhead {
+        font-size: 1.3125rem; line-height: 1.3; font-weight: 500; letter-spacing: -0.022em;
+        margin: 0 0 0.65rem; text-wrap: balance;
+      }
+      .meta {
+        font-family: var(--font-mono); font-size: 0.625rem; line-height: 1.6;
+        letter-spacing: 0.06em; color: var(--text-soft); margin: 0;
+      }
+      .label {
+        font-family: var(--font-mono); font-size: 0.59375rem; line-height: 1.5;
+        letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin: 0;
+      }
+      code, .code { font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.75; }
+      /* Verdicts are drawn as CSS glyphs, so the word itself is carried here for
+         anyone who cannot see a colour or a tick. */
+      .vh {
+        position: absolute; width: 1px; height: 1px; overflow: hidden;
+        clip-path: inset(50%); white-space: nowrap;
+      }
+      .site-nav {
+        position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap;
+        align-items: baseline; justify-content: space-between; gap: 1rem 1.5rem;
+        padding: 1.25rem var(--gutter); border-bottom: 1px solid var(--border);
+        background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(10px);
+      }
+      .site-nav .brand {
+        font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: 0.06em; text-decoration: none;
+      }
+      .site-nav ul {
+        display: flex; flex-wrap: wrap; gap: 0.85rem 1.25rem; list-style: none; margin: 0; padding: 0;
+      }
+      .site-nav a {
+        font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.18em;
+        text-transform: uppercase; text-decoration: none; color: var(--text-muted);
+      }
+      .site-nav a:hover { color: var(--text); }
+      .cta-row { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; margin-top: 2rem; }
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; min-height: 2.5rem;
+        padding: 0.65rem 1.1rem; font-family: var(--font-mono); font-size: 0.59375rem;
+        letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none;
+        border: 1px solid transparent; cursor: pointer;
+        transition: background 140ms var(--ease), color 140ms var(--ease), border-color 140ms var(--ease);
+      }
+      .btn-primary { background: var(--primary); color: var(--on-primary); }
+      .btn-primary:hover { background: var(--primary-hover); color: var(--on-primary); }
+      .btn-ghost { background: transparent; color: var(--text); border-color: var(--border-strong); }
+      .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+      .site-footer {
+        padding: 2rem var(--gutter) 3rem; border-top: 1px solid var(--border);
+        display: flex; flex-wrap: wrap; gap: 1rem 2rem; justify-content: space-between; align-items: baseline;
+      }
+      .site-footer a { text-decoration: none; color: var(--text-muted); }
+      .site-footer a:hover { color: var(--text); }
+      .doc-links { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; margin-top: 1.75rem; }
+      .doc-links a {
+        font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.16em;
+        text-transform: uppercase; text-decoration: none; color: var(--text-muted);
+        border-bottom: 1px solid var(--border-strong); padding-bottom: 0.15rem;
+      }
+      .doc-links a:hover { color: var(--text); border-color: var(--text); }
+
+      /* ---------------------------------------------------------------
+         Figures — the shared shell every animation sits in.
+         --------------------------------------------------------------- */
+      .viz {
+        margin: 2rem 0 0; padding: 0;
+        border: 1px solid var(--border); background: var(--surface);
+      }
+      .viz-head {
+        display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+        gap: 0.5rem 1rem; padding: 0.85rem 1.1rem; border-bottom: 1px solid var(--border-inner);
+      }
+      .viz-body { padding: 1.25rem 1.1rem 1.4rem; overflow-x: auto; }
+      .viz-foot {
+        padding: 0.8rem 1.1rem; border-top: 1px solid var(--border-inner);
+        display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1rem; justify-content: space-between;
+      }
+      .viz figcaption { color: var(--text-soft); font-size: 0.8125rem; line-height: 1.6; margin: 0; max-width: 42rem; }
+      .replay {
+        appearance: none; background: transparent; border: 1px solid var(--border-strong);
+        color: var(--text-muted); font-family: var(--font-mono); font-size: 0.59375rem;
+        letter-spacing: 0.18em; text-transform: uppercase; padding: 0.45rem 0.7rem; cursor: pointer;
+        transition: color 140ms var(--ease), border-color 140ms var(--ease);
+      }
+      .replay:hover { color: var(--text); border-color: var(--text); }
+      .replay:active { transform: translateY(1px); }
+      /* Nothing to replay when there was no animation to begin with. */
+      @media (prefers-reduced-motion: reduce) { [data-replay] { display: none; } }
+
+      /* Sequence primitive: children reveal in order, never all at once.
+         `--i` is the index; the base state is the FINAL state, so with motion
+         off the whole diagram simply reads as a finished run. */
+      @media (prefers-reduced-motion: no-preference) {
+        .is-running .seq > * { animation: seq-in 220ms var(--ease) both; animation-delay: calc(var(--i, 0) * var(--step, 110ms)); }
+      }
+      @keyframes seq-in { from { opacity: 0; transform: translateY(0.35rem); } to { opacity: 1; transform: none; } }
+
+      /* ---------------------------------------------------------------
+         §01 — the scaffold run
+         --------------------------------------------------------------- */
+      .flow { list-style: none; margin: 0; padding: 0; position: relative; }
+      .flow::before {
+        content: ""; position: absolute; left: 0.34rem; top: 0.6rem; bottom: 0.6rem;
+        width: 1px; background: var(--border-strong); transform-origin: top;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .is-running .flow::before { animation: draw-y 1200ms var(--ease) both; }
+      }
+      @keyframes draw-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+      .flow > li { position: relative; padding: 0 0 1.15rem 1.6rem; }
+      .flow > li:last-child { padding-bottom: 0; }
+      .flow > li::before {
+        content: ""; position: absolute; left: 0; top: 0.62rem; width: 0.7rem; height: 0.7rem;
+        border: 1px solid var(--text-soft); background: var(--bg);
+      }
+      .flow > li[data-done]::before { background: var(--accent); border-color: var(--accent); }
+      .flow .step-name { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text); letter-spacing: 0.02em; }
+      .flow .step-note { display: block; color: var(--text-muted); font-size: 0.8125rem; line-height: 1.55; }
+      .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0 0; padding: 0; list-style: none; }
+      .chip {
+        font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: 0.08em;
+        border: 1px solid var(--border-strong); color: var(--text-soft); padding: 0.2rem 0.5rem;
+      }
+      .chip[data-picked] { color: var(--on-primary); background: var(--accent); border-color: var(--accent); }
+      @media (prefers-reduced-motion: no-preference) {
+        .is-running .chip[data-picked] { animation: chip-pick 220ms var(--ease) 900ms both; }
+        @keyframes chip-pick {
+          from { color: var(--text-soft); background: transparent; border-color: var(--border-strong); }
+          to { color: var(--on-primary); background: var(--accent); border-color: var(--accent); }
+        }
+      }
+
+      /* ---------------------------------------------------------------
+         Tree — shared with conventions.html, plus a rejected row
+         --------------------------------------------------------------- */
+      .tree-viz {
+        list-style: none; margin: 0; padding: 0.35rem 0 0;
+        font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.45;
+      }
+      .tree-viz ul { list-style: none; margin: 0; padding: 0 0 0 1.05rem; border-left: 1px solid var(--border-strong); }
+      .tree-viz > li { padding-left: 0; }
+      .tree-viz li { position: relative; padding: 0.28rem 0 0.28rem 0.85rem; }
+      .tree-viz ul > li::before {
+        content: ""; position: absolute; left: 0; top: 0.85em; width: 0.7rem; border-top: 1px solid var(--border-strong);
+      }
+      .tree-viz .row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 0.75rem; }
+      .tree-viz .name { color: var(--text); letter-spacing: 0.01em; }
+      .tree-viz .name.dir { color: var(--accent); font-weight: 500; }
+      .tree-viz .name.dir::before { content: "▸ "; color: var(--text-soft); }
+      .tree-viz .name.file { color: var(--text-muted); }
+      .tree-viz .hint {
+        color: var(--text-soft); font-size: 0.625rem; letter-spacing: 0.06em; text-transform: uppercase;
+      }
+      .tree-viz .hint::before { content: "· "; letter-spacing: 0; text-transform: none; }
+      .tree-viz li[data-reject] > .row > .name { color: var(--incident); text-decoration: line-through; }
+      .tree-viz li[data-reject] > .row > .hint { color: var(--incident); text-decoration: none; }
+      @media (prefers-reduced-motion: no-preference) {
+        /* The tree draws itself depth-first; the illegal folder arrives looking
+           like any other, then the check marks it. */
+        .is-running .tree-viz li { animation: seq-in 200ms var(--ease) both; animation-delay: calc(var(--i) * 90ms); }
+        .is-running .tree-viz li[data-reject] > .row > .name {
+          animation: reject-mark 220ms var(--ease) both; animation-delay: calc((var(--i) * 90ms) + 320ms);
+        }
+        .is-running .tree-viz li[data-reject] > .row > .hint {
+          animation: seq-in 220ms var(--ease) both; animation-delay: calc((var(--i) * 90ms) + 320ms);
+        }
+      }
+      @keyframes reject-mark {
+        from { color: var(--accent); text-decoration-color: transparent; }
+        to { color: var(--incident); text-decoration-color: var(--incident); }
+      }
+
+      /* ---------------------------------------------------------------
+         §03 — the check runner
+         --------------------------------------------------------------- */
+      .runner { position: relative; }
+      .check-list { list-style: none; margin: 0; padding: 0; font-family: var(--font-mono); font-size: 0.75rem; }
+      .check-list li {
+        display: grid; grid-template-columns: 1.1rem 10.5rem 1fr; align-items: baseline;
+        gap: 0.2rem 0.6rem; padding: 0.24rem 0; color: var(--text-soft);
+      }
+      @media (max-width: 560px) { .check-list li { grid-template-columns: 1.1rem 1fr; } .check-list .why { grid-column: 2; } }
+      /* The glyph resolves from pending to verdict. `::before` carries the
+         verdict and stays in flow (it holds the baseline); `::after` is the
+         pending dot, absolutely positioned over it. With motion off only the
+         verdict is visible, which is the finished run. */
+      .check-list .glyph { position: relative; color: var(--text-faint); }
+      .check-list .glyph::after {
+        content: "·"; position: absolute; left: 0; top: 0; opacity: 0; color: var(--text-faint);
+      }
+      .check-list .id { color: var(--text-muted); letter-spacing: 0.02em; }
+      .check-list .why { color: var(--text-soft); font-size: 0.6875rem; }
+      .check-list li[data-state="pass"] .glyph::before { content: "✓"; color: var(--text); }
+      .check-list li[data-state="fail"] .glyph::before { content: "✕"; color: var(--incident); }
+      .check-list li[data-state="fail"] .id, .check-list li[data-state="fail"] .why { color: var(--incident); }
+      .check-list li[data-state="skip"] .glyph::before { content: "–"; }
+      .check-list li[data-state="skip"] .why { font-style: italic; }
+      .runner.is-fixed .check-list li[data-state="fail"] .glyph::before { content: "✓"; color: var(--text); }
+      .runner.is-fixed .check-list li[data-state="fail"] .id { color: var(--text-muted); }
+      .runner.is-fixed .check-list li[data-state="fail"] .why { color: var(--text-soft); }
+      .exit-line { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--incident); letter-spacing: 0.06em; }
+      .runner.is-fixed .exit-line { color: var(--text-muted); }
+      .exit-line .code-0, .runner.is-fixed .exit-line .code-1 { display: none; }
+      .runner.is-fixed .exit-line .code-0 { display: inline; }
+      @media (prefers-reduced-motion: no-preference) {
+        .is-running .check-list li { animation: seq-in 180ms var(--ease) both; animation-delay: calc(var(--i) * 90ms); }
+        .is-running .check-list .glyph::before { animation: glyph-verdict 1ms step-end both; animation-delay: calc((var(--i) * 90ms) + 300ms); }
+        .is-running .check-list .glyph::after { animation: glyph-pending 1ms step-end both; animation-delay: calc((var(--i) * 90ms) + 300ms); }
+        .is-running .exit-line { animation: seq-in 220ms var(--ease) 1500ms both; }
+      }
+      @keyframes glyph-verdict { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes glyph-pending { from { opacity: 1; } to { opacity: 0; } }
+
+      /* ---------------------------------------------------------------
+         §04 — hook lanes
+         --------------------------------------------------------------- */
+      .lanes { display: grid; gap: 1px; background: var(--border-inner); border: 1px solid var(--border-inner); }
+      .lane { background: var(--surface); padding: 1rem 1.05rem 1.15rem; }
+      .lane .label { margin-bottom: 0.55rem; }
+      .lane p { margin: 0.65rem 0 0; color: var(--text-muted); font-size: 0.8125rem; line-height: 1.55; }
+      .track-labels {
+        display: flex; justify-content: space-between; gap: 0.75rem;
+        font-family: var(--font-mono); font-size: 0.625rem; color: var(--text-soft);
+        letter-spacing: 0.06em; margin-bottom: 0.35rem;
+      }
+      .track { position: relative; height: 1.5rem; border: 1px solid var(--border-strong); }
+      .track .wall { position: absolute; top: -1px; bottom: -1px; right: 32%; width: 1px; background: var(--border-strong); }
+      .track[data-outcome="blocked"] .wall { background: var(--incident); }
+      .token {
+        position: absolute; left: 0.4rem; top: 50%; margin-top: -0.3rem;
+        width: 0.55rem; height: 0.55rem;
+        background: var(--accent); border: 1px solid var(--accent);
+      }
+      .track[data-outcome="blocked"] .token { background: var(--incident); border-color: var(--incident); }
+      @media (prefers-reduced-motion: no-preference) {
+        .is-running .track[data-outcome="pass"] .token { animation: run-through 900ms var(--ease) both; }
+        .is-running .track[data-outcome="blocked"] .token { animation: run-to-wall 700ms var(--ease) both; }
+        .is-running .lane-verdict { animation: seq-in 220ms var(--ease) 760ms both; }
+      }
+      @keyframes run-through { from { left: 0.4rem; } to { left: calc(100% - 1rem); } }
+      @keyframes run-to-wall { from { left: 0.4rem; } to { left: calc(68% - 1rem); } }
+      .lane-verdict { font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: 0.06em; margin-top: 0.55rem; color: var(--text-muted); }
+      .lane-verdict[data-outcome="blocked"] { color: var(--incident); }
+
+      /* ---------------------------------------------------------------
+         §05 — CI / CD
+         --------------------------------------------------------------- */
+      .pipe { display: grid; gap: 1rem; }
+      .pipe-jobs { display: grid; gap: 1px; background: var(--border-inner); border: 1px solid var(--border-inner); }
+      @media (min-width: 760px) { .pipe-jobs { grid-template-columns: 1fr 1fr; } }
+      .pipe-node {
+        border: 1px solid var(--border-strong); padding: 0.75rem 0.9rem;
+        font-family: var(--font-mono); font-size: 0.6875rem; color: var(--text-muted);
+      }
+      .pipe-node strong { color: var(--text); font-weight: 500; }
+      .job { background: var(--surface); padding: 1rem 1.05rem 1.15rem; }
+      .job .label { margin-bottom: 0.6rem; }
+      .job-steps { list-style: none; margin: 0; padding: 0; font-family: var(--font-mono); font-size: 0.6875rem; }
+      .job-steps li { display: flex; gap: 0.5rem; align-items: baseline; padding: 0.22rem 0; color: var(--text-soft); }
+      .job-steps li::before { content: "✓"; color: var(--text); }
+      .gate {
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem;
+        border: 1px solid var(--border-strong); padding: 0.8rem 0.95rem;
+        font-family: var(--font-mono); font-size: 0.6875rem; color: var(--text-muted);
+      }
+      .gate .state { color: var(--text); letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.59375rem; }
+      .job-steps li:nth-child(1) { --i: 0; }
+      .job-steps li:nth-child(2) { --i: 1; }
+      .job-steps li:nth-child(3) { --i: 2; }
+      .job-steps li:nth-child(4) { --i: 3; }
+      .job-steps li:nth-child(5) { --i: 4; }
+      .job-steps li:nth-child(6) { --i: 5; }
+      @media (prefers-reduced-motion: no-preference) {
+        /* Both jobs tick their steps at once — they run in parallel, and the
+           gate waits for the slower one. */
+        .is-running .job-steps li { animation: seq-in 180ms var(--ease) both; animation-delay: calc(560ms + var(--i, 0) * 120ms); }
+        .is-running .gate { animation: seq-in 220ms var(--ease) 1500ms both; }
+      }
+
+      /* ---------------------------------------------------------------
+         §06 — design language
+         --------------------------------------------------------------- */
+      .motion-demo { display: grid; gap: 1px; background: var(--border-inner); border: 1px solid var(--border-inner); }
+      @media (min-width: 720px) { .motion-demo { grid-template-columns: 1fr 1fr; } }
+      .motion-cell { background: var(--surface); padding: 1rem 1.05rem 1.15rem; }
+      .motion-cell .label { margin-bottom: 0.7rem; }
+      .motion-cell p { margin: 0.7rem 0 0; color: var(--text-muted); font-size: 0.8125rem; line-height: 1.55; }
+      .rail { position: relative; height: 1.35rem; border-bottom: 1px solid var(--border-strong); margin-bottom: 0.55rem; }
+      .rail::after {
+        content: attr(data-rail); position: absolute; right: 0; bottom: 0.15rem;
+        font-family: var(--font-mono); font-size: 0.59375rem; color: var(--text-faint); letter-spacing: 0.1em;
+      }
+      .pip { position: absolute; left: 0; bottom: 0; width: 0.5rem; height: 0.5rem; background: var(--accent); }
+      @media (prefers-reduced-motion: no-preference) {
+        .is-running .rail[data-curve="signal"] .pip { animation: rail-run 1600ms var(--ease) 200ms infinite; }
+        .is-running .rail[data-curve="linear"] .pip { animation: rail-run 1600ms linear 200ms infinite; }
+      }
+      @keyframes rail-run { 0% { left: 0; } 45% { left: calc(100% - 0.5rem); } 55% { left: calc(100% - 0.5rem); } 100% { left: 0; } }
+      .dur-list { list-style: none; margin: 0; padding: 0; font-family: var(--font-mono); font-size: 0.6875rem; }
+      .dur-list li { display: grid; grid-template-columns: 4.2rem 1fr; gap: 0.6rem; align-items: center; padding: 0.28rem 0; color: var(--text-muted); }
+      .dur-bar { height: 0.4rem; background: var(--accent-wash); border: 1px solid var(--border-strong); position: relative; }
+      .dur-bar::before { content: ""; position: absolute; inset: 0; background: var(--accent); transform-origin: left; transform: scaleX(var(--w)); }
+      @media (prefers-reduced-motion: no-preference) {
+        .is-running .dur-bar::before { animation: bar-fill 800ms var(--ease) both; animation-delay: calc(var(--i) * 110ms); }
+      }
+      @keyframes bar-fill { from { transform: scaleX(0); } to { transform: scaleX(var(--w)); } }
+      .swap-demo { border: 1px solid var(--border-strong); padding: 1rem; transition: background var(--duration) var(--ease), color var(--duration) var(--ease), border-color var(--duration) var(--ease); }
+      .swap-demo p { margin: 0; }
+      .banned { list-style: none; margin: 0.9rem 0 0; padding: 0; font-family: var(--font-mono); font-size: 0.6875rem; color: var(--text-soft); }
+      .banned li { padding: 0.2rem 0; }
+      .banned li::before { content: "✕ "; color: var(--incident); }
+
+      /* ---------------------------------------------------------------
+         §07 — where a defect gets caught
+         --------------------------------------------------------------- */
+      .catch { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--border-inner); border: 1px solid var(--border-inner); }
+      .catch li {
+        background: var(--surface); display: grid; grid-template-columns: 2.2rem 1fr;
+        gap: 0.9rem; padding: 0.85rem 1rem; align-items: start;
+        border-left: 2px solid transparent; /* held by every row so the caught one does not shift */
+      }
+      .catch .when { font-family: var(--font-mono); font-size: 0.625rem; color: var(--accent); letter-spacing: 0.06em; }
+      .catch .what { margin: 0; font-size: 0.875rem; color: var(--text); }
+      .catch .who { display: block; font-family: var(--font-mono); font-size: 0.625rem; color: var(--text-soft); letter-spacing: 0.06em; margin-top: 0.2rem; }
+      .catch li[data-catches] { border-left: 2px solid var(--incident); }
+      .catch li[data-catches] .when { color: var(--incident); }
+      @media (prefers-reduced-motion: no-preference) {
+        .is-running .catch li { animation: seq-in 220ms var(--ease) both; animation-delay: calc(var(--i) * 140ms); }
+        .is-running .catch li[data-catches] { animation: catch-in 400ms var(--ease) 220ms both; }
+        @keyframes catch-in {
+          from { opacity: 0; transform: translateY(0.35rem); border-left-color: transparent; }
+          60% { opacity: 1; transform: none; border-left-color: transparent; }
+          to { opacity: 1; transform: none; border-left-color: var(--incident); }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <nav class="site-nav" aria-label="Page">
+      <a class="brand" href="#top">toolu-conventions</a>
+      <ul>
+        <li><a href="#scaffold">Scaffold</a></li>
+        <li><a href="#folders">Folders</a></li>
+        <li><a href="#guardrails">Guard rails</a></li>
+        <li><a href="#hooks">Hooks</a></li>
+        <li><a href="#cicd">CI/CD</a></li>
+        <li><a href="#design">Design</a></li>
+        <li><a href="#layers">Where it's caught</a></li>
+      </ul>
+    </nav>
+    <main id="main">
+      <section class="band" id="top" aria-labelledby="hero-title">
+        <div class="wrap">
+          <p class="marker">— toolu-conventions · in motion</p>
+          <h1 id="hero-title" class="display-lg">
+            The same rules,
+            <span class="line-2">watched running.</span>
+          </h1>
+          <p class="lede">
+            The written guide says what the kit enforces. This page shows it
+            happening: the scaffold run, the tree it produces, the twelve
+            structure checks, the hooks that fire while an agent types, the CI
+            gate on a pull request, and the motion rules the UI itself obeys.
+          </p>
+          <p class="body">
+            Every diagram animates once when it scrolls into view and can be
+            replayed. Motion here follows the kit's own rule — it measures, it
+            never performs: one easing curve, no bounce, no shimmer, no spin.
+            With <code class="code">prefers-reduced-motion: reduce</code> set,
+            each diagram renders as a finished run instead.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="conventions.html">Read the guide</a>
+            <a class="btn btn-ghost" href="design-system.html">Design system</a>
+          </div>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <!-- §01 ------------------------------------------------------- -->
+      <section class="band band-light" id="scaffold" aria-labelledby="scaffold-title">
+        <div class="wrap">
+          <p class="marker">— §01 · the scaffold run</p>
+          <h2 id="scaffold-title" class="display">
+            One entry point,
+            <span class="line-2">one dispatch.</span>
+          </h2>
+          <p class="body">
+            There is no CLI and no generator. A coding agent is pointed at
+            <code class="code">SETUP.md</code>, which checks prerequisites, asks
+            the intake questions, and dispatches to exactly one stack. From
+            there it copies that stack's templates and inherits
+            <code class="code">CORE.md</code> — the rules every stack shares.
+          </p>
+
+          <figure class="viz" data-anim>
+            <div class="viz-head">
+              <p class="label">setup.md · run</p>
+              <button class="replay" type="button" data-replay>Replay</button>
+            </div>
+            <div class="viz-body">
+              <ol class="flow seq" style="--step: 220ms">
+                <li data-done style="--i: 0">
+                  <span class="step-name">prereq check</span>
+                  <span class="step-note">bun · git · the stack's toolchain. Missing one stops the run before a single file is written.</span>
+                </li>
+                <li data-done style="--i: 1">
+                  <span class="step-name">intake</span>
+                  <span class="step-note">Project name, staging or not, integrations, and — for UI stacks — a short design context.</span>
+                </li>
+                <li data-done style="--i: 2">
+                  <span class="step-name">dispatch to a stack</span>
+                  <span class="step-note">One answer, one path. The other four are never read.</span>
+                  <ul class="chips">
+                    <li class="chip">marketing</li>
+                    <li class="chip" data-picked>console</li>
+                    <li class="chip">backend-ts</li>
+                    <li class="chip">expo</li>
+                    <li class="chip">rust</li>
+                  </ul>
+                </li>
+                <li data-done style="--i: 3">
+                  <span class="step-name">copy templates</span>
+                  <span class="step-note">Configs, theme tokens, <code class="code">guardrails.config.json</code>, <code class="code">lefthook.yml</code>, <code class="code">.claude/settings.json</code>, CI workflows.</span>
+                </li>
+                <li data-done style="--i: 4">
+                  <span class="step-name">write CLAUDE.md</span>
+                  <span class="step-note">House rules, repo map, gate command — in the repo, so the next agent reads them first.</span>
+                </li>
+                <li data-done style="--i: 5">
+                  <span class="step-name">human-only checklist</span>
+                  <span class="step-note">Secrets, vendor logins, required GitHub checks. The agent cannot finish these and does not pretend to.</span>
+                </li>
+              </ol>
+            </div>
+            <div class="viz-foot">
+              <figcaption>
+                The five stacks are siblings, not layers: a project picks one.
+                Everything below inherits <code class="code">CORE.md</code> either way.
+              </figcaption>
+            </div>
+          </figure>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <!-- §02 ------------------------------------------------------- -->
+      <section class="band" id="folders" aria-labelledby="folders-title">
+        <div class="wrap">
+          <p class="marker">— §02 · folder structure</p>
+          <h2 id="folders-title" class="display">
+            The tree is
+            <span class="line-2">a config, not a habit.</span>
+          </h2>
+          <p class="body">
+            <code class="code">guardrails.config.json</code> names the only
+            directories allowed under <code class="code">src</code>, and the only
+            subdirectories allowed inside each domain. A folder nobody sanctioned
+            is a failing check, not a code-review opinion.
+          </p>
+
+          <figure class="viz" data-anim>
+            <div class="viz-head">
+              <p class="label">console · src tree</p>
+              <button class="replay" type="button" data-replay>Replay</button>
+            </div>
+            <div class="viz-body">
+              <ul class="tree-viz">
+                <li style="--i: 0"><span class="row"><span class="name dir">src</span><span class="hint">srcRoot</span></span>
+                  <ul>
+                    <li style="--i: 1"><span class="row"><span class="name dir">app</span><span class="hint">routes · entry</span></span></li>
+                    <li style="--i: 2"><span class="row"><span class="name dir">ui</span><span class="hint">theme · __tests__</span></span></li>
+                    <li style="--i: 3"><span class="row"><span class="name dir">features</span><span class="hint">one folder per feature</span></span>
+                      <ul>
+                        <li style="--i: 4"><span class="row"><span class="name dir">shifts</span></span>
+                          <ul>
+                            <li style="--i: 5"><span class="row"><span class="name dir">screens</span></span></li>
+                            <li style="--i: 6"><span class="row"><span class="name dir">components</span></span></li>
+                            <li style="--i: 7"><span class="row"><span class="name dir">hooks</span></span></li>
+                            <li style="--i: 8"><span class="row"><span class="name dir">api</span></span></li>
+                            <li style="--i: 9"><span class="row"><span class="name dir">__tests__</span><span class="hint">colocated</span></span></li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </li>
+                    <li style="--i: 10"><span class="row"><span class="name dir">api</span><span class="hint">clients · queries</span></span></li>
+                    <li style="--i: 11"><span class="row"><span class="name dir">utilities</span></span></li>
+                    <li style="--i: 12"><span class="row"><span class="name dir">providers</span></span></li>
+                    <li style="--i: 13"><span class="row"><span class="name dir">constants</span></span></li>
+                    <li style="--i: 14"><span class="row"><span class="name dir">types</span></span></li>
+                    <li style="--i: 15" data-reject><span class="row"><span class="name dir">helpers</span><span class="hint">rejected · not in src.topLevel</span></span></li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+            <div class="viz-foot">
+              <figcaption>
+                <code class="code">src.topLevel</code> lists what may sit directly
+                under <code class="code">src</code>;
+                <code class="code">src.nested["features/*"]</code> constrains every
+                feature folder without naming any of them. Omitting a key means
+                unconstrained — an empty array means nothing is allowed, and the
+                Rust stack depends on that difference. Who reports the rejection
+                depends on the stack: the oxlint house plugin on TypeScript, the
+                shell module on Rust, where oxlint cannot parse the source at all.
+              </figcaption>
+            </div>
+          </figure>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <!-- §03 ------------------------------------------------------- -->
+      <section class="band band-light" id="guardrails" aria-labelledby="guardrails-title">
+        <div class="wrap">
+          <p class="marker">— §03 · agent-guardrails</p>
+          <h2 id="guardrails-title" class="display">
+            Twelve checks,
+            <span class="line-2">one owner each.</span>
+          </h2>
+          <p class="body">
+            One shared shell module, copied into every project as
+            <code class="code">scripts/guardrails/run.sh</code> and driven by
+            <code class="code">guardrails.config.json</code>. It enforces the
+            structure — the tree, colocated tests, barrels, banned dependencies,
+            required files, shadowing configs, committed secrets, and contextual
+            code patterns via ast-grep. Anything oxlint, oxfmt, clippy or rustfmt
+            already enforces stays with them: two enforcers of one rule is how
+            ceilings drift apart. That is why half the run below stands down —
+            on a TypeScript stack those ids are declared
+            <code class="code">ownedByLinter</code> and oxlint reports them
+            instead. On Rust, where oxlint cannot parse the source at all,
+            every one of the twelve runs here.
+          </p>
+
+          <figure class="viz runner" data-anim>
+            <div class="viz-head">
+              <p class="label">console · bash scripts/guardrails/run.sh</p>
+              <button class="replay" type="button" data-replay>Replay</button>
+            </div>
+            <div class="viz-body">
+              <ol class="check-list">
+                <li style="--i: 0" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">folder-tree</span><span class="why">ownedByLinter — oxlint plugin rule</span></li>
+                <li style="--i: 1" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">file-size</span><span class="why">.ts/.tsx skipped — oxlint max-lines owns the ceiling</span></li>
+                <li style="--i: 2" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">colocated-tests</span><span class="why">ownedByLinter — oxlint plugin rule</span></li>
+                <li style="--i: 3" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">no-barrels</span><span class="why">ownedByLinter — oxlint plugin rule</span></li>
+                <li style="--i: 4" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">filename-case</span><span class="why">ownedByLinter — unicorn/filename-case</span></li>
+                <li style="--i: 5" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">patterns</span><span class="why">ownedByLinter — house/no-bare-fetch · no-hardcoded-hex</span></li>
+                <li style="--i: 6" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">folder-readmes</span><span class="why">every sanctioned domain explains itself</span></li>
+                <li style="--i: 7" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">test-tree</span><span class="why">tests live in __tests__, next to the code</span></li>
+                <li style="--i: 8" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">banned-deps</span><span class="why">no axios · no second validator</span></li>
+                <li style="--i: 9" data-state="fail"><span class="glyph"><span class="vh">failed</span></span><span class="id">shadow-configs</span><span class="why">vitest.config.ts found — use vite.config.ts</span></li>
+                <li style="--i: 10" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">required-files</span><span class="why">the files a stack cannot run without</span></li>
+                <li style="--i: 11" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">secrets</span><span class="why">.env is never tracked</span></li>
+              </ol>
+            </div>
+            <div class="viz-foot">
+              <p class="exit-line">
+                <span class="code-1">1 violation · exit 1 — the gate is red</span>
+                <span class="code-0">0 violations · exit 0 — the gate is green</span>
+              </p>
+              <button class="replay" type="button" data-fix>
+                <span data-fix-label>Delete vitest.config.ts</span>
+              </button>
+            </div>
+          </figure>
+          <p class="body" style="margin-top: 1.5rem">
+            <strong>A check id is the unit of ownership.</strong>
+            <code class="code">ownedByLinter</code> names ids, and naming one
+            skips the whole check — which is why the README and test-tree rules
+            are their own ids rather than riding along inside
+            <code class="code">folder-tree</code> and
+            <code class="code">colocated-tests</code>. Bundled, declaring the
+            parent linter-owned would have switched them off in the shell module
+            while nothing in the plugin ever picked them up.
+          </p>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <!-- §04 ------------------------------------------------------- -->
+      <section class="band" id="hooks" aria-labelledby="hooks-title">
+        <div class="wrap">
+          <p class="marker">— §04 · hooks</p>
+          <h2 id="hooks-title" class="display">
+            Same module,
+            <span class="line-2">three moments.</span>
+          </h2>
+          <p class="body">
+            The runner has one body and several entrances. An agent hook reports
+            in milliseconds on the file just written; a Stop hook re-runs the
+            whole repo and refuses to let the turn end red; Lefthook runs it over
+            staged files before a commit lands. Each entrance catches a mistake
+            earlier than the next, and none replaces another — the agent hooks
+            only ever fire for agents.
+          </p>
+
+          <figure class="viz" data-anim>
+            <div class="viz-head">
+              <p class="label">.claude/settings.json · lefthook.yml</p>
+              <button class="replay" type="button" data-replay>Replay</button>
+            </div>
+            <div class="viz-body">
+              <div class="lanes">
+                <div class="lane">
+                  <p class="label">PostToolUse — matcher: Edit|Write</p>
+                  <p class="track-labels"><span>agent writes a file</span><span>reported, turn continues</span></p>
+                  <div class="track" data-outcome="pass">
+                    <span class="wall" aria-hidden="true"></span>
+                    <span class="token" aria-hidden="true"></span>
+                  </div>
+                  <p class="lane-verdict"><code class="code">run.sh --hook</code> · scoped to that path · non-blocking</p>
+                  <p>Reads the hook JSON on stdin and checks only the paths it names. Fast enough to fire on every single edit, so a wrong folder is flagged one file in, not one hundred.</p>
+                </div>
+                <div class="lane">
+                  <p class="label">Stop — end of the agent's turn</p>
+                  <p class="track-labels"><span>agent tries to finish</span><span>turn blocked</span></p>
+                  <div class="track" data-outcome="blocked">
+                    <span class="wall" aria-hidden="true"></span>
+                    <span class="token" aria-hidden="true"></span>
+                  </div>
+                  <p class="lane-verdict" data-outcome="blocked"><code class="code">run.sh --stop</code> · whole repo · <strong>exit 2</strong></p>
+                  <p>Exit 2 is mandatory, not stylistic: a hook that exits 1 is ignored. Only 2 shows stderr to the agent and blocks the Stop — a <code class="code">--stop</code> exiting 1 would leave the layer inert while looking correctly wired.</p>
+                </div>
+                <div class="lane">
+                  <p class="label">pre-commit — lefthook, staged files, parallel</p>
+                  <p class="track-labels"><span>git commit</span><span>commit lands</span></p>
+                  <div class="track" data-outcome="pass">
+                    <span class="wall" aria-hidden="true"></span>
+                    <span class="token" aria-hidden="true"></span>
+                  </div>
+                  <p class="lane-verdict"><code class="code">oxfmt --check</code> · <code class="code">oxlint --deny-warnings</code> · <code class="code">run.sh --file</code></p>
+                  <p>Staged files only, generated route trees excluded. Heavier work — type-check, full test run, dead code, copy-paste — belongs to the gate, not to the commit.</p>
+                </div>
+              </div>
+            </div>
+            <div class="viz-foot">
+              <figcaption>
+                Batch checks take every path at once: ast-grep's process startup
+                dwarfs the scan, so spawning it per staged file made a 20-file
+                commit pay that cost twenty times — on the hook that fires for
+                every edit.
+              </figcaption>
+            </div>
+          </figure>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <!-- §05 ------------------------------------------------------- -->
+      <section class="band band-light" id="cicd" aria-labelledby="cicd-title">
+        <div class="wrap">
+          <p class="marker">— §05 · ci / cd</p>
+          <h2 id="cicd-title" class="display">
+            The gate runs twice:
+            <span class="line-2">locally, then in the open.</span>
+          </h2>
+          <p class="body">
+            <code class="code">bun run check</code> is the command before a push;
+            CI mirrors those steps by name, so a green terminal and a green pull
+            request mean the same thing. Alongside it, an AI reviewer reads the
+            repo's own convention files <strong>from the base branch</strong> — a
+            pull request cannot rewrite the rules it is judged by.
+          </p>
+
+          <figure class="viz" data-anim>
+            <div class="viz-head">
+              <p class="label">pull request → main</p>
+              <button class="replay" type="button" data-replay>Replay</button>
+            </div>
+            <div class="viz-body">
+              <div class="pipe seq" style="--step: 200ms">
+                <div class="pipe-node" style="--i: 0">
+                  <strong>pull_request</strong> · opened · synchronize · ready_for_review · reopened
+                  <br />concurrency group per ref, cancel-in-progress — a force-push does not queue behind itself
+                </div>
+                <div class="pipe-jobs" style="--i: 1">
+                  <div class="job">
+                    <p class="label">job · validate</p>
+                    <ul class="job-steps">
+                      <li>tsc — type-check</li>
+                      <li>oxlint</li>
+                      <li>oxfmt --check</li>
+                      <li>guardrails/run.sh</li>
+                      <li>knip · jscpd</li>
+                      <li>tests</li>
+                    </ul>
+                  </div>
+                  <div class="job">
+                    <p class="label">job · ai review</p>
+                    <ul class="job-steps">
+                      <li>checkout, full history</li>
+                      <li>resolve the merge base</li>
+                      <li>read rules from the base ref</li>
+                      <li>review the diff</li>
+                      <li>comment on the PR</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="pipe-node" style="--i: 2">
+                  Draft pull requests skip the review job — mark ready for review to trigger it.
+                </div>
+              </div>
+              <div class="gate" style="margin-top: 1rem">
+                <span>required checks satisfied</span>
+                <span class="state">merge allowed</span>
+              </div>
+            </div>
+            <div class="viz-foot">
+              <figcaption>
+                The kit runs its own gate on itself:
+                <code class="code">scripts/validate-templates.sh</code> parses every
+                JSON/JSONC/YAML/TOML template, lints and format-checks the TS
+                templates against each stack's real config, type-checks the
+                dependency-free ones, diffs the theme tokens against both
+                stylesheets, and materializes the Rust skeleton into a temp crate
+                for fmt and clippy.
+              </figcaption>
+            </div>
+          </figure>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <!-- §06 ------------------------------------------------------- -->
+      <section class="band" id="design" aria-labelledby="design-title">
+        <div class="wrap">
+          <p class="marker">— §06 · design</p>
+          <h2 id="design-title" class="display">
+            Motion measures;
+            <span class="line-2">it never performs.</span>
+          </h2>
+          <p class="body">
+            The design language ships as tokens — <code class="code">theme/motion.ts</code>,
+            <code class="code">theme/colors.ts</code> — and the rules about what
+            may move at all. One easing curve, five durations, and a tactile
+            vocabulary that ends at a 1px nudge. This page is built from the same
+            tokens, so what you are reading is what a scaffolded project gets.
+          </p>
+
+          <figure class="viz" data-anim>
+            <div class="viz-head">
+              <p class="label">theme/motion.ts</p>
+              <button class="replay" type="button" data-replay>Replay</button>
+            </div>
+            <div class="viz-body">
+              <div class="motion-demo">
+                <div class="motion-cell">
+                  <p class="label">One curve, and only one</p>
+                  <div class="rail" data-curve="signal" data-rail="signal"><span class="pip"></span></div>
+                  <div class="rail" data-curve="linear" data-rail="linear"><span class="pip"></span></div>
+                  <p>
+                    <code class="code">SIGNAL_BEZIER = cubic-bezier(0.2, 0, 0, 1)</code> —
+                    leaves quickly, arrives calmly. Do not introduce a second
+                    curve; a system with two easings has none.
+                  </p>
+                </div>
+                <div class="motion-cell">
+                  <p class="label">Five durations, in milliseconds</p>
+                  <ul class="dur-list seq">
+                    <li style="--i: 0"><span>hover 140</span><span class="dur-bar" style="--w: 0.14"></span></li>
+                    <li style="--i: 1"><span>disclosure 220</span><span class="dur-bar" style="--w: 0.22"></span></li>
+                    <li style="--i: 2"><span>progress 800</span><span class="dur-bar" style="--w: 0.5"></span></li>
+                    <li style="--i: 3"><span>blink 1800</span><span class="dur-bar" style="--w: 0.75"></span></li>
+                    <li style="--i: 4"><span>toast 4000</span><span class="dur-bar" style="--w: 1"></span></li>
+                  </ul>
+                  <p>Bars are scaled to read, not to scale linearly. Blink is <code class="code">steps(1, end)</code> — a hard on/off, never a fade.</p>
+                </div>
+                <div class="motion-cell">
+                  <p class="label">Bands swap · everything else holds</p>
+                  <div class="swap-demo" id="swap-demo">
+                    <p class="meta">surface · text · border, one band flip</p>
+                  </div>
+                  <div class="cta-row" style="margin-top: 0.9rem">
+                    <button class="btn btn-ghost" type="button" data-swap>Flip the band</button>
+                  </div>
+                  <p>Light and dark are bands of one system, not a theme toggle. The ink ramp, lines, radius, type, spacing, motion and status roles never swap with them.</p>
+                </div>
+                <div class="motion-cell">
+                  <p class="label">Banned outright</p>
+                  <ul class="banned">
+                    <li>bounce, shimmer, spin</li>
+                    <li>hover that changes size or adds shadow</li>
+                    <li>a second easing curve</li>
+                    <li>status colour used as a fill or as body text</li>
+                    <li>animation that ignores <code class="code">prefers-reduced-motion</code></li>
+                  </ul>
+                  <p>Reduced motion is a contract: the blink freezes solid, a progress bar jumps to its value, disclosure opens without a transition.</p>
+                </div>
+              </div>
+            </div>
+            <div class="viz-foot">
+              <figcaption>
+                Status is fixed and never themed — live themes with the signal,
+                degraded is <code class="code">#c99a3a</code>, incident is
+                <code class="code">#c9553a</code>, idle is the absence of colour.
+                Every failing state on this page uses the incident token as a dot,
+                border or mono label — never as a fill.
+              </figcaption>
+            </div>
+          </figure>
+          <div class="doc-links">
+            <a href="design-system.html">The full design system</a>
+            <a href="https://github.com/Falconiere/toolu-conventions/blob/main/DESIGN.md">DESIGN.md</a>
+          </div>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <!-- §07 ------------------------------------------------------- -->
+      <section class="band band-light" id="layers" aria-labelledby="layers-title">
+        <div class="wrap">
+          <p class="marker">— §07 · where a mistake gets caught</p>
+          <h2 id="layers-title" class="display">
+            Five layers,
+            <span class="line-2">earliest wins.</span>
+          </h2>
+          <p class="body">
+            The layers are ordered by how early they catch a mistake, because the
+            earliest is the cheapest to fix. Take a real one: an agent adds a
+            <code class="code">vitest.config.ts</code> to get its tests running.
+            It looks harmless, and it silently replaces
+            <code class="code">vite.config.ts</code> under test — the router plugin
+            and the <code class="code">@/*</code> alias vanish. The
+            <code class="code">shadow-configs</code> check knows that, and the
+            agent's own turn ends on it. None of these layers may be disabled to
+            get a green build: fix the check, or change the check deliberately and
+            say so.
+          </p>
+
+          <figure class="viz" data-anim>
+            <div class="viz-head">
+              <p class="label">one shadowing config · which layer stops it</p>
+              <button class="replay" type="button" data-replay>Replay</button>
+            </div>
+            <div class="viz-body">
+              <ol class="catch">
+                <li style="--i: 0">
+                  <span class="when">01</span>
+                  <p class="what">Rules in the repo
+                    <span class="who">CLAUDE.md · read before the first edit</span>
+                  </p>
+                </li>
+                <li style="--i: 1" data-catches>
+                  <span class="when">02</span>
+                  <p class="what">Agent hooks, while the code is written
+                    <span class="who">PostToolUse is scoped and lets it through · the Stop hook re-runs the repo and blocks — caught here</span>
+                  </p>
+                </li>
+                <li style="--i: 2">
+                  <span class="when">03</span>
+                  <p class="what">Pre-commit hooks
+                    <span class="who">lefthook · staged files · never reached</span>
+                  </p>
+                </li>
+                <li style="--i: 3">
+                  <span class="when">04</span>
+                  <p class="what">One gate command
+                    <span class="who">bun run check · never reached</span>
+                  </p>
+                </li>
+                <li style="--i: 4">
+                  <span class="when">05</span>
+                  <p class="what">AI code review on pull requests
+                    <span class="who">rules read from the base ref · never reached</span>
+                  </p>
+                </li>
+              </ol>
+            </div>
+            <div class="viz-foot">
+              <figcaption>
+                Layer 2 is agents only, which is exactly why it replaces nothing
+                below it. A person adding the same file by hand walks past the
+                commit hook — that one checks staged paths, and a shadowing config
+                is a fact about the repo — and meets layer 4, the gate before the
+                push. Same check, later moment, more expensive.
+              </figcaption>
+            </div>
+          </figure>
+
+          <div class="doc-links">
+            <a href="conventions.html">The written guide</a>
+            <a href="https://github.com/Falconiere/toolu-conventions/blob/main/SETUP.md">SETUP.md</a>
+            <a href="https://github.com/Falconiere/toolu-conventions/blob/main/CORE.md">CORE.md</a>
+            <a href="https://github.com/Falconiere/toolu-conventions">Repository</a>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer band">
+      <p class="meta">toolu-conventions · v0.2 · Signal / chalk</p>
+      <p class="meta">
+        <a href="#top">Back to top</a>
+        ·
+        <a href="conventions.html">Conventions</a>
+        ·
+        <a href="design-system.html">Design system</a>
+      </p>
+    </footer>
+
+    <script>
+      // Diagrams play once when they scroll into view, and can be replayed.
+      // Everything visual lives in CSS; this only toggles `.is-running`, so a
+      // reader with JS off (or reduced motion on) still gets the finished state.
+      (function () {
+        var figures = Array.prototype.slice.call(document.querySelectorAll('[data-anim]'));
+        var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+        function play(figure) {
+          figure.classList.remove('is-running');
+          // Force a reflow so re-adding the class restarts the animations.
+          void figure.offsetWidth;
+          figure.classList.add('is-running');
+        }
+
+        if (!reduced.matches && 'IntersectionObserver' in window) {
+          var observer = new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                play(entry.target);
+                observer.unobserve(entry.target);
+              });
+            },
+            { threshold: 0.25 }
+          );
+          figures.forEach(function (figure) {
+            observer.observe(figure);
+          });
+        }
+
+        document.addEventListener('click', function (event) {
+          var replay = event.target.closest('[data-replay]');
+          if (replay) {
+            var figure = replay.closest('[data-anim]');
+            if (figure && !reduced.matches) play(figure);
+            return;
+          }
+
+          // The check runner: flip the failing check to passing and back, so the
+          // exit code is shown as a consequence rather than asserted in prose.
+          var fix = event.target.closest('[data-fix]');
+          if (fix) {
+            var runner = fix.closest('.runner');
+            if (!runner) return;
+            var fixed = runner.classList.toggle('is-fixed');
+            fix.querySelector('[data-fix-label]').textContent = fixed
+              ? 'Put it back'
+              : 'Delete vitest.config.ts';
+            // The verdict glyph is CSS; its spoken twin is not, so move both.
+            var spoken = runner.querySelector('[data-state="fail"] .vh');
+            if (spoken) spoken.textContent = fixed ? 'passed' : 'failed';
+            return;
+          }
+
+          // The band flip: one demo surface swapping between the two bands.
+          var swap = event.target.closest('[data-swap]');
+          if (swap) {
+            document.getElementById('swap-demo').classList.toggle('band-light');
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

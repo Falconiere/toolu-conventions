@@ -115,6 +115,22 @@
         .doors {
           grid-template-columns: 1fr 1fr;
         }
+
+        /* Three doors, two columns — the third takes the full row rather than
+           leaving a hole beside it. */
+        .doors .door:nth-child(3) {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (min-width: 60rem) {
+        .doors {
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        .doors .door:nth-child(3) {
+          grid-column: auto;
+        }
       }
 
       .door {
@@ -239,6 +255,15 @@
                 what a scaffolded project gets.
               </p>
               <span class="go">Read →</span>
+            </a>
+            <a class="door" href="how-it-works.html">
+              <span class="tag">the walkthrough</span>
+              <h2 class="subhead">How it works</h2>
+              <p>
+                The scaffold run, the tree, the checks, the hooks and the CI gate —
+                animated, one diagram each.
+              </p>
+              <span class="go">Watch →</span>
             </a>
           </div>
         </div>
