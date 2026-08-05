@@ -124,12 +124,6 @@ bun add -d vitest
 
 # Lint / format / gate + git hooks + deploy CLI
 bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook wrangler
-
-# The guardrails pattern check (checks/patterns.sh) shells out to ast-grep on
-# every PostToolUse edit. As a devDependency, node_modules/.bin/ast-grep runs
-# in milliseconds; without it, the check falls back to `bunx --bun
-# @ast-grep/cli`, which pays a package-resolution cost on every single edit.
-bun add -d @ast-grep/cli
 ```
 
 Copy and adapt these templates into the project root, **overwriting** what the
