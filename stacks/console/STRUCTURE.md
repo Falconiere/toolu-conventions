@@ -48,7 +48,7 @@ that holds the thing), and thin route files.
 │   └── types/                # cross-cutting TS types
 ├── public/                   # static assets copied to the site root verbatim
 ├── docs/                     # design-language.md — house UI rules, read before UI work
-├── scripts/                  # check-structure.sh — folder-tree half of the gate
+├── scripts/                  # guardrails/run.sh — folder-tree half of the gate
 ├── vite.config.ts            # Vite + TanStack Router plugin + Vitest (ONE config, see below)
 ├── wrangler.jsonc            # Cloudflare Workers deploy config (static assets)
 ├── tsconfig.json             # strict + `@/*` path alias
@@ -70,7 +70,7 @@ add a `vitest.config.ts`: Vitest *replaces* the Vite config with it rather than
 merging, so the TanStack Router plugin and the `@/*` alias would silently vanish
 under test and route imports would fail with a confusing resolution error.
 `defineConfig` is imported from `vitest/config` so the `test` key is typed.
-`scripts/check-structure.sh` fails the gate if a second config appears.
+`scripts/guardrails/run.sh` fails the gate if a second config appears.
 
 ## Path aliases
 
@@ -96,7 +96,7 @@ the conventional shape, not separate config entries. Deep relative imports
 ## Hard conventions (console — added on top of CORE)
 
 These extend the CORE rules and are **machine-enforced** by `.oxlintrc.json` and
-`scripts/check-structure.sh` (both run by `bun run check`; Lefthook runs the
+`scripts/guardrails/run.sh` (both run by `bun run check`; Lefthook runs the
 lint/format subset on staged files). Each convention below names its enforcer.
 See [`templates/CLAUDE.md.template`](./templates/CLAUDE.md.template) for the full
 blocked-patterns list.
@@ -112,7 +112,7 @@ blocked-patterns list.
    stack has **no default-export carve-out at all**, and the CORE no-barrel rule
    applies here without exception.
    _Enforced by:_ `import/no-default-export` (on everywhere except
-   `vite.config.ts`) and `check-structure.sh` (no `index.ts`/`index.tsx` outside
+   `vite.config.ts`) and `guardrails` (no `index.ts`/`index.tsx` outside
    `src/app/`, where `index.tsx` is Router's name for a directory's `/` route).
 3. **It is all client code.** There is no server/client component split: this is
    a single-page app served as static assets. Anything secret belongs in the API
@@ -130,7 +130,7 @@ blocked-patterns list.
    (`src/api/http-client.ts`, built on `src/utilities/http.ts`). No `axios`, and
    no bare `fetch` scattered through features — auth headers, base URL, timeouts
    and error shaping live in one place each.
-   _Enforced by:_ `no-restricted-imports` (axios) + `check-structure.sh` (fails
+   _Enforced by:_ `no-restricted-imports` (axios) + `guardrails` (fails
    if `axios` appears in `package.json`) + review for stray `fetch`.
 6. **Zod at every boundary, types inferred from it.** Env, any response `http`
    parses, form schemas, anything read from storage. `type X = z.infer<typeof X>`
@@ -148,7 +148,7 @@ blocked-patterns list.
    inputs and real integration paths. A mock-only test that just proves a mock
    returns what it was told is banned; it hides integration breakage (CORE
    rule 6).
-   _Enforced by:_ `check-structure.sh` (no centralized test dirs; every
+   _Enforced by:_ `guardrails` (no centralized test dirs; every
    `*.test.ts(x)` must sit in a sibling `__tests__/`) + the Vitest `include`
    pattern; real-data rule by review.
 9. **No `any`**, **no `console.log` / `debugger`**, **`max-lines: 300`** per file
@@ -258,8 +258,19 @@ and cannot drift from the queries it is meant to match. Hand-writing
 happen — two places to keep in sync, and an invalidation that silently matches
 nothing once they disagree.
 
+Use the v5 object API only (`useQuery({ … })` / `queryOptions` /
+`mutationOptions`). Prefer `isPending` over the old query `isLoading` naming
+when reading session or query status.
+
 Feature hooks like the two above live in `src/features/<feature>/hooks/` when
 one feature owns them, or `src/api/queries/` when several do.
+
+### Forms: TanStack Form + Zod
+
+House default (CORE). Install `@tanstack/react-form` with the baseline deps.
+Validate with Zod via Standard Schema — pass the schema in `validators` (for
+example `validators: { onSubmit: ShiftForm }`). Do not add
+`@tanstack/zod-form-adapter`. Full example: [`LIBRARIES.md`](./LIBRARIES.md).
 
 ### Everything else: the `http` client
 

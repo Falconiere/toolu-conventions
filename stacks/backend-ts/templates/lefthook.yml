@@ -10,3 +10,6 @@ pre-commit:
     lint:
       glob: 'src/**/*.ts'
       run: bunx oxlint --deny-warnings {staged_files}
+    guardrails:
+      glob: '*'
+      run: bash scripts/guardrails/run.sh --file {staged_files}

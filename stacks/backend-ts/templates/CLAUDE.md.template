@@ -61,7 +61,7 @@ before adding files, and add a line when you add something notable.
 bun run type-check      # tsc --noEmit (strict)
 bun run lint            # oxlint --deny-warnings
 bun run fmt:check       # oxfmt --check
-bun run check:structure # bash scripts/check-structure.sh — folder + config rules
+bun run check:structure # bash scripts/guardrails/run.sh — folder + config rules
 bun run check:unused    # knip — unused files, exports, dependencies
 bun run check:dupes     # jscpd — copy-paste detection
 bun run test            # vitest run, inside workerd
@@ -84,7 +84,7 @@ secrets: `wrangler secret put X --env staging` is a separate act.
 
 Structure is **machine-enforced**: oxlint carries `no-restricted-imports` (barrel,
 deep-relative, axios), `import/no-default-export`, `unicorn/filename-case`
-(kebab-case), and `max-lines` (300 code lines); `scripts/check-structure.sh`
+(kebab-case), and `max-lines` (300 code lines); `scripts/guardrails/run.sh`
 checks the folder tree, the wrangler config, and `package.json` itself.
 
 - `as any`, `: any`, `as unknown as T` → use `unknown` + type guards.
@@ -105,7 +105,7 @@ checks the folder tree, the wrangler config, and `package.json` itself.
 - **Unexpected `src/` layout** → only `routes services utilities constants types`
   (each with a `README.md`) + `app.ts`/`index.ts` at the root. Adding an
   integration dir (`db`, `middleware`) means adding it to `allowed_dirs` in
-  `scripts/check-structure.sh`.
+  `scripts/guardrails/run.sh`.
 - **Mock-data tests** → tests run in the real runtime against a real database;
   a test that only proves a mock echoes its own setup is banned.
 - Files over 300 code lines (tests exempt) → split.

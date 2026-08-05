@@ -2,7 +2,7 @@
 #
 # This repo ships `ci.yml` and `code-review.yml` as templates for generated
 # projects. For a long time it had neither of its own, which meant a PR here got
-# zero checks while CORE.md called all four guard-rail layers mandatory. This
+# zero checks while CORE.md called all five guard-rail layers mandatory. This
 # file closes that gap: the kit obeys its own rules.
 #
 # The whole gate is `scripts/validate-templates.sh` — one command, same as every
@@ -60,6 +60,18 @@ jobs:
           python3 -c 'import sys, tomllib; assert sys.version_info >= (3, 11); print(sys.version)'
           cargo --version
           bun --version
+
+      # agent-guardrails runs against real fixture trees — a clean one that must
+      # stay silent and a deliberately violating one where every check must fire
+      # exactly once. The silent-on-clean half is the one that matters: a false
+      # positive here reaches a Stop hook and costs an agent up to 8 blocked turns.
+      - name: Guard rails — fixture suite
+        run: bash guardrails/__tests__/run-fixtures.sh
+
+      # A slow gate is a gate people route around, so the budget is asserted
+      # rather than assumed, against a generated 500-file tree.
+      - name: Guard rails — latency budget
+        run: bash guardrails/__tests__/run-latency.sh
 
       - name: Validate templates
         run: bash scripts/validate-templates.sh

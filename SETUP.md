@@ -12,12 +12,22 @@ Run and confirm each; stop and report anything missing:
 git --version
 bun --version          # TS stacks only
 cargo --version        # rust only
+jq --version           # required — agent-guardrails reads guardrails.config.json
 gh --version           # optional — repo creation
 ```
 
+`jq` is not optional: the guard-rail gate exits 3 without it rather than
+silently passing. Install with `apt-get install jq` · `brew install jq` ·
+`apk add jq`.
+
+ast-grep is needed by the **Rust stack only** (`cargo install ast-grep --locked`),
+for the two pattern rules clippy does not cover. The TypeScript stacks need no
+extra tool: their pattern and structure rules run inside oxlint, via the house
+plugin at `scripts/guardrails/oxlint-plugin/`.
+
 Read [`CORE.md`](./CORE.md) now. Every rule in it binds the project you are
 about to create — including the platform defaults (Cloudflare Workers, Turso,
-better-auth, the kit's own `http.ts` instead of axios) and the four guard-rail
+better-auth, the kit's own `http.ts` instead of axios) and the five guard-rail
 layers. If the stack is `expo`, `console`, or `marketing`, read
 [`DESIGN.md`](./DESIGN.md) too — the theme tokens ship pre-filled with that
 language.
@@ -56,11 +66,13 @@ language.
 
    Note what is **not** a question: the validator (always **Zod**, at every
    boundary, with types from `z.infer`), how our own apps talk to our own API
-   (always **oRPC + TanStack Query**), the HTTP client for everything else
-   (always the kit's `src/utilities/http.ts` — axios is banned), the database
-   (always **Turso**), the auth library (always **better-auth**), the host
-   (always **Cloudflare Workers**), and the gate steps (**knip** and **jscpd**
-   are not optional). See CORE.md → "Platform defaults".
+   (always **oRPC + TanStack Query**), forms on clients (always **TanStack Form**
+   + Zod via Standard Schema — no `@tanstack/zod-form-adapter`), the HTTP client
+   for everything else (always the kit's `src/utilities/http.ts` — axios is
+   banned), the database (always **Turso**), the auth library (always
+   **better-auth**), the host (always **Cloudflare Workers**), and the gate
+   steps (**knip** and **jscpd** are not optional). See CORE.md → "Platform
+   defaults".
 
 5. **Design context** — `console`, `marketing`, and `expo` only: free-text
    brand/look description (colors, tone, reference apps). The theme tokens
@@ -99,4 +111,4 @@ attempt them yourself.
 
 Every TS stack's checklist includes adding the `DEEPSEEK_API_KEY` repository
 secret and requiring both **CI** and **Code Review** on `main`. Without those,
-two of the four guard-rail layers in `CORE.md` are decorative.
+two of the five guard-rail layers in `CORE.md` are decorative.

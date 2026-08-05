@@ -47,7 +47,7 @@ committed; CI installs with `--frozen-lockfile`.
 
 | Library | Avoid because | Use instead |
 | --- | --- | --- |
-| **`axios`** | A dependency for something the platform already does, and here it would be a dependency in a *static build*. | `src/utilities/http.ts` (the kit's fetch client), copied from the console kit. Blocked by lint and by `check-structure.sh`. |
+| **`axios`** | A dependency for something the platform already does, and here it would be a dependency in a *static build*. | `src/utilities/http.ts` (the kit's fetch client), copied from the console kit. Blocked by lint and by `guardrails`. |
 | A React/Vue/Svelte integration "so components are reusable" | Pulling a framework in to render static markup ships a runtime to every visitor and throws away the reason this stack exists. | `.astro` components. Add a framework integration for one genuinely interactive island, not as the default component model. |
 | `client:load` by reflex | Hydrates on first paint and blocks the main thread for markup that was already correct as HTML. | `client:visible` / `client:idle`, or no directive at all. |
 | A CSS framework other than the opt-in Tailwind | Two styling systems fight the band seam and double the payload. | Astro's scoped `<style>` blocks reading `--tone-*`. |

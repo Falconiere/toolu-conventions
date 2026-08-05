@@ -24,8 +24,15 @@ jobs:
       - name: Clippy
         run: cargo clippy --all-targets -- -D warnings
 
+      # scripts/guardrails/run.sh fails CLOSED (exit 3) when ast-grep is absent,
+      # and the Rust stack is the one that still needs it: oxlint cannot parse
+      # Rust, so the pattern rules have no other enforcer. jq is preinstalled on
+      # the GitHub runners; ast-grep is not.
+      - name: Install ast-grep
+        run: cargo install ast-grep --locked
+
       - name: Structure
-        run: bash scripts/check-structure.sh
+        run: bash scripts/guardrails/run.sh
 
       - name: Test
         run: cargo test

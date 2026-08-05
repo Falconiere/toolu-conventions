@@ -19,3 +19,6 @@ pre-commit:
       exclude:
         - 'src/route-tree.gen.ts'
       run: bunx oxlint --deny-warnings {staged_files}
+    guardrails:
+      glob: '*'
+      run: bash scripts/guardrails/run.sh --file {staged_files}

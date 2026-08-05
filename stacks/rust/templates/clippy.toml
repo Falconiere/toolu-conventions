@@ -1,0 +1,4 @@
+# Clippy configuration. The function-length ceiling is DECLARED in
+# guardrails.config.json (functionSize.max) and enforced here — one number, one
+# enforcer. scripts/validate-templates.sh asserts the two agree.
+too-many-lines-threshold = 100

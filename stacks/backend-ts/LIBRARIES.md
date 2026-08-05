@@ -54,7 +54,7 @@ auth, logging, and ORM ones; add the rest as features demand.
 
 | Concern | Library | When / why |
 | --- | --- | --- |
-| Auth | **`better-auth`** (+ `@libsql/kysely-libsql`) | The house auth. This service owns the **server** half — sessions, providers, and the tables in Turso; the console holds only the client. Needs `nodejs_compat` (already set). Build the instance **per request** from bindings, never at module scope. |
+| Auth | **`better-auth`** (+ `@libsql/kysely-libsql` + `kysely`) | The house auth (CORE). This service owns the **server** half — sessions, providers, and the tables in Turso; the console holds only the client. Needs `nodejs_compat` (already set). Build **per request** with `betterAuth({ database, secret, baseURL, … })` from bindings — never at module scope. Schema via `npx auth@latest generate` / `migrate`. |
 | ORM / migrations | **`drizzle-orm`** + `@libsql/client/web` (+ `drizzle-kit` dev) | Opt-in. When typed schema and real migrations beat hand-written SQL. Use the **`/web`** entry — the default one is Node-native and will not run on workerd. `dialect: 'turso'` in `drizzle.config.ts`. |
 | Structured logging | A ~10-line `src/utilities/logger.ts` | Emit one JSON line per event via `console.warn`/`console.error`; Workers Logs indexes the fields. Keep `observability.enabled` on in `wrangler.jsonc`. Pair with Hono's built-in `logger()` middleware for request lines. |
 | Outbound HTTP | Built-in `fetch`, or `src/utilities/http.ts` from the console kit | `fetch` is native here. Copy the kit's client only when you want one place for base URL, timeout, and error shaping across several calls. |
@@ -71,7 +71,7 @@ Do not add these without an explicit, documented reason.
 | --- | --- | --- |
 | `express` | A Node-era framework built on Node's `req`/`res` and its stream internals. It does not belong on workerd. | `hono` — Web-standard types, built for this runtime. |
 | `nest` (NestJS) | Heavy DI/decorator framework, large runtime and conceptual weight unjustified for a lean service — and a poor fit for an isolate-per-request model. | `hono` + plain `services/` functions; add structure as the app grows. |
-| **`axios`** | A dependency for something the runtime already has, with its own error model and cancellation story on top. | Built-in `fetch`, or `src/utilities/http.ts`. Blocked by lint **and** by `check-structure.sh`. |
+| **`axios`** | A dependency for something the runtime already has, with its own error model and cancellation story on top. | Built-in `fetch`, or `src/utilities/http.ts`. Blocked by lint **and** by `guardrails`. |
 | **`pino`** (and other Node loggers) | Built around Node streams and transports; on Workers the platform already captures and indexes structured output. | A tiny `logger.ts` writing JSON through `console.warn`/`console.error`. |
 | **`dotenv`** | There is no `.env` at runtime here. Config is bindings; local secrets come from `.dev.vars`, which wrangler loads itself. | `wrangler.jsonc` `vars` + `.dev.vars` + `src/constants/env.ts`. |
 | **`@tursodatabase/database` / `@tursodatabase/sync`** | Native/WASM local-database packages. They cannot run on workerd, and the failure looks like a bundler bug. | `@tursodatabase/serverless`. |

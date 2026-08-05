@@ -8,12 +8,15 @@ tooling, and guard rails every time — across five stacks.
 Modeled on the Qwick native boilerplate pattern: markdown an agent executes,
 plus copy-ready templates. No CLI, no generator.
 
+**Human-readable guide:** open [`docs/conventions.html`](./docs/conventions.html)
+in a browser — product shape, folder trees, rules, and guard rails in one page.
+
 ## Layout
 
 | Path | Purpose |
 | --- | --- |
 | [`SETUP.md`](./SETUP.md) | ★ Entry point. Router: prereq checks → intake questions → dispatch to a stack kit. |
-| [`CORE.md`](./CORE.md) | Stack-agnostic house rules every stack inherits — hard rules, the platform defaults, and the four guard-rail layers. |
+| [`CORE.md`](./CORE.md) | Stack-agnostic house rules every stack inherits — hard rules, the platform defaults, and the five guard-rail layers. |
 | [`DESIGN.md`](./DESIGN.md) | Stack-agnostic UI/UX language (CodaSignal "Signal") the `console`/`marketing`/`expo` theme tokens ship pre-filled with. |
 | `stacks/console/` | The authenticated product app — React + Vite + TanStack Router · TS strict · bun · Vitest → Cloudflare Workers. |
 | `stacks/marketing/` | The public website — Astro (static) · TS strictest · bun · Vitest → Cloudflare Workers. |
@@ -33,12 +36,16 @@ One answer per job, so no project re-litigates them:
 
 - **Host:** Cloudflare Workers · **Database:** Turso · **Auth:** better-auth
 - **Validation:** Zod at every boundary, types from `z.infer`
-- **Our own API:** oRPC + TanStack Query — procedures typed end to end, query
-  keys derived from the procedure path
+- **Client data:** TanStack Query (+ `@orpc/tanstack-query` for our API)
+- **Forms:** TanStack Form (`@tanstack/react-form`) + Zod
+- **Our own API:** oRPC — procedures typed end to end; query keys from the
+  procedure path
 - **HTTP for everything else:** the kit's own `src/utilities/http.ts` over
   `fetch` — **axios is banned**, in lint *and* in the structure check
 - **Package manager:** bun · **Lint/format:** oxlint + oxfmt · **Hooks:** Lefthook
 - **Gate extras:** knip (unused files/exports/deps) + jscpd (copy-paste)
+- **Structure gate:** oxlint house plugin (folder tree, barrels, patterns) +
+  `agent-guardrails` for what the linter cannot see (needs `jq`)
 
 A full product is usually three repos from this kit — `marketing` (the public
 site), `console` (the app behind the login), and `backend-ts` (the API they both
@@ -46,12 +53,24 @@ talk to). They share one design language and one token set.
 
 ## Guard rails
 
-Every generated project ships four layers, and the kit treats all four as
-mandatory: the rules in `CLAUDE.md`, Lefthook pre-commit, a CI gate
-(`ci.yml`) whose steps mirror `bun run check` one-for-one and end in a real
-build, and an AI code review (`code-review.yml`) that judges each PR against the
-repo's own convention files read from the base branch. Details in
-[`CORE.md`](./CORE.md).
+Every generated project ships five layers, and the kit treats all five as
+mandatory: the rules in `CLAUDE.md`; **agent hooks** (`.claude/settings.json`)
+that run `agent-guardrails` on every file an agent writes and again before it
+finishes a turn; Lefthook pre-commit; a CI gate (`ci.yml`) whose steps mirror
+`bun run check` one-for-one and end in a real build; and an AI code review
+(`code-review.yml`) that judges each PR against the repo's own convention files
+read from the base branch. Details in [`CORE.md`](./CORE.md).
+
+**`agent-guardrails`** ([`guardrails/`](./guardrails/)) is the kit's structural
+gate — one config-driven module, copied verbatim into every project, that
+enforces what a linter cannot see: per-folder READMEs, required files, shadowing
+configs, banned dependencies, committed secrets — and the whole Rust stack.
+Everything that *is* visible to a linter (folder tree, intra-domain shape,
+barrels, colocated tests, bare `fetch`, hardcoded colours) runs inside **oxlint**
+via the house plugin it ships, so those rules fire as the file is written and
+there is exactly one enforcer each. Stack differences are data
+(`guardrails.config.json`), not code; `ownedByLinter` there declares the split.
+It replaced five hand-written per-stack scripts that had already drifted apart.
 
 **The kit runs them on itself.** `.github/workflows/ci.yml` runs
 `scripts/validate-templates.sh` on every PR, and `.github/workflows/code-review.yml`

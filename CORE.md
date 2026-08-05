@@ -27,8 +27,10 @@ project read this file first, then the chosen stack kit.
    file** (blanks/comments excluded; tests exempt). If a design implies a bigger
    file, split the design — don't fight the gate later.
 6. **Tests colocate.** TypeScript: sibling `__tests__/` folder
-   (`button.tsx` → `__tests__/button.test.tsx`). Rust: sibling `tests/` (unit
-   tests may live in-file under `#[cfg(test)]`). Keep test trees flat.
+   (`button.tsx` → `__tests__/button.test.tsx`). Rust: sibling `tests/` folder
+   (`parse_config.rs` → `tests/parse_config.rs`) — **never** put tests in the
+   same file as the logic (no in-file `#[cfg(test)] mod tests { … }` bodies).
+   Keep test trees flat.
 7. **Real data, no mock-data tests.** Tests exercise real inputs and real
    integration paths. A test that only proves a mock returns what the mock was
    told to return is banned — it hides integration breakage.
@@ -78,9 +80,10 @@ in the project's `CLAUDE.md` is not optional.
 | Database | **Turso** | Reached with `@tursodatabase/serverless` (fetch-only, runs on workerd). Only server-side code touches it. |
 | Auth | **better-auth** | Server half in the API service (owns the tables); clients hold only `createAuthClient`. No auth secret ever ships in a client bundle. |
 | HTTP client | **`src/utilities/http.ts`** | The kit's own `fetch` wrapper — `get`/`post`/`put`/`patch`/`delete`, base URL, timeouts, typed errors. **`axios` is banned** in every TS stack, in lint *and* in the structure check. |
-| Validation | **Zod 4** | Every boundary: env, response and request bodies, webhooks, storage. Types come from `z.infer`. `yup`/`joi`/`valibot` and hand-rolled guards are out — one validator, everywhere. |
+| Validation | **Zod 4** | Every boundary: env, response and request bodies, webhooks, storage, forms. Types come from `z.infer`. `yup`/`joi`/`valibot` and hand-rolled guards are out — one validator, everywhere. |
 | API between our own apps | **oRPC** (`@orpc/server` / `@orpc/client`) | Procedures with Zod input *and* output schemas; the client is typed from the same declaration, so the contract cannot drift. Served at `/rpc`. |
-| Server state on the client | **TanStack Query** + `@orpc/tanstack-query` | `orpc.<procedure>.queryOptions(...)` — query keys derive from the procedure path, so there is no key factory to hand-write and none to get wrong. |
+| Server state on the client | **TanStack Query** (`@tanstack/react-query`) + `@orpc/tanstack-query` | `orpc.<procedure>.queryOptions(...)` — query keys derive from the procedure path, so there is no key factory to hand-write and none to get wrong. |
+| Forms on the client | **TanStack Form** (`@tanstack/react-form`) + Zod | One form library across console and expo. Pass Zod schemas directly via Standard Schema (`validators: { onChange: schema }`) — **do not** add `@tanstack/zod-form-adapter` (deprecated). Prefer the same Zod schema as the matching oRPC input when fields align. |
 | Dead code + unused deps | **knip** | Part of the gate. An unused export or a dependency nobody imports fails the build, which is what keeps "lean" true over time instead of aspirational. |
 | Copy-paste detection | **jscpd** | Part of the gate, at `threshold: 0` with `exitCode: 1`. Duplication is the failure mode the size ceilings push you toward if nothing is watching. |
 | Package manager | **bun** | Install and scripts. Note it is *not* the runtime for the Workers stacks. |
@@ -89,40 +92,91 @@ in the project's `CLAUDE.md` is not optional.
 
 ## Quality gates & guardrails
 
-Four layers. A project is only correct when all four are green, and **none of
+Five layers. A project is only correct when all five are green, and **none of
 them may be disabled to get there** — not for an unrelated failure, not "just
 this once". If a check is wrong, fix the check deliberately and say so; don't
 route around it.
+
+They are ordered by how early they catch a mistake, and the earliest is the
+cheapest: a rule that fires while the agent is still writing the file costs one
+edit, the same rule at PR time costs a review cycle.
 
 **1. The rules, in the repo.** Every generated project ships a `CLAUDE.md` (from
 the stack kit's `CLAUDE.md.template`) — the agent's read-first file, encoding
 these core rules, the stack's hard conventions and blocked patterns, a repo map,
 and the exact gate commands. Rules an agent can't see are rules that don't exist.
 
-**2. Pre-commit (Lefthook), on every stack including Rust.** Fast staged-file
+**2. Agent hooks (`.claude/settings.json`), while the code is being written.**
+Committed, so every agent working in the repo inherits them.
+
+- `PostToolUse` on `Edit|Write` runs `bash scripts/guardrails/run.sh --hook`
+  against the single file just written, in milliseconds. It cannot block — the
+  write already happened — but exit 2 puts the violation and its remedy in front
+  of the agent, which fixes it in the same turn.
+- `Stop` runs `bash scripts/guardrails/run.sh --stop` over the whole repo. This
+  one *does* block: exit 2 means the agent keeps working instead of handing over
+  red code. It early-outs (exit 0) when nothing changed this turn or when it is
+  already continuing from a previous block, and Claude Code caps the loop at 8
+  consecutive blocks, so it cannot trap a session.
+
+This layer fires for **coding agents only** — never for a human in an editor.
+That is exactly why it does not replace any of the layers below it.
+
+**3. Pre-commit (Lefthook), on every stack including Rust.** Fast staged-file
 checks only — format + lint. Config must be `lefthook.yml`; a `lefthook.yaml` is
 silently shadowed by the 2.x installer's stub, and the hooks then never run.
 
-**3. The gate — ONE command, run before every push.**
+**4. The gate — ONE command, run before every push.**
 
 - **TypeScript stacks** — `bun run check` =
   type-check + `bunx oxlint --deny-warnings` + `bunx oxfmt --check` +
-  `bash scripts/check-structure.sh` + `bunx knip` + `bunx jscpd` + the test
+  `bash scripts/guardrails/run.sh` + `bunx knip` + `bunx jscpd` + the test
   runner, in that order. ("Type-check" is `tsc --noEmit`, except in the marketing
   stack, where it is `astro check` — the only tool that reads an `.astro`
   file's TEMPLATE body. oxlint reads its frontmatter too; oxfmt cannot parse
   `.astro` at all.)
 - **Rust** —
-  `cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/check-structure.sh && cargo test`.
+  `cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/guardrails/run.sh && cargo test`.
 
-Structure rules are machine-enforced, not doc-only: oxlint carries
-`no-restricted-imports` (no barrel imports, no deep relatives, feature
-isolation, **no axios**, no competing validation library),
-`import/no-default-export`, `unicorn/filename-case`
-(kebab-case), and `max-lines` (300, code lines, tests exempt); each stack ships a
-small `scripts/check-structure.sh` that checks what a linter cannot see — the
-folder tree, per-folder READMEs, absence of barrel files, banned dependencies in
-`package.json`, config files that shadow each other, and committed secrets.
+Structure rules are machine-enforced, not doc-only. The division of labour is
+deliberate: **one rule, one enforcer.** Two enforcers of one ceiling is how the
+two numbers drift apart, and how an `oxlint-disable` silences half a rule.
+
+- **oxlint** owns what it can see in TypeScript: `no-restricted-imports` (no
+  barrel imports, no deep relatives, feature isolation, **no axios**, no
+  competing validation library), `import/no-default-export`,
+  `unicorn/filename-case` (kebab-case), `max-lines` (300 code lines, tests
+  exempt) and `max-lines-per-function` (50; 80 in `.tsx`, where a component's
+  JSX body legitimately runs longer). Rust's equivalents are clippy's
+  `too_many_lines` and rustfmt.
+- **oxlint also owns the structural rules**, through the house plugin at
+  `scripts/guardrails/oxlint-plugin/` (`jsPlugins` in `.oxlintrc.json`): the
+  folder tree and the shape *inside* each domain folder, colocated tests,
+  barrels, bare `fetch`, and hardcoded colours. oxlint has the file open and its
+  AST parsed already, so these belong there rather than in a second pass — and
+  the agent sees the error at the moment it writes the file.
+- **agent-guardrails** (`scripts/guardrails/`) is left with what oxlint never
+  sees: per-folder READMEs, a centralized test *directory*, required files,
+  config files that shadow each other, banned dependencies in the manifest,
+  committed secrets — facts about files and folders the linter is never asked to
+  lint — plus **the whole Rust stack**, which oxlint cannot parse at all.
+
+Which side owns what is **declared**, not implied: `ownedByLinter` in
+`guardrails.config.json` lists the checks the linter enforces, and the bash
+module skips exactly those. The Rust stack lists none. `validate-templates.sh`
+fails if a check is declared linter-owned without a matching oxlint rule, so the
+two can never both go quiet.
+
+Both read their numbers from **one declaration**, `guardrails.config.json`, and
+the kit's own CI asserts that the ceiling declared there matches the one oxlint
+and clippy actually enforce. The declaration is the source of truth; the linters
+are the enforcers.
+
+`scripts/guardrails/` is copied verbatim from the kit and is not hand-edited —
+change `guardrails.config.json` instead. It needs `jq` everywhere, and ast-grep
+on **Rust only** (`cargo install ast-grep --locked`), where the pattern rules
+have no other enforcer. The TypeScript stacks carry no ast-grep dependency at
+all: their pattern rules run inside oxlint.
 
 Two of the gate steps exist to keep the codebase from rotting quietly:
 
@@ -145,7 +199,7 @@ The same steps run in CI (`.github/workflows/ci.yml`) on every PR and push to
 instead of burying it in one aggregate command. CI ends with a real build (or a
 dry-run deploy), because a type-clean project can still fail to ship.
 
-**4. AI code review (`.github/workflows/code-review.yml`).** Every stack ships
+**5. AI code review (`.github/workflows/code-review.yml`).** Every stack ships
 it. It reviews each PR against the repo's own convention files — read from the
 **base** ref, so a PR cannot rewrite the rules it is judged by — and posts inline
 findings. It needs a `DEEPSEEK_API_KEY` repository secret.

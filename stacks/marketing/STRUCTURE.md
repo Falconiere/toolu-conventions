@@ -32,7 +32,7 @@ below — it never relaxes a CORE rule.
 │   └── types/                # cross-cutting TS types. README.md
 ├── public/                   # served verbatim at the site root (favicon, robots.txt, og image)
 ├── docs/                     # design-language.md — house UI rules, read before UI work
-├── scripts/                  # check-structure.sh — folder-tree half of the gate
+├── scripts/                  # guardrails/run.sh — folder-tree half of the gate
 ├── astro.config.mjs          # Astro config (static output, site URL)
 ├── wrangler.jsonc            # Cloudflare Workers deploy config (static assets)
 ├── tsconfig.json             # astro/tsconfigs/strictest + `@/*` path alias
@@ -87,7 +87,7 @@ truth — the test config *derives* from the build config rather than replacing 
    _Enforced by:_ review (and the Lighthouse number, eventually).
 5. **A real `404.astro`.** `wrangler.jsonc` uses `not_found_handling: "404-page"`
    so dead URLs return a genuine 404 rather than a soft-200 that crawlers index.
-   _Enforced by:_ `check-structure.sh` (fails if the page is missing).
+   _Enforced by:_ `guardrails` (fails if the page is missing).
 6. **Every page sets `title` + `description`,** and the layout emits a canonical
    URL. These are the site's product surface, not decoration.
    _Enforced by:_ `Props` on `base-layout.astro` (both are required) + review.
@@ -97,7 +97,7 @@ truth — the test config *derives* from the build config rather than replacing 
    _Enforced by:_ review.
 8. **Named exports, no barrels, kebab-case filenames, co-located real-data
    tests, no `any`, no `console.log`, `max-lines: 300`** — the CORE rules.
-   _Enforced by:_ oxlint + `check-structure.sh`. oxlint **does** read `.astro`
+   _Enforced by:_ oxlint + `guardrails`. oxlint **does** read `.astro`
    frontmatter, so the import and TypeScript rules apply there too — the entry
    layouts carry a scoped `import/no-unassigned-import` override because a
    side-effect `import '@/ui/globals.css'` is the whole point of that file.

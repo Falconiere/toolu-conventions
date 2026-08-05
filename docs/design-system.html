@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en" data-signal="jade">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Signal — the CodaSignal design language, live</title>
+    <meta
+      name="description"
+      content="Interactive reference for DESIGN.md: bands, the signal, status, type, space, motion, glyphs and icons, patterns, states, contrast, and the banned list — rendered from the real theme tokens."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --font-sans: Archivo, Helvetica, -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+        /* palette — dark band ramp (theme/colors.ts, palette.*Dark) */
+        --band-dark: #0e0f0d;
+        --panel-dark: #1f1f1f;
+        --hover-dark: #131511;
+        --rule-dark: #191b17;
+        --line-dark: #1e201c;
+        --line-panel-dark: #23251f;
+        --seam-dark: #262922;
+        --line-strong-dark: #33362e;
+        --ink-faint-dark: #52554e;
+        --ink-soft-dark: #6c6f68;
+        --ink-muted-dark: #8a8d86;
+        --ink-dark: #f2f2ef;
+        --ink-hover-dark: #d0d1ce;
+
+        /* palette — light band ramp */
+        --band-light: #f2f2ee;
+        --panel-light: #ffffff;
+        --hover-light: #f7f7f3;
+        --line-inner-light: #ecece5;
+        --rule-light: #e6e6df;
+        --line-light: #e3e3dc;
+        --seam-light: #dcdcd4;
+        --ink-disabled-light: #b3b5ab;
+        --ink-faint-light: #8c8e85;
+        --ink-muted-light: #55574f;
+        --ink-light: #16170f;
+        --ink-hover-light: #2c2e24;
+
+        /* status — fixed, never themed */
+        --degraded: #c99a3a;
+        --incident: #c9553a;
+
+        /* signal temperatures — all four always live for the switcher below */
+        --jade-signal: #43c98b;   --jade-lift: #7be0b0;      --jade-dim: #2e9c6b;      --jade-wash: #12241c;      --jade-wash-light: #e6f2eb;
+        --blueprint-signal: #45b4cc; --blueprint-lift: #7ed6e6; --blueprint-dim: #2c8aa0; --blueprint-wash: #0f2229; --blueprint-wash-light: #e3eff3;
+        --ion-signal: #9a8cf0;    --ion-lift: #c0b6ff;       --ion-dim: #6c5dd0;       --ion-wash: #17142b;       --ion-wash-light: #ebe8fa;
+        --chalk-signal: #f2f2ef;  --chalk-lift: #ffffff;     --chalk-dim: #16170f;     --chalk-wash: #1f211c;     --chalk-wash-light: #e6e6df;
+
+        --gutter: clamp(1.25rem, 4vw, 3rem);
+        --container: 52rem;
+        --container-wide: 68rem;
+        --ease: cubic-bezier(0.2, 0, 0, 1);
+      }
+
+      /* the active signal — swapped by data-signal, nothing else moves */
+      html[data-signal="jade"]       { --signal: var(--jade-signal);       --signal-lift: var(--jade-lift);       --signal-dim: var(--jade-dim);       --signal-wash: var(--jade-wash);       --signal-wash-light: var(--jade-wash-light); }
+      html[data-signal="blueprint"]  { --signal: var(--blueprint-signal);  --signal-lift: var(--blueprint-lift);  --signal-dim: var(--blueprint-dim);  --signal-wash: var(--blueprint-wash);  --signal-wash-light: var(--blueprint-wash-light); }
+      html[data-signal="ion"]        { --signal: var(--ion-signal);        --signal-lift: var(--ion-lift);        --signal-dim: var(--ion-dim);        --signal-wash: var(--ion-wash);        --signal-wash-light: var(--ion-wash-light); }
+      html[data-signal="chalk"]      { --signal: var(--chalk-signal);      --signal-lift: var(--chalk-lift);      --signal-dim: var(--chalk-dim);      --signal-wash: var(--chalk-wash);      --signal-wash-light: var(--chalk-wash-light); }
+
+      :root {
+        --bg: var(--band-dark); --surface: var(--panel-dark); --surface-inset: var(--band-dark); --surface-hover: var(--hover-dark);
+        --text: var(--ink-dark); --text-muted: var(--ink-muted-dark); --text-soft: var(--ink-soft-dark); --text-faint: var(--ink-faint-dark);
+        --primary: var(--ink-dark); --primary-hover: var(--ink-hover-dark); --on-primary: var(--band-dark);
+        --accent: var(--signal); --accent-lift: var(--signal-lift); --accent-wash: var(--signal-wash);
+        --success: var(--signal); --warning: var(--degraded); --danger: var(--incident); --idle: var(--ink-faint-dark);
+        --border: var(--line-panel-dark); --border-inner: var(--line-dark); --border-strong: var(--line-strong-dark);
+        --grid: var(--rule-dark); --seam: var(--seam-dark);
+        --duration: 280ms;
+      }
+      .band-light {
+        --bg: var(--band-light); --surface: var(--panel-light); --surface-inset: var(--band-light); --surface-hover: var(--hover-light);
+        --text: var(--ink-light); --text-muted: var(--ink-muted-light); --text-soft: var(--ink-faint-light); --text-faint: var(--ink-disabled-light);
+        --primary: var(--ink-light); --primary-hover: var(--ink-hover-light); --on-primary: var(--band-light);
+        --accent: var(--signal-dim); --accent-lift: var(--signal); --accent-wash: var(--signal-wash-light);
+        --success: var(--signal-dim); --warning: var(--degraded); --danger: var(--incident); --idle: var(--ink-disabled-light);
+        --border: var(--line-light); --border-inner: var(--line-inner-light); --border-strong: var(--ink-disabled-light);
+        --grid: var(--rule-light); --seam: var(--seam-light);
+        background-color: var(--bg);
+        color: var(--text);
+      }
+
+      *, *::before, *::after { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+        font-size: 0.9375rem;
+        line-height: 1.7;
+        background: var(--bg);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: inherit; text-underline-offset: 0.18em; }
+      a:hover { color: var(--accent-lift); }
+      .band-light a:hover { color: var(--primary-hover); }
+      :focus-visible { outline: 3px solid var(--accent-wash); outline-offset: 2px; }
+      .skip-link {
+        position: absolute; left: var(--gutter); top: -3rem; z-index: 20;
+        padding: 0.5rem 0.75rem; background: var(--primary); color: var(--on-primary);
+        font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.18em;
+        text-transform: uppercase; text-decoration: none;
+      }
+      .skip-link:focus { top: 0.75rem; }
+      .band { position: relative; background-color: var(--bg); color: var(--text); isolation: isolate; }
+      .band::before {
+        content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+        background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), var(--grid) calc(25% - 1px), var(--grid) 25%);
+        background-position: var(--gutter) 0; opacity: 0.9;
+      }
+      @media (max-width: 640px) {
+        .band::before {
+          background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(50% - 1px), var(--grid) calc(50% - 1px), var(--grid) 50%);
+        }
+      }
+      .band > * { position: relative; z-index: 1; }
+      .band-seam { position: relative; height: 0; border: 0; margin: 0; }
+      .band-seam::before, .band-seam::after {
+        content: "┼"; position: absolute; top: -0.55em; font-family: var(--font-mono);
+        font-size: 0.625rem; color: var(--seam); line-height: 1; z-index: 2;
+      }
+      .band-seam::before { left: var(--gutter); }
+      .band-seam::after { right: var(--gutter); }
+      .wrap {
+        width: min(100% - (var(--gutter) * 2), var(--container));
+        margin-inline: auto; padding-block: clamp(3.5rem, 8vw, 6.5rem);
+      }
+      .wrap-wide { width: min(100% - (var(--gutter) * 2), var(--container-wide)); }
+      .marker {
+        display: block; font-family: var(--font-mono); font-size: 0.59375rem; line-height: 1.5;
+        letter-spacing: 0.24em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 1.25rem;
+      }
+      .display {
+        font-size: clamp(1.875rem, 3.6vw, 3.125rem); line-height: 1.04; font-weight: 600;
+        letter-spacing: -0.035em; margin: 0 0 1.25rem; text-wrap: balance;
+      }
+      .display-lg {
+        font-size: clamp(2.5rem, 4.8vw, 4.25rem); line-height: 1.03; font-weight: 600;
+        letter-spacing: -0.038em; margin: 0 0 1.5rem; text-wrap: balance;
+      }
+      .display .line-2, .display-lg .line-2 { color: var(--accent); display: block; }
+      .lede {
+        font-size: 1.125rem; line-height: 1.55; font-weight: 500; letter-spacing: -0.01em;
+        max-width: 38rem; margin: 0 0 1.75rem; color: var(--text); text-wrap: pretty;
+      }
+      .body { max-width: 42rem; margin: 0 0 1.1rem; color: var(--text-muted); text-wrap: pretty; }
+      .body strong { color: var(--text); font-weight: 500; }
+      .subhead {
+        font-size: 1.3125rem; line-height: 1.3; font-weight: 500; letter-spacing: -0.022em;
+        margin: 0 0 0.65rem; text-wrap: balance;
+      }
+      .label {
+        font-family: var(--font-mono); font-size: 0.59375rem; line-height: 1.5;
+        letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin: 0;
+      }
+      .meta {
+        font-family: var(--font-mono); font-size: 0.625rem; line-height: 1.6;
+        letter-spacing: 0.06em; color: var(--text-soft); margin: 0;
+      }
+      code, .code { font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.75; }
+      .site-nav {
+        position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap;
+        align-items: baseline; justify-content: space-between; gap: 1rem 1.5rem;
+        padding: 1.25rem var(--gutter); border-bottom: 1px solid var(--border);
+        background: var(--bg);
+      }
+      .site-nav .brand {
+        font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: 0.06em; text-decoration: none;
+      }
+      .site-nav ul {
+        display: flex; flex-wrap: wrap; gap: 0.85rem 1.25rem; list-style: none; margin: 0; padding: 0;
+      }
+      .site-nav a {
+        font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.18em;
+        text-transform: uppercase; text-decoration: none; color: var(--text-muted);
+      }
+      .site-nav a:hover { color: var(--text); }
+      .cta-row { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; margin-top: 2rem; }
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; min-height: 2.5rem;
+        padding: 0.65rem 1.1rem; font-family: var(--font-mono); font-size: 0.59375rem;
+        letter-spacing: 0.18em; text-transform: uppercase; text-decoration: none;
+        border: 1px solid transparent; border-radius: 3px; cursor: pointer;
+        transition: background var(--duration) var(--ease), color var(--duration) var(--ease), border-color var(--duration) var(--ease), opacity 140ms var(--ease);
+      }
+      .btn-primary { background: var(--primary); color: var(--on-primary); }
+      .btn-primary:hover { opacity: 0.86; }
+      .btn-primary:active { transform: translateY(1px); }
+      .btn-ghost { background: transparent; color: var(--text); border-color: var(--border-strong); }
+      .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+      .btn-ghost[aria-pressed="true"] { border-color: var(--accent); color: var(--text); }
+      .site-footer {
+        padding: 2rem var(--gutter) 3rem; border-top: 1px solid var(--border);
+        display: flex; flex-wrap: wrap; gap: 1rem 2rem; justify-content: space-between; align-items: baseline;
+      }
+      .site-footer a { text-decoration: none; color: var(--text-muted); }
+      .site-footer a:hover { color: var(--text); }
+      .doc-links { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; margin-top: 1.75rem; }
+      .doc-links a {
+        font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.16em;
+        text-transform: uppercase; text-decoration: none; color: var(--text-muted);
+        border-bottom: 1px solid var(--border-strong); padding-bottom: 0.15rem;
+      }
+      .doc-links a:hover { color: var(--text); border-color: var(--text); }
+      .rule-list { list-style: none; margin: 2rem 0 0; padding: 0; border-top: 1px solid var(--border); }
+      .rule-list > li { border-bottom: 1px solid var(--border); padding: 1.35rem 0; }
+      .rule-list .num {
+        font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent);
+        letter-spacing: 0.06em; margin-bottom: 0.45rem;
+      }
+      .snippet {
+        margin: 1rem 0 0; padding: 0.9rem 1rem; overflow-x: auto;
+        background: var(--surface-inset); border: 1px solid var(--border);
+        color: var(--text-muted); font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.75;
+      }
+      .note-list { list-style: none; margin: 1.5rem 0 0; padding: 0; border-top: 1px solid var(--border); }
+      .note-list li {
+        padding: 0.85rem 0; border-bottom: 1px solid var(--border);
+        color: var(--text-muted); font-size: 0.875rem; line-height: 1.55;
+      }
+      .note-list code { color: var(--text); font-family: var(--font-mono); font-size: 0.75rem; }
+      .steps { counter-reset: step; list-style: none; margin: 2rem 0 0; padding: 0; }
+      .steps li {
+        position: relative; padding: 1.25rem 0 1.25rem 3rem; border-bottom: 1px solid var(--border);
+        counter-increment: step;
+      }
+      .steps li::before {
+        content: counter(step, decimal-leading-zero); position: absolute; left: 0; top: 1.35rem;
+        font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); letter-spacing: 0.06em;
+      }
+      .steps p { margin: 0.35rem 0 0; color: var(--text-muted); }
+      .check-list { list-style: none; margin: 2rem 0 0; padding: 0; }
+      .check-list li {
+        position: relative; padding: 0.75rem 0 0.75rem 1.9rem; border-bottom: 1px solid var(--border);
+        color: var(--text-muted); font-size: 0.875rem; line-height: 1.6;
+      }
+      .check-list li::before {
+        content: "✓"; position: absolute; left: 0; top: 0.75rem; color: var(--accent);
+        font-family: var(--font-mono); font-size: 0.75rem;
+      }
+      .check-list code { color: var(--text); font-family: var(--font-mono); font-size: 0.75rem; }
+
+      /* — signal picker — */
+      .signal-picker { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.75rem; }
+      .signal-picker button { display: inline-flex; align-items: center; gap: 0.5rem; }
+      .signal-picker .dot { width: 0.6rem; height: 0.6rem; border-radius: 9999px; background: currentColor; }
+      .signal-picker .dot.jade { color: var(--jade-signal); }
+      .signal-picker .dot.blueprint { color: var(--blueprint-signal); }
+      .signal-picker .dot.ion { color: var(--ion-signal); }
+      .signal-picker .dot.chalk { color: var(--chalk-signal); }
+
+      /* — swatches — */
+      .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 1.75rem; }
+      .swatch { background: var(--surface); padding: 1rem 1rem 1.1rem; }
+      .swatch .chip { height: 2.75rem; border: 1px solid var(--border-inner); margin-bottom: 0.75rem; }
+      .swatch .name { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--text); margin: 0 0 0.15rem; }
+      .swatch .hex { font-family: var(--font-mono); font-size: 0.625rem; color: var(--text-soft); margin: 0; }
+
+      /* — signal jobs demo — */
+      .job-grid { display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 1.75rem; }
+      @media (min-width: 780px) { .job-grid { grid-template-columns: repeat(3, 1fr); } }
+      .job-card { background: var(--surface); padding: 1.4rem 1.3rem 1.6rem; }
+      .job-card .label { margin-bottom: 1rem; }
+      .job-current { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.7rem; border: 1px solid var(--border); background: var(--accent-wash); }
+      .job-current .dot { width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: var(--accent); flex: none; }
+      .job-current span:last-child { font-family: var(--font-mono); font-size: 0.75rem; }
+      .job-numbered { list-style: none; margin: 0; padding: 0; counter-reset: jobnum; }
+      .job-numbered li { counter-increment: jobnum; display: flex; gap: 0.6rem; padding: 0.4rem 0; font-size: 0.875rem; color: var(--text-muted); }
+      .job-numbered li::before { content: counter(jobnum, decimal-leading-zero); font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); flex: none; }
+
+      /* — status — */
+      .status-grid { display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 1.75rem; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+      .status-row { background: var(--surface); padding: 1rem 1.1rem; display: flex; align-items: center; gap: 0.65rem; }
+      .status-dot { width: 0.5rem; height: 0.5rem; border-radius: 9999px; flex: none; }
+      .status-dot.is-live { background: var(--success); }
+      .status-dot.is-degraded { background: var(--warning); }
+      .status-dot.is-incident { background: var(--danger); }
+      .status-dot.is-idle { background: var(--idle); }
+      .status-row .name { font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; }
+      .status-row .desc { display: block; font-size: 0.75rem; color: var(--text-soft); font-family: var(--font-sans); letter-spacing: 0; text-transform: none; margin-top: 0.15rem; }
+      @keyframes signal-blink { 50% { opacity: 0.35; } }
+      .status-dot.is-live { animation: signal-blink 1800ms steps(1, end) infinite; }
+      @media (prefers-reduced-motion: reduce) { .status-dot.is-live { animation: none; } }
+
+      /* — type — */
+      .type-list { margin: 2rem 0 0; border-top: 1px solid var(--border); }
+      .type-row { display: grid; gap: 0.3rem 1.5rem; padding: 1.35rem 0; border-bottom: 1px solid var(--border); }
+      @media (min-width: 760px) { .type-row { grid-template-columns: 9rem 1fr; align-items: baseline; } }
+      .type-row dt { font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); }
+      .type-row dd { margin: 0; }
+      .type-row .meta { display: block; margin-top: 0.35rem; }
+      .t-displayLg { font-family: var(--font-sans); font-size: clamp(2.5rem, 4.8vw, 4.25rem); line-height: 1.03; font-weight: 600; letter-spacing: -0.038em; }
+      .t-display { font-family: var(--font-sans); font-size: clamp(1.875rem, 3.6vw, 3.125rem); line-height: 1.04; font-weight: 600; letter-spacing: -0.035em; }
+      .t-statLg { font-family: var(--font-sans); font-size: clamp(2.75rem, 5vw, 4.125rem); line-height: 0.9; font-weight: 600; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
+      .t-stat { font-family: var(--font-sans); font-size: clamp(2rem, 3vw, 2.5rem); line-height: 1; font-weight: 600; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+      .t-quote { font-family: var(--font-sans); font-size: 1.625rem; line-height: 1.4; font-weight: 500; letter-spacing: -0.024em; }
+      .t-subhead { font-family: var(--font-sans); font-size: 1.3125rem; line-height: 1.3; font-weight: 500; letter-spacing: -0.022em; }
+      .t-body { font-family: var(--font-sans); font-size: 0.9375rem; line-height: 1.7; font-weight: 400; }
+      .t-bodySm { font-family: var(--font-sans); font-size: 0.875rem; line-height: 1.6; font-weight: 400; }
+      .t-marker { font-family: var(--font-mono); font-size: 0.59375rem; line-height: 1.5; letter-spacing: 0.24em; text-transform: uppercase; }
+      .t-label { font-family: var(--font-mono); font-size: 0.59375rem; line-height: 1.5; letter-spacing: 0.2em; text-transform: uppercase; }
+      .t-tag { font-family: var(--font-mono); font-size: 0.5625rem; line-height: 1.5; letter-spacing: 0.16em; text-transform: uppercase; }
+      .t-data { font-family: var(--font-mono); font-size: 0.65625rem; line-height: 1.5; letter-spacing: 0.16em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+      .t-meta-sample { font-family: var(--font-mono); font-size: 0.625rem; line-height: 1.6; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+      .t-code { font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.75; font-variant-numeric: tabular-nums; }
+      .t-button { font-family: var(--font-mono); font-size: 0.59375rem; line-height: 1.2; letter-spacing: 0.18em; text-transform: uppercase; }
+      .weight-demo { display: flex; flex-wrap: wrap; gap: 2rem; margin-top: 1.75rem; }
+      .weight-demo div { font-family: var(--font-sans); font-size: 1.5rem; }
+      .weight-demo .w400 { font-weight: 400; }
+      .weight-demo .w500 { font-weight: 500; }
+      .weight-demo .w600 { font-weight: 600; }
+      .weight-demo .banned { position: relative; color: var(--text-faint); }
+      .weight-demo .banned::after { content: "✕ 700 banned"; display: block; font-family: var(--font-mono); font-size: 0.5625rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--danger); margin-top: 0.35rem; }
+
+      /* — space / radius / shadow — */
+      .space-bars { margin-top: 1.75rem; border-top: 1px solid var(--border); }
+      .space-bar-row { display: flex; align-items: center; gap: 1rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+      .space-bar-row .tok { font-family: var(--font-mono); font-size: 0.6875rem; width: 4rem; flex: none; color: var(--text-muted); }
+      .space-bar-row .track { flex: 1; background: var(--surface-inset); border: 1px solid var(--border-inner); height: 0.85rem; }
+      .space-bar-row .fill { height: 100%; background: var(--accent); }
+      .space-bar-row .px { font-family: var(--font-mono); font-size: 0.6875rem; width: 3rem; flex: none; text-align: right; color: var(--text-soft); }
+      .radius-grid { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1.75rem; }
+      .radius-item { text-align: center; }
+      .radius-item .box { width: 4.25rem; height: 4.25rem; background: var(--surface); border: 1px solid var(--border-strong); margin: 0 auto 0.65rem; }
+      .radius-item .name { font-family: var(--font-mono); font-size: 0.6875rem; margin: 0; }
+      .radius-item .use { font-size: 0.75rem; color: var(--text-soft); margin: 0.2rem 0 0; max-width: 8rem; }
+      .shadow-demo { display: grid; gap: 1.5rem; margin-top: 1.75rem; }
+      @media (min-width: 640px) { .shadow-demo { grid-template-columns: 1fr 1fr; } }
+      .shadow-demo .panel { padding: 1.5rem; font-family: var(--font-mono); font-size: 0.6875rem; color: var(--text-muted); }
+      .shadow-demo .panel.on-light { background: #ffffff; color: #16170f; box-shadow: 0 24px 60px rgba(20, 22, 15, 0.09); border-radius: 12px; }
+      .shadow-demo .panel.on-dark { background: var(--panel-dark); color: var(--ink-dark); border: 1px solid var(--line-panel-dark); border-radius: 12px; }
+
+      /* — motion — */
+      .motion-grid { display: grid; gap: 1.5rem; margin-top: 1.75rem; }
+      @media (min-width: 720px) { .motion-grid { grid-template-columns: repeat(3, 1fr); } }
+      .motion-card { background: var(--surface); border: 1px solid var(--border); padding: 1.4rem 1.3rem 1.6rem; }
+      .motion-card .label { margin-bottom: 1rem; }
+      .motion-card p { margin: 0.75rem 0 0; font-size: 0.8125rem; color: var(--text-soft); }
+      .hover-swatch { display: inline-flex; align-items: center; justify-content: center; padding: 0.6rem 1rem; border: 1px solid var(--border-strong); border-radius: 3px; font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text); background: transparent; cursor: pointer; transition: color 140ms var(--ease), border-color 140ms var(--ease); }
+      .hover-swatch:hover { color: var(--accent); border-color: var(--accent); }
+      details.disclosure { border: 1px solid var(--border); padding: 0.1rem 0.9rem; }
+      details.disclosure summary { list-style: none; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0; cursor: pointer; font-family: var(--font-mono); font-size: 0.6875rem; }
+      details.disclosure summary::-webkit-details-marker { display: none; }
+      details.disclosure .chevron { display: inline-block; transition: transform 220ms var(--ease); }
+      details.disclosure[open] .chevron { transform: rotate(90deg); }
+      details.disclosure .content { padding: 0 0 0.9rem; font-size: 0.8125rem; color: var(--text-soft); }
+
+      /* — icons & glyphs — */
+      .icon-group-title { margin: 2.25rem 0 0.9rem; font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--text-muted); }
+      .icon-group-title:first-of-type { margin-top: 1.75rem; }
+      .icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.75rem, 1fr)); gap: 0.9rem; }
+      .icon-item { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+      .icon-box { width: 30px; height: 30px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: color 140ms var(--ease); }
+      .icon-item:hover .icon-box { color: var(--accent); }
+      .icon-name { font-family: var(--font-mono); font-size: 0.5625rem; letter-spacing: 0.02em; text-transform: none; color: var(--text-soft); text-align: center; }
+      .glyph-row { display: flex; flex-wrap: wrap; gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 1.75rem; }
+      .glyph-item { background: var(--surface); padding: 1rem 1.1rem; text-align: center; flex: 1 1 6rem; }
+      .glyph-item .mark { font-family: var(--font-mono); font-size: 1.25rem; color: var(--text); }
+      .glyph-item .use { display: block; margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.5625rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-soft); }
+
+      /* — patterns table — */
+      .pattern-list { margin-top: 1.75rem; border-top: 1px solid var(--border); }
+      .pattern-row { display: grid; gap: 0.3rem 1.5rem; padding: 1rem 0; border-bottom: 1px solid var(--border); }
+      @media (min-width: 700px) { .pattern-row { grid-template-columns: 9rem 1fr; align-items: baseline; } }
+      .pattern-row dt { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--text); }
+      .pattern-row dd { margin: 0; font-size: 0.875rem; color: var(--text-muted); }
+
+      /* — states & fields — */
+      .states-grid { display: grid; gap: 1.5rem; margin-top: 1.75rem; }
+      @media (min-width: 720px) { .states-grid { grid-template-columns: 1fr 1fr; } }
+      .banner-demo { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.85rem; padding: 0.9rem 1rem; background: var(--surface); border: 1px solid var(--danger); }
+      .banner-demo .dot { width: 0.55rem; height: 0.55rem; border-radius: 9999px; background: var(--danger); }
+      .banner-demo p { margin: 0; font-size: 0.8125rem; }
+      .banner-demo button { border: 1px solid var(--danger); border-radius: 3px; background: transparent; color: var(--text); font-family: var(--font-mono); font-size: 0.5625rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.4rem 0.7rem; cursor: pointer; }
+      .toast-demo { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.1rem; background: var(--ink-dark); color: var(--band-dark); font-size: 0.8125rem; }
+      .band-light .toast-demo { background: var(--ink-dark); color: var(--band-dark); }
+      .empty-demo .placeholder { height: 4.5rem; border: 1px dashed var(--border-strong); margin-bottom: 0.9rem; }
+      .loading-demo .skeleton { height: 0.85rem; background: var(--line-inner-light); margin-bottom: 0.6rem; }
+      .band:not(.band-light) .loading-demo .skeleton { background: var(--line-dark); }
+      .loading-demo .count { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--text-soft); }
+      .field-demo { margin-top: 1.75rem; display: grid; gap: 1.25rem; }
+      @media (min-width: 640px) { .field-demo { grid-template-columns: repeat(3, 1fr); } }
+      .field { display: flex; flex-direction: column; gap: 0.5rem; }
+      .field label { font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); }
+      .field input {
+        font-family: var(--font-sans); font-size: 0.875rem; padding: 0.55rem 0.7rem; height: 34px;
+        background: var(--surface); color: var(--text); border: 1px solid var(--border);
+      }
+      .field input:focus-visible { outline: 3px solid var(--accent-wash); outline-offset: 0; border-color: var(--accent); }
+      .field input[aria-invalid="true"] { border-color: var(--danger); }
+      .field input:disabled { background: var(--surface-hover); color: var(--text-faint); }
+      .field .help { font-family: var(--font-mono); font-size: 0.625rem; color: var(--text-soft); }
+      .field .help.err { color: var(--danger); }
+
+      /* — contrast + banned — */
+      .contrast-table { width: 100%; border-collapse: collapse; margin-top: 1.75rem; font-size: 0.8125rem; }
+      .contrast-table th, .contrast-table td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+      .contrast-table th { font-family: var(--font-mono); font-size: 0.59375rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
+      .contrast-table td.ratio { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+      .contrast-table td.fail { color: var(--danger); }
+      .banned-list { list-style: none; margin: 1.75rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
+      @media (min-width: 640px) { .banned-list { grid-template-columns: 1fr 1fr; } }
+      .banned-list li { display: flex; gap: 0.6rem; font-size: 0.875rem; color: var(--text-muted); }
+      .banned-list li::before { content: "✕"; color: var(--danger); flex: none; font-family: var(--font-mono); }
+      .voice-yes, .voice-no { margin-top: 1.5rem; }
+      .voice-yes p, .voice-no p { font-size: 1.0625rem; margin: 0 0 0.6rem; }
+      .voice-no p { color: var(--text-soft); text-decoration: line-through; }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <nav class="site-nav" aria-label="Page">
+      <a class="brand" href="#top">Signal</a>
+      <ul>
+        <li><a href="#bands">Bands</a></li>
+        <li><a href="#signal">Signal</a></li>
+        <li><a href="#status">Status</a></li>
+        <li><a href="#type">Type</a></li>
+        <li><a href="#space">Space &amp; shape</a></li>
+        <li><a href="#motion">Motion</a></li>
+        <li><a href="#icons">Glyphs &amp; icons</a></li>
+        <li><a href="#patterns">Patterns</a></li>
+        <li><a href="#states">States</a></li>
+        <li><a href="#voice">Voice</a></li>
+        <li><a href="#contrast">Contrast</a></li>
+        <li><a href="#banned">Banned</a></li>
+      </ul>
+    </nav>
+    <main id="main">
+      <section class="band" id="top" aria-labelledby="hero-title">
+        <div class="wrap">
+          <p class="marker">— design language · v.03 · 2026-07</p>
+          <h1 id="hero-title" class="display-lg">
+            One neutral ramp,
+            <span class="line-2">one signal.</span>
+          </h1>
+          <p class="lede">
+            This page renders the house UI language from its own tokens —
+            <code class="code">theme/{colors,typography,spacing,motion,icons}.ts</code>
+            — so a rule and its number sit side by side. <code class="code">DESIGN.md</code>
+            is the prose; this is the same system, live.
+          </p>
+          <p class="body">
+            A theme swaps the signal and nothing else. Try the four temperatures —
+            bands, ink, type, radius and motion never move.
+          </p>
+          <div class="signal-picker" role="group" aria-label="Signal temperature">
+            <button class="btn btn-ghost" type="button" data-signal-choice="jade" aria-pressed="true"><span class="dot jade"></span>Jade</button>
+            <button class="btn btn-ghost" type="button" data-signal-choice="blueprint" aria-pressed="false"><span class="dot blueprint"></span>Blueprint</button>
+            <button class="btn btn-ghost" type="button" data-signal-choice="ion" aria-pressed="false"><span class="dot ion"></span>Ion</button>
+            <button class="btn btn-ghost" type="button" data-signal-choice="chalk" aria-pressed="false"><span class="dot chalk"></span>Chalk</button>
+          </div>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band band-light" id="bands" aria-labelledby="bands-title">
+        <div class="wrap">
+          <p class="marker">— §01 · bands</p>
+          <h2 id="bands-title" class="display">
+            Full-bleed,
+            <span class="line-2">alternating.</span>
+          </h2>
+          <p class="body">
+            The page is a stack of full-bleed bands. Dark is the default; light is a
+            class (<code class="code">.band-light</code>). No component straddles a
+            seam — the crosshairs (┼) above and below mark where one band ends and
+            the next begins. This band is light: it re-applies its own
+            <code class="code">background-color</code> and <code class="code">color</code>,
+            not just its custom properties.
+          </p>
+          <p class="body">
+            Content is capped at <code class="code">layout.containerMaxWidth</code>
+            (1360px); the band itself is not. The primary action inverts with the
+            band — paper fill here, ink fill on dark.
+          </p>
+          <div class="cta-row">
+            <button class="btn btn-primary" type="button">Primary, this band</button>
+            <button class="btn btn-ghost" type="button">Ghost</button>
+          </div>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band" id="signal" aria-labelledby="signal-title">
+        <div class="wrap wrap-wide">
+          <p class="marker">— §02 · signal</p>
+          <h2 id="signal-title" class="display">
+            Exactly three jobs,
+            <span class="line-2">never a fourth.</span>
+          </h2>
+          <p class="body">
+            One neutral ramp per band plus exactly one chromatic signal. It never
+            fills a button and never tints a surface. If you can't name the state a
+            signal pixel represents, it should be neutral.
+          </p>
+          <div class="job-grid">
+            <article class="job-card">
+              <p class="label">Job 1 — second line of a heading</p>
+              <p class="display" style="font-size: 1.75rem; margin: 0;">Ships on time.<span class="line-2">Every time.</span></p>
+            </article>
+            <article class="job-card">
+              <p class="label">Job 2 — the current / live item</p>
+              <div class="job-current"><span class="dot"></span><span>step 03 · deploying</span></div>
+            </article>
+            <article class="job-card">
+              <p class="label">Job 3 — the number in a list</p>
+              <ol class="job-numbered">
+                <li>Write the spec</li>
+                <li>Get it reviewed</li>
+                <li>Ship it</li>
+              </ol>
+            </article>
+          </div>
+          <p class="body" style="margin-top: 2rem">
+            Four temperatures, one grammar — the hue arc stays green → cyan →
+            indigo, clear of amber and red so the signal never collides with a
+            status colour.
+          </p>
+          <div class="swatch-grid">
+            <div class="swatch"><div class="chip" style="background: var(--jade-signal)"></div><p class="name">jade · signal</p><p class="hex">#43c98b — default, delivery/health</p></div>
+            <div class="swatch"><div class="chip" style="background: var(--jade-lift)"></div><p class="name">jade · lift</p><p class="hex">#7be0b0</p></div>
+            <div class="swatch"><div class="chip" style="background: var(--jade-dim)"></div><p class="name">jade · dim</p><p class="hex">#2e9c6b</p></div>
+            <div class="swatch"><div class="chip" style="background: var(--blueprint-signal)"></div><p class="name">blueprint · signal</p><p class="hex">#45b4cc — data-dense tools</p></div>
+            <div class="swatch"><div class="chip" style="background: var(--blueprint-lift)"></div><p class="name">blueprint · lift</p><p class="hex">#7ed6e6</p></div>
+            <div class="swatch"><div class="chip" style="background: var(--blueprint-dim)"></div><p class="name">blueprint · dim</p><p class="hex">#2c8aa0</p></div>
+            <div class="swatch"><div class="chip" style="background: var(--ion-signal)"></div><p class="name">ion · signal</p><p class="hex">#9a8cf0 — internal/AI, never marketing</p></div>
+            <div class="swatch"><div class="chip" style="background: var(--ion-lift)"></div><p class="name">ion · lift</p><p class="hex">#c0b6ff</p></div>
+            <div class="swatch"><div class="chip" style="background: var(--ion-dim)"></div><p class="name">ion · dim</p><p class="hex">#6c5dd0</p></div>
+            <div class="swatch"><div class="chip" style="background: var(--chalk-signal); border-color: var(--line-strong-dark)"></div><p class="name">chalk · signal</p><p class="hex">#f2f2ef — no-signal, print/docs</p></div>
+          </div>
+          <p class="body" style="margin-top: 1.5rem">
+            On a light band the signal drops one step (<code class="code">dim</code>)
+            — full signal measures 3.1:1 on paper, so it's headings-only there;
+            <code class="code">dim</code> is what a light band uses everywhere else.
+          </p>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band band-light" id="status" aria-labelledby="status-title">
+        <div class="wrap">
+          <p class="marker">— §03 · status</p>
+          <h2 id="status-title" class="display">
+            Fixed,
+            <span class="line-2">never themed.</span>
+          </h2>
+          <p class="body">
+            A reader learns these once, so they cannot move — regardless of which
+            signal temperature is active. All four are dot / border / mono-label
+            roles, never a fill, never body text.
+          </p>
+          <div class="status-grid">
+            <div class="status-row"><span class="status-dot is-live"></span><span><span class="name">live</span><span class="desc">Current, healthy, running. The only status that themes.</span></span></div>
+            <div class="status-row"><span class="status-dot is-degraded"></span><span><span class="name">degraded</span><span class="desc">Slow, retrying, over budget. #c99a3a — fixed.</span></span></div>
+            <div class="status-row"><span class="status-dot is-incident"></span><span><span class="name">incident</span><span class="desc">Down, failed, destructive. #c9553a — fixed.</span></span></div>
+            <div class="status-row"><span class="status-dot is-idle"></span><span><span class="name">idle</span><span class="desc">Queued, paused. Absence of colour is a state.</span></span></div>
+          </div>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band" id="type" aria-labelledby="type-title">
+        <div class="wrap wrap-wide">
+          <p class="marker">— §04 · type</p>
+          <h2 id="type-title" class="display">
+            One grotesk,
+            <span class="line-2">one mono meta layer.</span>
+          </h2>
+          <p class="body">
+            <strong>Archivo</strong> carries everything readable — display, titles,
+            numbers, prose. <strong>JetBrains Mono</strong> carries the meta layer —
+            labels, data, tags, glyphs, code — never a paragraph. No serif, no
+            italic, anywhere.
+          </p>
+          <dl class="type-list">
+            <div class="type-row"><dt>displayLg</dt><dd><p class="t-displayLg">Signal</p><span class="meta">clamp(2.5rem, 4.8vw, 4.25rem) · 1.03 · 600 · -0.038em</span></dd></div>
+            <div class="type-row"><dt>display</dt><dd><p class="t-display">Ships on time</p><span class="meta">clamp(1.875rem, 3.6vw, 3.125rem) · 1.04 · 600 · -0.035em</span></dd></div>
+            <div class="type-row"><dt>statLg</dt><dd><p class="t-statLg">4–8 wks</p><span class="meta">clamp(2.75rem, 5vw, 4.125rem) · 0.9 · 600 · -0.045em · tabular</span></dd></div>
+            <div class="type-row"><dt>stat</dt><dd><p class="t-stat">99.9%</p><span class="meta">clamp(2rem, 3vw, 2.5rem) · 1 · 600 · -0.04em · tabular</span></dd></div>
+            <div class="type-row"><dt>quote</dt><dd><p class="t-quote">Most launches break in week three.</p><span class="meta">1.625rem · 1.4 · 500 · -0.024em</span></dd></div>
+            <div class="type-row"><dt>subhead</dt><dd><p class="t-subhead">Card and row titles</p><span class="meta">1.3125rem · 1.3 · 500 · -0.022em</span></dd></div>
+            <div class="type-row"><dt>body</dt><dd><p class="t-body">The workhorse — never wider than 52 characters.</p><span class="meta">0.9375rem · 1.7 · 400</span></dd></div>
+            <div class="type-row"><dt>bodySm</dt><dd><p class="t-bodySm">Captions under a panel, row sub-copy.</p><span class="meta">0.875rem · 1.6 · 400</span></dd></div>
+            <div class="type-row"><dt>marker</dt><dd><p class="t-marker">— §04 · speed</p><span class="meta">0.59375rem · 1.5 · 0.24em · uppercase</span></dd></div>
+            <div class="type-row"><dt>label</dt><dd><p class="t-label">panel label</p><span class="meta">0.59375rem · 1.5 · 0.2em · uppercase</span></dd></div>
+            <div class="type-row"><dt>tag</dt><dd><p class="t-tag">status word</p><span class="meta">0.5625rem · 1.5 · 0.16em · uppercase — the floor, 9px</span></dd></div>
+            <div class="type-row"><dt>data</dt><dd><p class="t-data">FROM $40K · 6–12 WEEKS</p><span class="meta">0.65625rem · 1.5 · 0.16em · uppercase · tabular</span></dd></div>
+            <div class="type-row"><dt>meta</dt><dd><p class="t-meta-sample">├─ radius 14 · border 1 ─┤</p><span class="meta">0.625rem · 1.6 · 0.06em · not uppercase · tabular</span></dd></div>
+            <div class="type-row"><dt>code</dt><dd><p class="t-code">const x = 1;</p><span class="meta">0.75rem · 1.75 · tabular</span></dd></div>
+            <div class="type-row"><dt>button</dt><dd><p class="t-button">start free trial</p><span class="meta">0.59375rem · 1.2 · 0.18em · uppercase</span></dd></div>
+          </dl>
+          <p class="body" style="margin-top: 2rem">Three weights. 700 is banned — size carries emphasis, not weight.</p>
+          <div class="weight-demo">
+            <div class="w400">Regular 400</div>
+            <div class="w500">Medium 500</div>
+            <div class="w600">Semibold 600</div>
+            <div class="banned" style="font-weight: 700;">Bold 700</div>
+          </div>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band band-light" id="space" aria-labelledby="space-title">
+        <div class="wrap wrap-wide">
+          <p class="marker">— §05 · space, shape, depth</p>
+          <h2 id="space-title" class="display">
+            Radius encodes
+            <span class="line-2">what a thing is.</span>
+          </h2>
+          <p class="body">Not how big it is. No pill buttons, no large radii.</p>
+          <div class="radius-grid">
+            <div class="radius-item"><div class="box" style="border-radius: 3px"></div><p class="name">xs · 3</p><p class="use">buttons, tags, chips, tooltips</p></div>
+            <div class="radius-item"><div class="box" style="border-radius: 4px"></div><p class="name">sm · 4</p><p class="use">fields, swatches, banners, key caps</p></div>
+            <div class="radius-item"><div class="box" style="border-radius: 6px"></div><p class="name">md · 6</p><p class="use">insets — code, terminals, toasts</p></div>
+            <div class="radius-item"><div class="box" style="border-radius: 10px"></div><p class="name">lg · 10</p><p class="use">cards in a three-up row</p></div>
+            <div class="radius-item"><div class="box" style="border-radius: 12px"></div><p class="name">xl · 12</p><p class="use">panels</p></div>
+            <div class="radius-item"><div class="box" style="border-radius: 14px"></div><p class="name">xxl · 14</p><p class="use">feature / product-shot panels</p></div>
+            <div class="radius-item"><div class="box" style="border-radius: 9999px"></div><p class="name">full</p><p class="use">dots, radio rings, slider knobs only</p></div>
+          </div>
+          <p class="body" style="margin-top: 2.25rem">
+            Spacing scale — <code class="code">theme/spacing.ts</code>, in px.
+          </p>
+          <dl class="space-bars">
+            <div class="space-bar-row"><dt class="tok">xs</dt><div class="track"><div class="fill" style="width: 8%"></div></div><dd class="px">4</dd></div>
+            <div class="space-bar-row"><dt class="tok">sm</dt><div class="track"><div class="fill" style="width: 17%"></div></div><dd class="px">8</dd></div>
+            <div class="space-bar-row"><dt class="tok">md</dt><div class="track"><div class="fill" style="width: 25%"></div></div><dd class="px">12</dd></div>
+            <div class="space-bar-row"><dt class="tok">lg</dt><div class="track"><div class="fill" style="width: 33%"></div></div><dd class="px">16</dd></div>
+            <div class="space-bar-row"><dt class="tok">xl</dt><div class="track"><div class="fill" style="width: 42%"></div></div><dd class="px">20</dd></div>
+            <div class="space-bar-row"><dt class="tok">xxl</dt><div class="track"><div class="fill" style="width: 50%"></div></div><dd class="px">24</dd></div>
+            <div class="space-bar-row"><dt class="tok">xxxl</dt><div class="track"><div class="fill" style="width: 67%"></div></div><dd class="px">32</dd></div>
+            <div class="space-bar-row"><dt class="tok">huge</dt><div class="track"><div class="fill" style="width: 100%"></div></div><dd class="px">48</dd></div>
+          </dl>
+          <p class="body" style="margin-top: 2.25rem">
+            Depth is a hairline. A light-band panel adds exactly one shadow; a
+            dark-band panel drops it and keeps the border — the only difference
+            between the two treatments. Never a shadow on hover.
+          </p>
+          <div class="shadow-demo">
+            <div class="panel on-light">shadow.panel · light band<br />0 24px 60px rgba(20,22,15,.09)</div>
+            <div class="panel on-dark">border only · dark band<br />1px solid var(--line-panel-dark)</div>
+          </div>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band" id="motion" aria-labelledby="motion-title">
+        <div class="wrap">
+          <p class="marker">— §06 · motion</p>
+          <h2 id="motion-title" class="display">
+            Motion measures;
+            <span class="line-2">it never performs.</span>
+          </h2>
+          <p class="body">Nothing bounces, shimmers or spins. One house curve: <code class="code">cubic-bezier(0.2, 0, 0, 1)</code>.</p>
+          <div class="motion-grid">
+            <div class="motion-card">
+              <p class="label">Hover — colour/border only, 140ms</p>
+              <button class="hover-swatch" type="button">hover me</button>
+              <p>Never size, never shadow. Primary buttons dip opacity (0.86) instead of swapping fill — see the primary button above.</p>
+            </div>
+            <div class="motion-card">
+              <p class="label">Live blink — steps(1, end), 1800ms</p>
+              <div class="job-current" style="background: transparent;"><span class="status-dot is-live"></span><span style="font-family: var(--font-mono); font-size: 0.75rem;">hard on/off, not a fade</span></div>
+              <p>Respects <code class="code">prefers-reduced-motion</code> — freezes solid instead of blinking.</p>
+            </div>
+            <div class="motion-card">
+              <p class="label">Disclosure — 220ms, chevron only</p>
+              <details class="disclosure">
+                <summary>What moves <span class="chevron">→</span></summary>
+                <div class="content">Only the chevron rotates. No bounce, no height animation trick.</div>
+              </details>
+            </div>
+          </div>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band band-light" id="icons" aria-labelledby="icons-title">
+        <div class="wrap wrap-wide">
+          <p class="marker">— §07 · glyphs &amp; icons</p>
+          <h2 id="icons-title" class="display">
+            Glyphs annotate;
+            <span class="line-2">icons afford.</span>
+          </h2>
+          <p class="body">
+            Glyphs are drawn with the mono font — one glyph per element, never a
+            pair as decoration.
+          </p>
+          <div class="glyph-row">
+            <div class="glyph-item"><span class="mark">→</span><span class="use">next</span></div>
+            <div class="glyph-item"><span class="mark">↗</span><span class="use">external</span></div>
+            <div class="glyph-item"><span class="mark">↑</span><span class="use">toTop</span></div>
+            <div class="glyph-item"><span class="mark">┼</span><span class="use">seam</span></div>
+            <div class="glyph-item"><span class="mark">├─</span><span class="use">railOpen</span></div>
+            <div class="glyph-item"><span class="mark">─┤</span><span class="use">railClose</span></div>
+            <div class="glyph-item"><span class="mark">·</span><span class="use">joint</span></div>
+            <div class="glyph-item"><span class="mark">§</span><span class="use">section</span></div>
+            <div class="glyph-item"><span class="mark">✓</span><span class="use">done</span></div>
+            <div class="glyph-item"><span class="mark">+</span><span class="use">expand</span></div>
+            <div class="glyph-item"><span class="mark">–</span><span class="use">collapse</span></div>
+            <div class="glyph-item"><span class="mark">/</span><span class="use">crumb</span></div>
+          </div>
+          <p class="body" style="margin-top: 2.25rem">
+            60 icons, six groups of ten. A 24 box, 20 live area, square caps, mitred
+            joins — never filled, so the whole set themes for free by inheriting ink
+            from its label. An icon alone is only legal inside a bordered box
+            (<code class="code">layout.controlBox</code>, 30px — shown here).
+          </p>
+
+          <p class="icon-group-title">Direction</p>
+          <div class="icon-grid">
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 12h18"/><path d="M14 5l7 7-7 7"/></svg></div><span class="icon-name">arrow-right</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M6 18L18 6"/><path d="M9 6h9v9"/></svg></div><span class="icon-name">arrow-up-right</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 21V4"/><path d="M5 11l7-7 7 7"/></svg></div><span class="icon-name">arrow-up</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M5 9l7 7 7-7"/></svg></div><span class="icon-name">chevron-down</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M9 4l8 8-8 8"/></svg></div><span class="icon-name">chevron-right</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 4v16"/><path d="M4 12h16"/></svg></div><span class="icon-name">plus</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 12h16"/></svg></div><span class="icon-name">minus</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M5 5l14 14"/><path d="M19 5L5 19"/></svg></div><span class="icon-name">close</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 12.5l5 5L20 6"/></svg></div><span class="icon-name">check</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg></div><span class="icon-name">menu</span></div>
+          </div>
+
+          <p class="icon-group-title">Find &amp; arrange</p>
+          <div class="icon-grid">
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></div><span class="icon-name">search</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 6h18"/><path d="M6 12h12"/><path d="M10 18h4"/></svg></div><span class="icon-name">filter</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M6 4v15"/><path d="M3 16l3 3 3-3"/><path d="M13 6h8"/><path d="M13 12h6"/><path d="M13 18h4"/></svg></div><span class="icon-name">sort</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 12h1.5"/><path d="M11.25 12h1.5"/><path d="M18.5 12h1.5"/></svg></div><span class="icon-name">more</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M3 14h7v7H3z"/><path d="M14 14h7v7h-7z"/></svg></div><span class="icon-name">grid</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 4h18v16H3z"/><path d="M3 9h18"/><path d="M9 9v11"/></svg></div><span class="icon-name">table</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></div><span class="icon-name">layers</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 6h1"/><path d="M9 6h11"/><path d="M4 12h1"/><path d="M9 12h11"/><path d="M4 18h1"/><path d="M9 18h11"/></svg></div><span class="icon-name">list</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 9V4h5"/><path d="M15 4h5v5"/><path d="M20 15v5h-5"/><path d="M9 20H4v-5"/></svg></div><span class="icon-name">expand</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M9 5h1"/><path d="M14 5h1"/><path d="M9 12h1"/><path d="M14 12h1"/><path d="M9 19h1"/><path d="M14 19h1"/></svg></div><span class="icon-name">drag</span></div>
+          </div>
+
+          <p class="icon-group-title">Code &amp; data</p>
+          <div class="icon-grid">
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M9 7l-6 5 6 5"/><path d="M15 7l6 5-6 5"/></svg></div><span class="icon-name">code</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 4h18v16H3z"/><path d="M6.5 9l3 3-3 3"/><path d="M12.5 15h5"/></svg></div><span class="icon-name">terminal</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="9" r="2"/><path d="M6 7v10"/><path d="M6 13h8a4 4 0 004-4"/></svg></div><span class="icon-name">branch</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><circle cx="12" cy="12" r="3.5"/><path d="M2 12h6.5"/><path d="M15.5 12H22"/></svg></div><span class="icon-name">commit</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 7v10"/><path d="M8 5h4a4 4 0 014 4v1"/></svg></div><span class="icon-name">merge</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg></div><span class="icon-name">file</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 6h6l2 3h10v12H3z"/></svg></div><span class="icon-name">folder</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div><span class="icon-name">database</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 4h18v6H3z"/><path d="M3 14h18v6H3z"/><path d="M6.5 7h1"/><path d="M6.5 17h1"/></svg></div><span class="icon-name">server</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 21h16"/><path d="M7 18V9"/><path d="M12 18V4"/><path d="M17 18v-6"/></svg></div><span class="icon-name">bar-chart</span></div>
+          </div>
+
+          <p class="icon-group-title">Ops &amp; time</p>
+          <div class="icon-grid">
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5.5l4 2.5"/></svg></div><span class="icon-name">clock</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 5h18v16H3z"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg></div><span class="icon-name">calendar</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M20 12a8 8 0 11-3-6.2"/><path d="M21 3v4h-4"/></svg></div><span class="icon-name">refresh</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M8 5l11 7-11 7z"/></svg></div><span class="icon-name">play</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M9 5v14"/><path d="M15 5v14"/></svg></div><span class="icon-name">pause</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 17V4"/><path d="M6 10l6-6 6 6"/><path d="M4 21h16"/></svg></div><span class="icon-name">upload</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 3v13"/><path d="M6 10l6 6 6-6"/><path d="M4 21h16"/></svg></div><span class="icon-name">download</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M6 9a6 6 0 1112 0v6l2 3H4l2-3z"/><path d="M10 21h4"/></svg></div><span class="icon-name">bell</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 18a8 8 0 1116 0"/><path d="M12 18l4-6"/></svg></div><span class="icon-name">gauge</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 4v17h18"/><path d="M6 16l5-6 4 4 6-8"/></svg></div><span class="icon-name">trend</span></div>
+          </div>
+
+          <p class="icon-group-title">Access &amp; identity</p>
+          <div class="icon-grid">
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M5 11h14v10H5z"/><path d="M8.5 11V8a3.5 3.5 0 017 0v3"/></svg></div><span class="icon-name">lock</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M5 11h14v10H5z"/><path d="M8.5 11V8a3.5 3.5 0 016.9-.9"/></svg></div><span class="icon-name">unlock</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3"/><path d="M17 3h3v3"/></svg></div><span class="icon-name">key</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></div><span class="icon-name">shield</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></svg></div><span class="icon-name">eye</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 3l18 18"/><path d="M7 6.9C4 8.7 2 12 2 12s4 6 10 6c2.1 0 3.9-.6 5.4-1.5"/><path d="M11 6.1h1c6 0 10 5.9 10 5.9s-1 1.5-2.7 3"/></svg></div><span class="icon-name">eye-off</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></div><span class="icon-name">user</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><circle cx="9" cy="8" r="3.5"/><path d="M2 21c0-4 3.1-6.5 7-6.5s7 2.5 7 6.5"/><path d="M16 5.5a3.5 3.5 0 010 7"/><path d="M18 15c2.4.9 4 2.9 4 6"/></svg></div><span class="icon-name">users</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 5h18v14H3z"/><path d="M3 6l9 7 9-7"/></svg></div><span class="icon-name">mail</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 4h18v13H8l-5 4z"/></svg></div><span class="icon-name">message</span></div>
+          </div>
+
+          <p class="icon-group-title">State &amp; action</p>
+          <div class="icon-grid">
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 4l9 16H3z"/><path d="M12 10v4.5"/><path d="M11.5 17h1"/></svg></div><span class="icon-name">alert</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><circle cx="12" cy="12" r="8.5"/><path d="M12 11.5v5.5"/><path d="M11.5 8h1"/></svg></div><span class="icon-name">info</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><circle cx="12" cy="12" r="8.5"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/></svg></div><span class="icon-name">failed</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><circle cx="12" cy="12" r="8.5"/><path d="M8 12.5l3 3 5-6"/></svg></div><span class="icon-name">passed</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg></div><span class="icon-name">live</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M9 15l6-6"/><path d="M10.5 7.5l2-2a4.2 4.2 0 016 6l-2 2"/><path d="M13.5 16.5l-2 2a4.2 4.2 0 01-6-6l2-2"/></svg></div><span class="icon-name">link</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M14 3h7v7"/><path d="M21 3L11 13"/><path d="M19 14v6H4V5h6"/></svg></div><span class="icon-name">external</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M8 8h13v13H8z"/><path d="M16 8V3H3v13h5"/></svg></div><span class="icon-name">copy</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 14h10l1-14"/></svg></div><span class="icon-name">trash</span></div>
+            <div class="icon-item"><div class="icon-box"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M4 20h4L20 8l-4-4L4 16z"/></svg></div><span class="icon-name">edit</span></div>
+          </div>
+          <p class="body" style="margin-top: 1.5rem">Stroke scales with size only, never colour: <code class="code">16 → 1</code>, <code class="code">20 → 1.25</code>, <code class="code">24 → 1.5</code>.</p>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band" id="patterns" aria-labelledby="patterns-title">
+        <div class="wrap">
+          <p class="marker">— §08 · patterns</p>
+          <h2 id="patterns-title" class="display">
+            Named shapes,
+            <span class="line-2">reused everywhere.</span>
+          </h2>
+          <dl class="pattern-list">
+            <div class="pattern-row"><dt>Section marker</dt><dd>— §04 · speed — em-dash, §NN, middot, one word. <code class="code">marker</code>.</dd></div>
+            <div class="pattern-row"><dt>Fact rail</dt><dd>Mono caps label column + full-ink value.</dd></div>
+            <div class="pattern-row"><dt>Rail line</dt><dd>├─ radius 14 · border … ─┤ — <code class="code">meta</code>, one constraint per line.</dd></div>
+            <div class="pattern-row"><dt>Index row</dt><dd>Number · title + sub · spec · tag · arrow box. Hover tints the row only.</dd></div>
+            <div class="pattern-row"><dt>Spec strip</dt><dd><code class="code">label</code> dt + content dd, hairline top and bottom.</dd></div>
+            <div class="pattern-row"><dt>Stat band</dt><dd>Four cells, hairline top/bottom, 1px dividers, <code class="code">stat</code> figure + label.</dd></div>
+            <div class="pattern-row"><dt>Credential strip</dt><dd>Wordmarks in mono caps, one fact each. No logo wall, no greyed PNGs.</dd></div>
+            <div class="pattern-row"><dt>Quote</dt><dd><code class="code">quote</code>, no quotation marks, no photo, attribution in mono caps.</dd></div>
+            <div class="pattern-row"><dt>Closer</dt><dd>Centred two-line heading. Once per page, on the last band.</dd></div>
+          </dl>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band band-light" id="states" aria-labelledby="states-title">
+        <div class="wrap">
+          <p class="marker">— §09 · states &amp; fields</p>
+          <h2 id="states-title" class="display">
+            What happened,
+            <span class="line-2">and what to do now.</span>
+          </h2>
+          <p class="body">No apology paragraph, no icon, no coloured fill — a dot, a mono status label, one line of ink, one action.</p>
+          <div class="states-grid">
+            <div>
+              <p class="label" style="margin-bottom: 0.75rem">Banner — incident</p>
+              <div class="banner-demo"><span class="dot"></span><p>Deploy failed at step 4 of 6.</p><button type="button">retry</button></div>
+            </div>
+            <div>
+              <p class="label" style="margin-bottom: 0.75rem">Toast — always inverted</p>
+              <div class="toast-demo">Saved · 4s, no progress bar</div>
+            </div>
+            <div class="empty-demo">
+              <p class="label" style="margin-bottom: 0.75rem">Empty state</p>
+              <div class="placeholder"></div>
+              <p class="body" style="margin: 0;">No shifts scheduled this week. <strong>Add one.</strong></p>
+            </div>
+            <div class="loading-demo">
+              <p class="label" style="margin-bottom: 0.75rem">Loading — real count, no spinner</p>
+              <div class="skeleton" style="width: 90%"></div>
+              <div class="skeleton" style="width: 70%"></div>
+              <div class="skeleton" style="width: 80%"></div>
+              <p class="count">loading · 3 of 12</p>
+            </div>
+          </div>
+          <p class="body" style="margin-top: 2.25rem">Every input reads like a spec line — label above, control on the band with a hairline border, help text below.</p>
+          <div class="field-demo">
+            <div class="field">
+              <label for="f-rest">Rest state</label>
+              <input id="f-rest" type="text" placeholder="Type here" />
+              <span class="help">Focus: try tabbing to it</span>
+            </div>
+            <div class="field">
+              <label for="f-err">Error state</label>
+              <input id="f-err" type="text" aria-invalid="true" value="bad value" />
+              <span class="help err">Label stays readable while it's corrected</span>
+            </div>
+            <div class="field">
+              <label for="f-dis">Disabled state</label>
+              <input id="f-dis" type="text" value="Locked" disabled />
+              <span class="help">Real quiet fill, real quiet ink</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band" id="voice" aria-labelledby="voice-title">
+        <div class="wrap">
+          <p class="marker">— §10 · voice</p>
+          <h2 id="voice-title" class="display">
+            A number,
+            <span class="line-2">not a promise.</span>
+          </h2>
+          <div class="voice-yes">
+            <p>"Most launches break in week three."</p>
+            <p>"from $25K · 4–8 weeks"</p>
+            <p>"No pitch. Just the next step."</p>
+          </div>
+          <div class="voice-no">
+            <p>world-class</p>
+            <p>cutting-edge</p>
+            <p>leverage</p>
+          </div>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band band-light" id="contrast" aria-labelledby="contrast-title">
+        <div class="wrap wrap-wide">
+          <p class="marker">— §11 · contrast gate — measured</p>
+          <h2 id="contrast-title" class="display">
+            Faint ink and the signal
+            <span class="line-2">are where this can hurt a reader.</span>
+          </h2>
+          <table class="contrast-table">
+            <thead><tr><th>Pair</th><th>Ratio</th><th>Verdict</th></tr></thead>
+            <tbody>
+              <tr><td>ink on dark</td><td class="ratio">17.1:1</td><td>AAA, any size</td></tr>
+              <tr><td>muted ink on dark</td><td class="ratio">5.7:1</td><td>AA, body and up</td></tr>
+              <tr><td>soft ink on dark</td><td class="ratio fail">3.8:1</td><td class="fail">fails AA — sub-copy 19px+</td></tr>
+              <tr><td>faint ink on dark</td><td class="ratio fail">2.5:1</td><td class="fail">fails AA — metadata only</td></tr>
+              <tr><td>signal on dark</td><td class="ratio">9.1:1</td><td>AAA, safe as text</td></tr>
+              <tr><td>ink on light</td><td class="ratio">16.1:1</td><td>AAA, any size</td></tr>
+              <tr><td>muted ink on light</td><td class="ratio">6.5:1</td><td>AA, body and up</td></tr>
+              <tr><td>soft ink on light</td><td class="ratio fail">3.0:1</td><td class="fail">fails AA — labels only</td></tr>
+              <tr><td>faint ink on light</td><td class="ratio fail">1.9:1</td><td class="fail">under the 3:1 floor — decorative only</td></tr>
+              <tr><td>signal-dim on light</td><td class="ratio">3.1:1</td><td>headings only, 24px/600 up</td></tr>
+              <tr><td>degraded on light</td><td class="ratio fail">2.3:1</td><td class="fail">under the 3:1 floor — never the dot alone</td></tr>
+            </tbody>
+          </table>
+          <ul class="note-list">
+            <li>A label that carries an instruction moves up one step of ink — <code>textFaint</code> → <code>textSoft</code>, and → <code>textMuted</code> the moment it carries meaning.</li>
+            <li>Prose never below <code>layout.minTextSize</code> (13px); a mono label never below <code>layout.minLabelSize</code> (9px).</li>
+            <li>Interactive elements are real <code>&lt;button&gt;</code> / <code>&lt;a&gt;</code>, always labeled.</li>
+            <li>Targets: <code>layout.minTouchTarget</code> (44px) minimum; an app row may be <code>layout.rowTarget</code> (36px) as long as its hit area reaches the minimum.</li>
+          </ul>
+        </div>
+      </section>
+      <hr class="band-seam" aria-hidden="true" />
+
+      <section class="band" id="banned" aria-labelledby="banned-title">
+        <div class="wrap">
+          <p class="marker">— §12 · banned</p>
+          <h2 id="banned-title" class="display">
+            Nine things
+            <span class="line-2">that don't ship.</span>
+          </h2>
+          <ul class="banned-list">
+            <li>Signal-coloured buttons — the signal never fills a control</li>
+            <li>A second accent hue, or two signals in one view</li>
+            <li>Gradients, glassmorphism, radial glows, grain overlays, animated blobs</li>
+            <li>Serif or italic anywhere; mono paragraphs</li>
+            <li>Shadows on dark bands; shadows on hover; pill buttons</li>
+            <li>Weight-700 headings</li>
+            <li>Icon libraries, illustrations, logo walls, photos beside a quote</li>
+            <li>Spinners, shimmer skeletons, progress bars without a real number</li>
+            <li>Hardcoded hex or magic numbers in components — tokens only</li>
+          </ul>
+          <p class="body" style="margin-top: 2.25rem">Self-check before calling a screen done:</p>
+          <ul class="check-list">
+            <li>Every colour, size, radius and duration came from a token — no literal.</li>
+            <li>The signal appears in at most one of its three jobs per viewport, and fills nothing.</li>
+            <li>Every heading that takes the signal is two lines, coloured on line two.</li>
+            <li>Each band's components read the band's own map — nothing straddles a seam.</li>
+            <li>Shadows: light bands only. Hover: colour or border only.</li>
+            <li>Every ink/background pair clears §11 for its size.</li>
+            <li>Focus is visible on every interactive element and never removed.</li>
+            <li>Nothing from §12 is present.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer band">
+      <p class="meta">CodaSignal "Signal" · v.03 · 2026-07</p>
+      <div class="doc-links">
+        <a href="../DESIGN.md">DESIGN.md</a>
+        <a href="../CORE.md">CORE.md</a>
+        <a href="conventions.html">Conventions guide</a>
+        <a href="#top">Back to top</a>
+      </div>
+    </footer>
+    <script>
+      document.querySelectorAll('[data-signal-choice]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.documentElement.setAttribute('data-signal', btn.dataset.signalChoice);
+          document.querySelectorAll('[data-signal-choice]').forEach(function (b) {
+            b.setAttribute('aria-pressed', String(b === btn));
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -19,6 +19,21 @@ you start — the theme tokens copied in Phase 3 already implement DESIGN.md.
 
 ---
 
+
+Copy the guard-rail module and its configuration:
+
+- `templates/scripts/guardrails/` → `scripts/guardrails/` (the whole directory,
+  **verbatim** — it is the kit's copy and is never hand-edited; change
+  `guardrails.config.json` instead)
+- `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
+  ceilings, allowed directories and banned dependencies)
+- `templates/.claude/settings.json` → `.claude/settings.json` (**committed** —
+  the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
+  still writing the code; CORE guard-rail layer 2)
+
+`scripts/guardrails/run.sh` needs `jq` on PATH and exits 3 without it, so a
+missing dependency can never look like a clean run.
+
 ## Phase 0 — Prerequisites
 
 Run these and confirm each; if any is missing, install it (or tell the user how)
@@ -166,7 +181,7 @@ bun add -d oxlint oxfmt oxlint-tsgolint knip jscpd lefthook
 
 # Always-on runtime libs (see LIBRARIES.md "Baseline")
 bunx expo install react-native-svg react-native-reanimated react-native-gesture-handler react-native-safe-area-context
-bun add @tanstack/react-query date-fns zod
+bun add @tanstack/react-query @tanstack/react-form date-fns zod
 ```
 
 Copy these templates into the project root:
@@ -181,7 +196,7 @@ Copy these templates into the project root:
 | `templates/jest.setup.ts` | `jest.setup.ts` |
 | `templates/knip.json` | `knip.json` (unused files/exports/dependencies) |
 | `templates/.jscpd.json` | `.jscpd.json` (copy-paste detection; **keep both `"threshold": 0` and `"exitCode": 1`** — the threshold is what fails the gate, the exit code only matters if it is later raised) |
-| `templates/scripts/check-structure.sh` | `scripts/check-structure.sh` (`mkdir -p scripts` first) |
+| `templates/scripts/guardrails/` | `scripts/guardrails/` — the WHOLE directory — `run.sh` sources `lib/` and `checks/` from beside itself, so copying it alone fails at runtime (`mkdir -p scripts` first) |
 
 Copy the lefthook config **before** installing hooks. Use the `.yml` extension:
 lefthook 2.x's `install` generates a `lefthook.yml` stub that **shadows** a
@@ -210,7 +225,7 @@ Set these scripts in `package.json`. This block **overrides** the values
     "fmt:check": "oxfmt --check",
     "test": "jest --watchAll=false --coverage=false",
     "test:changed": "jest --watchAll=false --coverage=false --changedSince=origin/main",
-    "check:structure": "bash scripts/check-structure.sh",
+    "check:structure": "bash scripts/guardrails/run.sh",
     "check:unused": "knip",
     "check:dupes": "jscpd",
     "check": "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run check:unused && bun run check:dupes && bun run test",
@@ -220,7 +235,7 @@ Set these scripts in `package.json`. This block **overrides** the values
 ```
 
 `bun run check` is the one-command gate, in CORE gate order: `tsc --noEmit` +
-`oxlint --deny-warnings` + `oxfmt --check` + `bash scripts/check-structure.sh` +
+`oxlint --deny-warnings` + `oxfmt --check` + `bash scripts/guardrails/run.sh` +
 `jest`. The structure script enforces the folder rules the linter can't see
 (allowed `src/` dirs, per-folder READMEs, no barrel files, `lefthook.yml` not
 `.yaml`); oxlint's `no-restricted-imports` + `unicorn/filename-case` + `max-lines`
@@ -299,7 +314,7 @@ Then:
    `src/utilities`, `src/providers`, `src/constants`, `src/types`, and `assets`,
    generated from `templates/folder-README.md` (fill in the folder's purpose + a
    short "what's inside" list — seed it now, keep it updated as you add files).
-   Every top-level `src/` directory carries one — `scripts/check-structure.sh`
+   Every top-level `src/` directory carries one — `scripts/guardrails/run.sh`
    enforces it.
 6. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` (drop the `.template`
    suffix). Fill in the project name + one-line description. This is the rulebook

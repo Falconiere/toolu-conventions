@@ -17,7 +17,8 @@ committed; CI installs with `--frozen-lockfile`.
 | Build tool / dev server | `vite` | Also the test runner's engine, so one config covers build and test. |
 | UI runtime | `react` + `react-dom` | Upgrade together. |
 | Routing | `@tanstack/react-router` + `@tanstack/router-plugin` | Type-safe file-based routing over `src/app/`; the plugin generates `src/route-tree.gen.ts`. |
-| Server state | `@tanstack/react-query` v5 | Caching, retries, background refetch, mutations. Mounted via `QueryClientProvider` in `AppProviders`. |
+| Server state | `@tanstack/react-query` v5 | Caching, retries, background refetch, mutations. Mounted via `QueryClientProvider` in `AppProviders`. **House default** (CORE). |
+| Forms | `@tanstack/react-form` + `zod` | **House default** (CORE). Headless form state with Zod validators — same schemas as oRPC inputs when the fields match. |
 | API client | `@orpc/client` + `@orpc/tanstack-query` | The typed client for our own API, plus its Query bindings. Query keys derive from the procedure path — no key factory to write. |
 | Validation | `zod` (v4) | Every boundary: env, any response this app parses itself, form schemas. Types come from `z.infer`. |
 | Dead code / unused deps | `knip` | Gate step. Fails on an unused file, export, or dependency. |
@@ -62,6 +63,53 @@ That is CORE rule 13 made structural: because the config bans type assertions,
 the only way to get a typed body out of this client is to hand it something that
 actually validates one. Extend `http.ts` rather than reaching for a library.
 
+### Forms: TanStack Form + Zod
+
+`@tanstack/react-form` is the house form library (CORE). Zod validates via
+**Standard Schema** — pass the schema object directly. Do **not** install
+`@tanstack/zod-form-adapter` or `zodValidator` (removed / deprecated).
+
+```tsx
+import { useForm } from '@tanstack/react-form';
+import { z } from 'zod';
+
+const ShiftForm = z.object({
+  title: z.string().min(1),
+  locationId: z.string().min(1),
+});
+
+export function CreateShiftForm({ onCreate }: { onCreate: (v: z.infer<typeof ShiftForm>) => void }) {
+  const form = useForm({
+    defaultValues: { title: '', locationId: '' },
+    validators: { onSubmit: ShiftForm },
+    onSubmit: async ({ value }) => onCreate(value),
+  });
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void form.handleSubmit();
+      }}
+    >
+      <form.Field
+        name="title"
+        children={(field) => (
+          <input
+            value={field.state.value}
+            onBlur={field.handleBlur}
+            onChange={(e) => field.handleChange(e.target.value)}
+          />
+        )}
+      />
+    </form>
+  );
+}
+```
+
+Where the fields match an oRPC procedure's input schema, reuse that schema
+(or `.pick` / `.omit` from it) instead of restating shapes.
+
 ---
 
 ## Reach-for-these — add when the project needs them
@@ -71,9 +119,8 @@ backend ones; add the rest as features demand.
 
 | Concern | Library | When / why |
 | --- | --- | --- |
-| Auth | **`better-auth`** | The house auth. The console uses the **client** half (`better-auth/react` → `createAuthClient`, `useSession`, `signIn`, `signOut`); the server half lives in the `backend-ts` service (or this project's opt-in Worker API) and owns the database. Never put an auth secret in this bundle. |
+| Auth | **`better-auth`** | The house auth (CORE). The console uses the **client** half (`better-auth/react` → `createAuthClient`, `useSession`, `signIn`, `signOut`); the server half lives in the `backend-ts` service (or this project's opt-in Worker API) and owns the database. Never put an auth secret in this bundle. |
 | Database | **Turso** via `@tursodatabase/serverless` | Only if you opted into the same-project Worker API — the DB is reachable from the Worker, never from the browser. See the `backend-ts` kit for the full pattern. |
-| Forms | `react-hook-form` + `zod` + `@hookform/resolvers` | Performant, uncontrolled-by-default forms. The form's Zod schema is the same kind of schema everything else uses; where the field shapes match a procedure's input, derive it from that schema rather than restating it. |
 | Dates | `date-fns` | Tree-shakeable, immutable. For formatting only, prefer the built-in `Intl.DateTimeFormat` / `Intl.NumberFormat` first. |
 | Styling (opt-in) | `tailwindcss` + `@tailwindcss/vite` | Only if the design context asks for it. The theme tokens stay the source of truth — see `globals.tailwind.css`. |
 | Icons | `lucide-react` | Tree-shakeable SVG icon set. Import only the icons you use; don't pull a whole icon font. |
@@ -87,7 +134,7 @@ Do not add these without an explicit, documented reason.
 
 | Library | Avoid because | Use instead |
 | --- | --- | --- |
-| **`axios`** | A dependency for something the platform already does. `fetch` is native in every runtime we ship to, and axios adds a second error model, its own cancellation story, and a bundle cost — while still needing a wrapper to be usable. | **`src/utilities/http.ts`** — the kit's fetch client. Blocked by `no-restricted-imports` *and* by `check-structure.sh` reading `package.json`. |
+| **`axios`** | A dependency for something the platform already does. `fetch` is native in every runtime we ship to, and axios adds a second error model, its own cancellation story, and a bundle cost — while still needing a wrapper to be usable. | **`src/utilities/http.ts`** — the kit's fetch client. Blocked by `no-restricted-imports` *and* by `guardrails` reading `package.json`. |
 | Bare `fetch` scattered through features | Base URL, auth headers, timeouts and error shaping get re-implemented (differently) at each call site. | `orpc` for our API; the one configured `http` client for everything else. |
 | Hand-written `queryKey` arrays for oRPC calls | Two places to keep in sync, and an invalidation that silently matches nothing when they drift. | `orpc.<path>.key()` — derived from the procedure path. |
 | `trpc` | Same idea, but oRPC is the one this kit picked: it speaks OpenAPI as well as RPC, and its schema story is plain Zod. Running both means two clients and two conventions. | `@orpc/client`. |
@@ -98,6 +145,8 @@ Do not add these without an explicit, documented reason.
 | A type declared next to its schema (`interface Shift` beside `const Shift = z.object(...)`) | They drift, silently, and the compiler cannot tell you which one is right. | `type Shift = z.infer<typeof Shift>`. |
 | `moment` | Huge, mutable, deprecated. | `date-fns`, or the built-in `Intl` APIs. |
 | CSS-in-JS runtimes (`styled-components`, `emotion`) | Runtime cost for something CSS variables already solve, and they fight the band seam. | CSS Modules / plain CSS referencing `src/ui/theme/*` tokens. |
+| `react-hook-form` / Formik / Final Form | A second form stack next to the house choice. | **`@tanstack/react-form`** + Zod (CORE). |
+| `@tanstack/zod-form-adapter` / `zodValidator` | Deprecated. TanStack Form accepts Zod via Standard Schema natively. | Pass the Zod schema in `validators` directly. |
 | `react-router` (alongside TanStack Router) | Two routers is two route trees, two link components, and no type safety across the seam. | `@tanstack/react-router` — the one router. |
 | Global state for server data | Server data cached in a client store goes stale and desyncs. | React Query, or a route loader. |
 

@@ -15,7 +15,8 @@ picks the version compatible with your SDK.
 | Concern | Library | Notes |
 | --- | --- | --- |
 | Routing | `expo-router` | File-based, typed routes. |
-| Server state / data fetching | `@tanstack/react-query` v5 | Caching, retries, background refetch. The default for anything async. |
+| Server state / data fetching | `@tanstack/react-query` v5 | Caching, retries, background refetch. **House default** (CORE) for anything async. |
+| Forms | `@tanstack/react-form` + `zod` | **House default** (CORE). Pass Zod schemas directly via Standard Schema (`validators: { onChange: schema }`) — do **not** add `@tanstack/zod-form-adapter`. Same form stack as the console. |
 | Dates | `date-fns` | Tree-shakeable, immutable, no global state. `format`, `parseISO`, `differenceInHours`, etc. |
 | SVG | `react-native-svg` | Required by icons and any vector asset. |
 | Animation | `react-native-reanimated` | Ships with Expo; the standard for performant animation. |
@@ -42,10 +43,9 @@ demand.
 | API client (our own API) | **`@orpc/client` + `@orpc/tanstack-query`** | The typed client for our own service, plus its TanStack Query bindings. Query keys derive from the procedure path — no key factory to write. Same client the console uses. |
 | Validation | **`zod`** (v4) | Every boundary: env, any response the app parses itself, form schemas. Types come from `z.infer`. |
 | HTTP client (everything else) | **`src/utilities/http.ts`** (ships with the kit, not npm) | The house fetch client — `createHttpClient` gives `get`/`post`/`put`/`patch`/`delete`, a base URL, per-request timeouts, a headers hook for the auth token, and typed `HttpError`/`HttpAbortError`. Copy it from `stacks/console/templates/utilities/http.ts`; it is written to run on Hermes (no `AbortSignal.timeout`/`any`). **Not axios** — see AVOID. |
-| Forms | `react-hook-form` + `zod` + `@hookform/resolvers` | Performant, uncontrolled-by-default forms. The form's Zod schema is the same kind of schema everything else uses; where the fields match a procedure's input, derive it from that schema rather than restating it. |
 | Local key-value storage | `@react-native-async-storage/async-storage` | The opt-in local-storage integration. Async API, no native config beyond install. Good for cache, flags, small persisted UI state. |
 | Secure storage / tokens | `expo-secure-store` | Auth tokens + secrets (Keychain / Keystore). Backs the opt-in auth scaffold. |
-| Auth | **`better-auth`** (+ `expo-secure-store`) | The house auth. The app uses the **client** half (`better-auth/react` → `createAuthClient`, `useSession`, `signIn`, `signOut`) with its Expo plugin storing the session in `expo-secure-store`; the server half lives in the `backend-ts` service and owns the database. Point the `http` client's `headers` hook at the session token and gate routes with an `(auth)` route group. Check better-auth's current Expo docs for the plugin's exact setup — it moves faster than this kit. |
+| Auth | **`better-auth`** (+ `expo-secure-store`) | The house auth (CORE). The app uses the **client** half (`better-auth/react` → `createAuthClient`, `useSession`, `signIn`, `signOut`) with its Expo plugin storing the session in `expo-secure-store`; the server half lives in the `backend-ts` service and owns the database. Point the `http` client's `headers` hook at the session token and gate routes with an `(auth)` route group. Check better-auth's current Expo docs for the plugin's exact setup — it moves faster than this kit. |
 | Icons | `@react-native-vector-icons/feather` + `@react-native-vector-icons/material-design-icons` | Lean subset — do **not** install all icon families. |
 | Images | `expo-image` | Caching, transitions, better perf than `<Image>`. |
 
@@ -81,6 +81,8 @@ documented reason.
 | `react-native-unistyles` | Heavy theming/breakpoint runtime + TS module augmentation for what plain styles do fine. Couples every component to it. | `StyleSheet.create` + the plain `src/ui/theme/*` token files. |
 | `nativewind` / Tailwind-in-RN | A second styling paradigm on top of `StyleSheet`; class strings dodge the theme tokens. | `StyleSheet.create` + `src/ui/theme/*`. |
 | `@gorhom/bottom-sheet` | Large, gesture-heavy, native complexity for behavior most apps don't need. | `react-native-actions-sheet`, or a screen/route. |
+| `react-hook-form` / Formik / Final Form | A second form stack next to the house choice. | **`@tanstack/react-form`** + Zod (CORE). |
+| `@tanstack/zod-form-adapter` / `zodValidator` | Deprecated. TanStack Form accepts Zod via Standard Schema natively. | Pass the Zod schema in `validators` directly. |
 | `moment` | Huge, mutable, deprecated. | `date-fns`. |
 | `yup` / `valibot` / `joi`, or hand-written type guards | The kit has one validator. A second one means two ways to describe the same shape and no single place to read it. | **`zod`** — env, parsed responses, forms, storage. Types via `z.infer` (CORE rule 13). |
 | A type declared beside its schema | They drift, silently, and the compiler cannot say which is right. | `type X = z.infer<typeof X>`. |

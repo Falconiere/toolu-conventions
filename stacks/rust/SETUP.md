@@ -14,6 +14,24 @@ KIT=/path/to/toolu-conventions          # this kit's checkout
 PROJECT=project-name                      # kebab-case name from intake
 ```
 
+
+Copy the guard-rail module and its configuration:
+
+- `templates/scripts/guardrails/` → `scripts/guardrails/` (the whole directory,
+  **verbatim** — it is the kit's copy and is never hand-edited; change
+  `guardrails.config.json` instead)
+- `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
+  ceilings, allowed directories and banned dependencies)
+- `templates/.claude/settings.json` → `.claude/settings.json` (**committed** —
+  the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
+  still writing the code; CORE guard-rail layer 2)
+
+`scripts/guardrails/run.sh` needs `jq` **and ast-grep** on PATH and exits 3
+without either, so a missing dependency can never look like a clean run. Rust is
+the stack that still needs ast-grep — oxlint cannot parse Rust, so the pattern
+rules have no other enforcer. Install with `cargo install ast-grep --locked`
+locally; the CI template installs it as its own step before the structure gate.
+
 ## 0. Prerequisites
 
 ```bash
@@ -56,8 +74,9 @@ cp "$KIT/stacks/rust/templates/README.md"             README.md
 cp "$KIT/stacks/rust/templates/CLAUDE.md.template"    CLAUDE.md
 
 mkdir -p scripts
-cp "$KIT/stacks/rust/templates/scripts/check-structure.sh" scripts/check-structure.sh
-chmod +x scripts/check-structure.sh
+# The WHOLE directory — run.sh sources lib/ and checks/ from beside itself.
+cp -R "$KIT/stacks/rust/templates/scripts/guardrails" scripts/guardrails
+chmod +x scripts/guardrails/run.sh
 
 mkdir -p .github/workflows
 cp "$KIT/stacks/rust/templates/.github/workflows/ci.yml"          .github/workflows/ci.yml
@@ -92,8 +111,10 @@ Follow [`STRUCTURE.md`](./STRUCTURE.md). In short:
   item (`shift_store.rs` → `struct ShiftStore`).
 - **No `mod.rs` barrels** — declare submodules from the parent file. When `foo.rs`
   grows into a folder, keep `src/foo.rs` beside `src/foo/`.
-- Unit tests in-file under `#[cfg(test)] mod tests`; integration tests in the
-  sibling top-level `tests/` directory, one file per surface. Real data, no mocks.
+- Unit tests in a sibling `tests/` folder (`parse_config.rs` →
+  `tests/parse_config.rs`) — **never** in the same file as the logic. Integration
+  tests in the top-level `tests/` directory, one file per surface. Real data, no
+  mocks.
 
 ## 4. Install git hooks
 
@@ -154,11 +175,11 @@ This is the one command that must be green before the scaffold is done — the s
 sequence CI and the pre-push hook run:
 
 ```bash
-cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/check-structure.sh && cargo test
+cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/guardrails/run.sh && cargo test
 ```
 
 `-D warnings` promotes every clippy `warn` (pedantic group, `missing_docs`,
-`unwrap_used`/`expect_used`) to a hard error. `scripts/check-structure.sh`
+`unwrap_used`/`expect_used`) to a hard error. `scripts/guardrails/run.sh`
 enforces the structure rules the compiler can't see — snake_case `.rs` filenames,
 the 500 code-line ceiling (tests exempt), and that the lefthook config is `.yml`.
 Fix the code; never silence a lint to pass. The freshly scaffolded skeleton passes

@@ -1,0 +1,81 @@
+{
+  "$schema": "./scripts/guardrails/schema.json",
+  "version": 1,
+  "srcRoot": "src",
+  "src": {
+    "topLevel": [
+      "pages",
+      "layouts",
+      "sections",
+      "ui",
+      "content",
+      "utilities",
+      "constants",
+      "types"
+    ],
+    "nested": {
+      "ui": [
+        "theme",
+        "__tests__"
+      ]
+    },
+    "requireReadme": [
+      "layouts",
+      "sections",
+      "ui",
+      "content",
+      "utilities",
+      "constants",
+      "types"
+    ]
+  },
+  "fileSize": {
+    "max": 300,
+    "skipExtensions": [
+      ".ts"
+    ]
+  },
+  "functionSize": {
+    "max": 50
+  },
+  "testDir": "__tests__",
+  "testGlob": "*.test.ts *.test.tsx",
+  "barrelNames": [
+    "index.ts",
+    "index.tsx"
+  ],
+  "barrelExempt": [],
+  "bannedDeps": [
+    "axios",
+    "yup",
+    "joi",
+    "valibot",
+    "superstruct",
+    "ajv"
+  ],
+  "requiredFiles": [
+    {
+      "path": "src/pages/404.astro",
+      "why": "without it wrangler serves dead URLs as 200 with an empty body and search engines index them"
+    }
+  ],
+  "secrets": {
+    "neverTracked": [
+      ".env"
+    ]
+  },
+  "shadowConfigs": [
+    {
+      "found": "lefthook.yaml",
+      "use": "lefthook.yml",
+      "why": "the lefthook 2.x installer shadows a .yaml, so the hooks never run"
+    }
+  ],
+  "ownedByLinter": [
+    "folder-tree",
+    "colocated-tests",
+    "no-barrels",
+    "filename-case",
+    "patterns"
+  ]
+}

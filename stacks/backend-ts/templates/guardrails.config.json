@@ -1,0 +1,90 @@
+{
+  "$schema": "./scripts/guardrails/schema.json",
+  "version": 1,
+  "srcRoot": "src",
+  "src": {
+    "topLevel": [
+      "rpc",
+      "routes",
+      "services",
+      "utilities",
+      "constants",
+      "types"
+    ],
+    "nested": {
+      "rpc": [
+        "__tests__"
+      ],
+      "routes": [
+        "__tests__"
+      ],
+      "services": [
+        "__tests__"
+      ]
+    },
+    "requireReadme": [
+      "rpc",
+      "routes",
+      "services",
+      "utilities",
+      "constants",
+      "types"
+    ]
+  },
+  "fileSize": {
+    "max": 300,
+    "skipExtensions": [
+      ".ts"
+    ]
+  },
+  "functionSize": {
+    "max": 50
+  },
+  "testDir": "__tests__",
+  "testGlob": "*.test.ts",
+  "barrelNames": [
+    "index.ts",
+    "index.tsx"
+  ],
+  "barrelExempt": [
+    "src/index.ts"
+  ],
+  "bannedDeps": [
+    "axios",
+    "yup",
+    "joi",
+    "valibot",
+    "superstruct",
+    "ajv"
+  ],
+  "requiredFiles": [
+    {
+      "path": "wrangler.jsonc",
+      "why": "the Worker has no deploy config without it"
+    }
+  ],
+  "secrets": {
+    "neverTracked": [
+      ".dev.vars"
+    ]
+  },
+  "shadowConfigs": [
+    {
+      "found": "lefthook.yaml",
+      "use": "lefthook.yml",
+      "why": "the lefthook 2.x installer shadows a .yaml, so the hooks never run"
+    },
+    {
+      "found": "wrangler.toml",
+      "use": "wrangler.jsonc",
+      "why": "two Worker configs is how you deploy one thing and test another"
+    }
+  ],
+  "ownedByLinter": [
+    "folder-tree",
+    "colocated-tests",
+    "no-barrels",
+    "filename-case",
+    "patterns"
+  ]
+}

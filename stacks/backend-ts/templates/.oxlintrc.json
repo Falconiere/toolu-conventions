@@ -1,5 +1,8 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": [
+    "./scripts/guardrails/oxlint-plugin/index.js"
+  ],
   "options": {
     "typeAware": true
   },
@@ -34,6 +37,14 @@
       "error",
       {
         "max": 300,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
+    ],
+    "max-lines-per-function": [
+      "error",
+      {
+        "max": 50,
         "skipBlankLines": true,
         "skipComments": true
       }
@@ -143,7 +154,12 @@
       }
     ],
     "prefer-const": "error",
-    "no-var": "error"
+    "no-var": "error",
+    "house/folder-tree": "error",
+    "house/colocated-tests": "error",
+    "house/no-barrels": "error",
+    "house/no-bare-fetch": "error",
+    "house/no-hardcoded-hex": "error"
   },
   "overrides": [
     {
@@ -169,7 +185,8 @@
         "typescript/no-unsafe-member-access": "off",
         "typescript/no-unsafe-argument": "off",
         "typescript/no-floating-promises": "off",
-        "no-console": "off"
+        "no-console": "off",
+        "max-lines-per-function": "off"
       }
     },
     {
@@ -179,7 +196,25 @@
       ],
       "rules": {
         "max-lines": "off",
-        "import/no-default-export": "off"
+        "import/no-default-export": "off",
+        "max-lines-per-function": "off"
+      }
+    },
+    {
+      "files": [
+        "**/utilities/http.ts"
+      ],
+      "rules": {
+        "max-lines-per-function": "off"
+      }
+    },
+    {
+      "files": [
+        "scripts/guardrails/oxlint-plugin/**/*.js"
+      ],
+      "rules": {
+        "import/no-default-export": "off",
+        "no-restricted-globals": "off"
       }
     }
   ]

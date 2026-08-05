@@ -57,7 +57,7 @@ while IFS= read -r -d '' f; do
   ruby -ryaml -e "YAML.load_file(ARGV[0])" "$f" >/dev/null 2>&1 || bad "yaml parse: $f"
 done < <(find stacks/*/templates .github -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 2>/dev/null)
 
-# The kit calls all four guard-rail layers mandatory in CORE.md; it has to run
+# The kit calls all five guard-rail layers mandatory in CORE.md; it has to run
 # them itself. This is the check that keeps it honest.
 for wf in .github/workflows/ci.yml .github/workflows/code-review.yml; do
   [ -f "$wf" ] || bad "the kit does not run its own guard rails: missing $wf"
@@ -242,12 +242,12 @@ for d in stacks/*/; do
 done
 
 # --- The console stack must NOT ship a vitest config: its own
-#     check-structure.sh fails the gate when one exists (a vitest config
+#     guardrails/run.sh fails the gate when one exists (a vitest config
 #     replaces vite.config.ts rather than merging, dropping the router plugin
 #     and the @/* alias). Shipping one would hand every new project a template
 #     that its own gate rejects. ---
 [ -e stacks/console/templates/vitest.config.ts ] \
-  && bad "console ships a vitest.config.ts — its check-structure.sh rejects one; the test block belongs in vite.config.ts"
+  && bad "console ships a vitest.config.ts — its guardrails/run.sh rejects one; the test block belongs in vite.config.ts"
 
 # --- Gate extras: every TypeScript stack ships knip + jscpd configs, and the
 #     jscpd config carries exitCode 1. Measured on 4.0.0, 4.2.5 and 5.0.14:
@@ -267,6 +267,120 @@ for stack in console marketing backend-ts expo; do
       || bad "jscpd config must set exitCode 1 (keeps it correct if threshold is ever raised): $jscpd_cfg"
   fi
 done
+
+
+# --- agent-guardrails: the copies, the declaration, and the old name ---------
+# Three assertions, each guarding a distinct failure:
+#   (a) a stack's copy drifting from the kit source, which is the exact rot the
+#       module was built to end;
+#   (b) the ceiling DECLARED in guardrails.config.json disagreeing with the one
+#       oxlint actually enforces — two numbers for one rule is how they part
+#       company;
+#   (c) a lingering reference to the script guardrails replaced, which would
+#       leave a generated project invoking a file that no longer exists.
+gr_manifest='run.sh lib checks patterns schema.json oxlint-plugin'
+for stack_dir in stacks/*/; do
+  stack=$(basename "$stack_dir")
+  copy="$stack_dir/templates/scripts/guardrails"
+  [ -d "$copy" ] || { bad "guardrails: $stack has no scripts/guardrails/ copy"; continue; }
+  for item in $gr_manifest; do
+    diff -r "guardrails/$item" "$copy/$item" >/dev/null 2>&1 \
+      || bad "guardrails: $stack copy of $item differs from guardrails/ — re-copy, don't hand-edit"
+  done
+  # __tests__ deliberately stays in the kit: it is a deliberately-violating tree,
+  # and shipping it would trip the very gate it exists to test.
+  [ -e "$copy/__tests__" ] \
+    && bad "guardrails: $stack ships __tests__/ — the fixtures belong to the kit only"
+
+  cfg="$stack_dir/templates/guardrails.config.json"
+  [ -f "$cfg" ] || { bad "guardrails: $stack has no guardrails.config.json"; continue; }
+  jq empty "$cfg" >/dev/null 2>&1 || { bad "guardrails: $stack config is not valid JSON"; continue; }
+  for key in version srcRoot src fileSize functionSize testDir testGlob barrelNames bannedDeps shadowConfigs; do
+    jq -e --arg k "$key" 'has($k)' "$cfg" >/dev/null 2>&1 \
+      || bad "guardrails: $stack config is missing required key $key"
+  done
+
+  # (b) declaration vs enforcer.
+  oxlintrc="$stack_dir/templates/.oxlintrc.json"
+  if [ -f "$oxlintrc" ]; then
+    declared_file=$(jq -r '.fileSize.max' "$cfg")
+    actual_file=$(jq -r '.rules["max-lines"][1].max // empty' "$oxlintrc")
+    if [ -n "$actual_file" ] && [ "$declared_file" != "$actual_file" ]; then
+      bad "guardrails: $stack declares fileSize.max=$declared_file but .oxlintrc.json max-lines=$actual_file"
+    fi
+    declared_fn=$(jq -r '.functionSize.max' "$cfg")
+    actual_fn=$(jq -r '.rules["max-lines-per-function"][1].max // empty' "$oxlintrc")
+    if [ -n "$actual_fn" ] && [ "$declared_fn" != "$actual_fn" ]; then
+      bad "guardrails: $stack declares functionSize.max=$declared_fn but .oxlintrc.json max-lines-per-function=$actual_fn"
+    fi
+
+    # The per-glob ceilings need the same assertion as the base one. console and
+    # expo declare functionSize.overrides {"**/*.tsx": 80} and carry a matching
+    # .oxlintrc.json override; without this, one can be edited and the other left
+    # behind — two numbers for one rule, which is the whole failure mode.
+    while IFS=$'\t' read -r glob want; do
+      [ -n "$glob" ] || continue
+      got=$(jq -r --arg g "$glob" \
+        '[.overrides[]? | select((.files // []) | index($g)) | .rules["max-lines-per-function"][1].max] | first // empty' \
+        "$oxlintrc")
+      if [ -z "$got" ]; then
+        bad "guardrails: $stack declares functionSize.overrides[\"$glob\"]=$want but .oxlintrc.json has no max-lines-per-function override for $glob"
+      elif [ "$got" != "$want" ]; then
+        bad "guardrails: $stack declares functionSize.overrides[\"$glob\"]=$want but .oxlintrc.json enforces $got"
+      fi
+    done < <(jq -r '.functionSize.overrides // {} | to_entries[] | "\(.key)\t\(.value)"' "$cfg")
+  fi
+
+  clippy_cfg="$stack_dir/templates/clippy.toml"
+  if [ -f "$clippy_cfg" ]; then
+    declared_fn=$(jq -r '.functionSize.max' "$cfg")
+    actual_fn=$(sed -n 's/^too-many-lines-threshold *= *\([0-9]*\).*/\1/p' "$clippy_cfg")
+    if [ -n "$actual_fn" ] && [ "$declared_fn" != "$actual_fn" ]; then
+      bad "guardrails: $stack declares functionSize.max=$declared_fn but clippy.toml too-many-lines-threshold=$actual_fn"
+    fi
+  fi
+
+  # Every check declared linter-owned must actually be a rule oxlint runs.
+  # Without this, moving a check to ownedByLinter and forgetting the oxlint side
+  # silently disables it in BOTH places — the fail-open this whole module exists
+  # to prevent, one level up.
+  owned=$(jq -r '.ownedByLinter // [] | .[]' "$cfg")
+  if [ -n "$owned" ]; then
+    [ -f "$oxlintrc" ] || bad "guardrails: $stack declares ownedByLinter but ships no .oxlintrc.json"
+    jq -e '.jsPlugins | index("./scripts/guardrails/oxlint-plugin/index.js")' "$oxlintrc" >/dev/null 2>&1 \
+      || bad "guardrails: $stack declares ownedByLinter but .oxlintrc.json does not load the house plugin"
+    for check in $owned; do
+      case "$check" in
+        # These are enforced by oxlint built-ins rather than the house plugin.
+        filename-case) jq -e '.rules["unicorn/filename-case"]' "$oxlintrc" >/dev/null 2>&1 \
+          || bad "guardrails: $stack owns filename-case by linter but unicorn/filename-case is not configured" ;;
+        patterns) jq -e '.rules["house/no-bare-fetch"] and .rules["house/no-hardcoded-hex"]' "$oxlintrc" >/dev/null 2>&1 \
+          || bad "guardrails: $stack owns patterns by linter but the house pattern rules are not configured" ;;
+        *) jq -e --arg r "house/$check" '.rules[$r]' "$oxlintrc" >/dev/null 2>&1 \
+          || bad "guardrails: $stack owns $check by linter but rule house/$check is not configured" ;;
+      esac
+    done
+  fi
+
+  hooks="$stack_dir/templates/.claude/settings.json"
+  [ -f "$hooks" ] || bad "guardrails: $stack ships no .claude/settings.json — the agent-hook layer is mandatory"
+done
+
+# (c) The old name must be gone everywhere the kit ships from. docs/toolu/ is
+# excluded on purpose: the spec and decision record name the file they replace,
+# and an assertion that failed on its own design docs would be self-inflicted.
+# The needle lives in a variable and this file excludes itself: otherwise the
+# assertion matches its own source and the gate fails on the check, not the code.
+old_gate='check-structure'
+gr_stale=$(grep -rl "$old_gate" stacks/ scripts/ CORE.md README.md .github/ \
+  --exclude=validate-templates.sh 2>/dev/null | tr '\n' ' ')
+[ -n "$gr_stale" ] && bad "guardrails: '$old_gate' still referenced in $gr_stale" 
+
+# The kit runs the guard rails on itself.
+bash guardrails/__tests__/run-fixtures.sh >/dev/null 2>&1 \
+  || bad "guardrails: the fixture suite is red — run: bash guardrails/__tests__/run-fixtures.sh"
+bash guardrails/__tests__/run-plugin.sh >/dev/null 2>&1 \
+  || bad "guardrails: the oxlint plugin suite is red — run: bash guardrails/__tests__/run-plugin.sh"
 
 # --- Rust skeleton: materialize into temp crate, fmt + clippy offline ---
 tmpcrate="$(mktemp -d)/skel"

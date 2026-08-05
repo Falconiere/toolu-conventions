@@ -26,6 +26,21 @@ Read [`../../CORE.md`](../../CORE.md), [`STRUCTURE.md`](./STRUCTURE.md), and
 
 ---
 
+
+Copy the guard-rail module and its configuration:
+
+- `templates/scripts/guardrails/` → `scripts/guardrails/` (the whole directory,
+  **verbatim** — it is the kit's copy and is never hand-edited; change
+  `guardrails.config.json` instead)
+- `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
+  ceilings, allowed directories and banned dependencies)
+- `templates/.claude/settings.json` → `.claude/settings.json` (**committed** —
+  the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
+  still writing the code; CORE guard-rail layer 2)
+
+`scripts/guardrails/run.sh` needs `jq` on PATH and exits 3 without it, so a
+missing dependency can never look like a clean run.
+
 ## Phase 0 — Prerequisites & intake
 
 ### 0.1 Check the toolchain
@@ -108,8 +123,8 @@ generated):
   stops throwing and would otherwise report clones and exit 0.
 - `templates/lefthook.yml` → `lefthook.yml` (must be `.yml`, not `.yaml` — see
   the install note below)
-- `templates/scripts/check-structure.sh` → `scripts/check-structure.sh`
-  (`mkdir -p scripts` first; `chmod +x` it) — the structure gate that
+- `templates/scripts/guardrails/` → `scripts/guardrails/` — the WHOLE directory — `run.sh` sources `lib/` and `checks/` from beside itself, so copying it alone fails at runtime
+  (`mkdir -p scripts` first; `chmod +x run.sh`) — the structure gate that
   machine-checks what the linter can't (allowed `src/` dirs, per-folder READMEs,
   no barrel files, exactly one wrangler config, no committed `.dev.vars`, no
   banned dependency)
@@ -127,7 +142,7 @@ Set the `package.json` `scripts` block to exactly this:
     "lint:fix": "oxlint --fix --deny-warnings",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "check:structure": "bash scripts/check-structure.sh",
+    "check:structure": "bash scripts/guardrails/run.sh",
     "check:unused": "knip",
     "check:dupes": "jscpd",
     "test": "vitest run",
@@ -264,9 +279,10 @@ bun add @tursodatabase/serverless
 run on a Worker. `@libsql/client` is the legacy name — only reach for it via the
 Drizzle path in Phase 6c.)
 
-Adding `src/db/` introduces a new top-level dir, so add `db` to `allowed_dirs`
-in `scripts/check-structure.sh` and give it a `README.md`, or the structure gate
-rejects it.
+Adding `src/db/` introduces a new top-level dir, so add `db` to `src.topLevel`
+in `guardrails.config.json` and give it a `README.md`, or the structure gate
+rejects it. Never hand-edit `scripts/guardrails/` — it is copied verbatim from
+the kit, and the kit's CI diffs it.
 
 ```ts
 // src/db/client.ts
@@ -302,9 +318,9 @@ Skip any the user declined. Add a README line under the relevant folder for each
 ### 6a. Auth (better-auth)
 
 ```bash
-# @libsql/kysely-libsql is the Kysely dialect the sample below imports —
-# better-auth pulls in kysely itself, but not the libSQL dialect for it.
-bun add better-auth @libsql/kysely-libsql
+# @libsql/kysely-libsql is the Kysely dialect the sample below imports.
+# better-auth depends on kysely; pin it explicitly so the dialect resolves.
+bun add better-auth @libsql/kysely-libsql kysely
 ```
 
 better-auth is the house auth library, and this service owns the **server** half
@@ -321,14 +337,19 @@ import { betterAuth } from 'better-auth';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 import { tursoConfig } from '@/constants/env';
 
-/** Builds the auth instance for this request. */
-export function createAuth() {
+/** Builds the auth instance for this request from Worker bindings. */
+export function createAuth(env: {
+  BETTER_AUTH_SECRET: string;
+  BETTER_AUTH_URL: string;
+}) {
   const { url, authToken } = tursoConfig();
   return betterAuth({
     database: {
       dialect: new LibsqlDialect({ url, authToken }),
       type: 'sqlite',
     },
+    secret: env.BETTER_AUTH_SECRET,
+    baseURL: env.BETTER_AUTH_URL,
     emailAndPassword: { enabled: true },
   });
 }
@@ -336,13 +357,21 @@ export function createAuth() {
 
 ```ts
 // in src/app.ts
-app.on(['GET', 'POST'], '/api/auth/*', (c) => createAuth().handler(c.req.raw));
+app.on(['GET', 'POST'], '/api/auth/*', (c) =>
+  createAuth(c.env).handler(c.req.raw),
+);
 ```
 
 Add `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` to `.dev.vars` (and
-`wrangler secret put` per environment), and generate the auth tables with
-better-auth's CLI before the first request. Check better-auth's current docs for
-the exact option names — it moves faster than this kit.
+`wrangler secret put` / vars per environment). Generate or migrate the auth
+tables with the current CLI before the first request:
+
+```bash
+npx auth@latest generate   # or: npx auth@latest migrate
+```
+
+Check better-auth's current docs if the CLI subcommands move — the package
+moves faster than this kit.
 
 ### 6b. Structured logging
 
@@ -397,7 +426,7 @@ mkdir -p .github/workflows
    `DEEPSEEK_API_KEY` repository secret.
 
 See [`../../CORE.md`](../../CORE.md) → "Quality gates & guardrails" for how the
-four layers fit together.
+five layers fit together.
 
 ---
 
