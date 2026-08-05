@@ -284,13 +284,17 @@ done
 #     and clippy.toml checks above), and nothing here uses perl, so sed keeps
 #     the strip without adding a dependency the rest of the file doesn't have.
 #
-#     The strip reads the WHOLE file (`:a;N;$!ba`) rather than line by line: a
-#     link wrapped across two lines leaves its tail — `notes](../../DESIGN.md)`
-#     — on a line of its own, and a per-line strip cannot see the `[` that
-#     opened it, so a perfectly good reading link would fail this check. These
-#     files wrap at ~80 columns, so that is a matter of time, not a hypothetical. ---
+#     Two strips, both per LINE. The first removes whole inline links. The
+#     second removes a bare `](url)` tail, which is what a link wrapped across
+#     two lines leaves behind — the label may wrap, the URL never does, so the
+#     tail is always self-contained on its own line and needs no lookback.
+#     Deliberately NOT a whole-file slurp: `[^]]*` spans newlines happily, so
+#     one unclosed `[` anywhere above would swallow every `../` down to the
+#     next `](`, hiding a real violation instead of reporting it. A check that
+#     can be silenced by a stray bracket is worse than one that over-fires,
+#     and per-line keeps `grep -n`'s numbers pointing at the real line. ---
 for setup in stacks/*/SETUP.md; do
-  stray=$(sed -E ':a;N;$!ba; s/\[[^]]*\]\([^)]*\)//g' "$setup" | grep -n '\.\./' | head -5)
+  stray=$(sed -E 's/\[[^]]*\]\([^)]*\)//g; s/\]\([^)]*\)//g' "$setup" | grep -n '\.\./' | head -5)
   [ -n "$stray" ] \
     && bad "guardrails: $setup has a copy source written relative to the file ($(printf '%s' "$stray" | head -1 | cut -c1-60)…) — anchor it to \$KIT/ instead; the agent's CWD is the new project, not the kit"
 done
