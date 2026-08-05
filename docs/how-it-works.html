@@ -870,9 +870,11 @@
               <figcaption>
                 The kit runs its own gate on itself:
                 <code class="code">scripts/validate-templates.sh</code> parses every
-                JSON/JSONC/YAML/TOML template, lints and format-checks every TS
-                template twice — once against a minimal config, then against each
-                stack's real <code class="code">.oxlintrc.json</code> — type-checks the
+                JSON/JSONC/YAML/TOML template, lints every TS template twice —
+                once against a deliberately minimal config, then again against
+                each stack's real <code class="code">.oxlintrc.json</code> —
+                format-checks them once against each stack's
+                <code class="code">.oxfmtrc.json</code>, type-checks the
                 dependency-free ones, diffs the theme tokens against both
                 stylesheets, and materializes the Rust skeleton into a temp crate
                 for fmt and clippy.
@@ -934,7 +936,7 @@
                     <p class="meta">surface · text · border, one band flip</p>
                   </div>
                   <div class="cta-row" style="margin-top: 0.9rem">
-                    <button class="btn btn-ghost" type="button" data-swap>Flip the band</button>
+                    <button class="btn btn-ghost" type="button" data-swap aria-pressed="false">Flip the band</button>
                   </div>
                   <p>Light and dark are bands of one system, not a theme toggle. The ink ramp, lines, radius, type, spacing, motion and status roles never swap with them.</p>
                 </div>
@@ -1119,7 +1121,8 @@
           // The band flip: one demo surface swapping between the two bands.
           var swap = event.target.closest('[data-swap]');
           if (swap) {
-            document.getElementById('swap-demo').classList.toggle('band-light');
+            var light = document.getElementById('swap-demo').classList.toggle('band-light');
+            swap.setAttribute('aria-pressed', String(light));
           }
         });
       })();
