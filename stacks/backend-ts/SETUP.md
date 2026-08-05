@@ -29,14 +29,16 @@ Read [`../../CORE.md`](../../CORE.md), [`STRUCTURE.md`](./STRUCTURE.md), and
 
 Copy the guard-rail module and its configuration:
 
-- `templates/scripts/guardrails/` → `scripts/guardrails/` (the whole directory,
-  **verbatim** — it is the kit's copy and is never hand-edited; change
-  `guardrails.config.json` instead)
+- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+  (`run.sh lib checks patterns schema.json oxlint-plugin`), never
+  `__tests__/` (that's a deliberately-violating fixture tree — copying it would
+  trip the very gate it tests). The manifest travels together — **verbatim** —
+  and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `templates/.claude/settings.json` → `.claude/settings.json` (**committed** —
-  the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
-  still writing the code; CORE guard-rail layer 2)
+- `../../shared/.claude/settings.json` → `.claude/settings.json`
+  (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
+  while an agent is still writing the code; CORE guard-rail layer 2)
 
 `scripts/guardrails/run.sh` needs `jq` on PATH and exits 3 without it, so a
 missing dependency can never look like a clean run.
@@ -126,11 +128,13 @@ generated):
   stops throwing and would otherwise report clones and exit 0.
 - `templates/lefthook.yml` → `lefthook.yml` (must be `.yml`, not `.yaml` — see
   the install note below)
-- `templates/scripts/guardrails/` → `scripts/guardrails/` — the WHOLE directory — `run.sh` sources `lib/` and `checks/` from beside itself, so copying it alone fails at runtime
-  (`mkdir -p scripts` first; `chmod +x run.sh`) — the structure gate that
-  machine-checks what the linter can't (allowed `src/` dirs, per-folder READMEs,
-  no barrel files, exactly one wrangler config, no committed `.dev.vars`, no
-  banned dependency)
+- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+  (`run.sh lib checks patterns schema.json oxlint-plugin` — never
+  `__tests__/`), `mkdir -p scripts` first, `chmod +x run.sh`. `run.sh` sources
+  `lib/` and `checks/` from beside itself, so copying less than the whole
+  manifest fails at runtime — the structure gate that machine-checks what the
+  linter can't (allowed `src/` dirs, per-folder READMEs, no barrel files,
+  exactly one wrangler config, no committed `.dev.vars`, no banned dependency)
 
 Set the `package.json` `scripts` block to exactly this:
 
@@ -208,7 +212,7 @@ Then:
    "Procedures" before adding one.
 6. Drop a `README.md` into each of `src/rpc`, `src/routes`, `src/services`,
    `src/utilities`, `src/constants`, and `src/types`, generated from
-   `templates/folder-README.md`
+   `../../shared/folder-README.md`
    (fill in the folder's purpose + a short "what's inside" list — seed it now,
    keep it updated as you add files).
 7. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the app name +

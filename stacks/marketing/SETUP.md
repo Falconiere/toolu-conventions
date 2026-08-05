@@ -26,14 +26,16 @@ rock-solid. Welcome to the bit. 🎬
 
 Copy the guard-rail module and its configuration:
 
-- `templates/scripts/guardrails/` → `scripts/guardrails/` (the whole directory,
-  **verbatim** — it is the kit's copy and is never hand-edited; change
-  `guardrails.config.json` instead)
+- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+  (`run.sh lib checks patterns schema.json oxlint-plugin`), never
+  `__tests__/` (that's a deliberately-violating fixture tree — copying it would
+  trip the very gate it tests). The manifest travels together — **verbatim** —
+  and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `templates/.claude/settings.json` → `.claude/settings.json` (**committed** —
-  the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
-  still writing the code; CORE guard-rail layer 2)
+- `../../shared/.claude/settings.json` → `.claude/settings.json`
+  (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
+  while an agent is still writing the code; CORE guard-rail layer 2)
 
 `scripts/guardrails/run.sh` needs `jq` on PATH and exits 3 without it, so a
 missing dependency can never look like a clean run.
@@ -150,9 +152,11 @@ Astro template generated where they overlap:
   use the `.yml` name (lefthook 2.x's `install` writes a stub `lefthook.yml`
   that silently shadows a `lefthook.yaml`, so hooks never fire). Then run
   `bunx lefthook install`.
-- `templates/scripts/guardrails/` → `scripts/guardrails/` — the WHOLE
-  directory (`mkdir -p scripts` first). `run.sh` sources `lib/` and
-  `checks/` from beside itself, so copying it alone fails at runtime.
+- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+  (`run.sh lib checks patterns schema.json oxlint-plugin` — never
+  `__tests__/`), `mkdir -p scripts` first. `run.sh` sources `lib/` and
+  `checks/` from beside itself, so copying less than the whole manifest fails
+  at runtime.
 
 Set the `package.json` scripts:
 
@@ -218,7 +222,7 @@ Then:
    without it.
 6. Drop a `README.md` into each of `src/layouts`, `src/sections`, `src/ui`,
    `src/utilities`, `src/constants`, and `src/types`, generated from
-   `templates/folder-README.md`. Every `src/` directory except `src/pages`
+   `../../shared/folder-README.md`. Every `src/` directory except `src/pages`
    carries one — the structure gate fails without it.
 7. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the specifics.
 

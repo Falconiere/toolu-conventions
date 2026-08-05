@@ -10,10 +10,35 @@ fail=0
 note() { printf '%s\n' "$*"; }
 bad() { printf 'FAIL %s\n' "$*"; fail=1; }
 
-# --- JSON (comment-free by rule; jq is the validator) ---
+# What a scaffold copies out of the kit's guardrails/ into a project's
+# scripts/guardrails/. Declared once: three checks below need the same list, and
+# a manifest that disagrees with itself between checks is how a file silently
+# stops being validated. `__tests__/` is deliberately absent — it is a
+# violating-by-design fixture tree, and shipping it would trip the gate it tests.
+GR_MANIFEST='run.sh lib checks patterns schema.json oxlint-plugin'
+
+# --- JSON (comment-free by rule; jq is the validator). shared/ is in the search
+#     path alongside stacks/*/templates: shared/.claude/settings.json ships to
+#     every stack the same way a per-stack template would, so it must be
+#     parse-checked the same way. ---
 while IFS= read -r -d '' f; do
   jq empty "$f" >/dev/null 2>&1 || bad "json parse: $f"
-done < <(find stacks/*/templates -type f -name '*.json' -print0)
+done < <(find stacks/*/templates shared -type f -name '*.json' -print0)
+
+# The kit's guardrails/ ships to every project too (schema.json, the ast-grep
+# pattern rules), and until the per-stack copies were consolidated away it was
+# parse-checked only THROUGH them. __tests__/ is excluded: its fixtures are
+# violating trees whose whole job is to fail checks, not to be valid templates.
+gr_parse_files=()
+while IFS= read -r -d '' f; do gr_parse_files+=("$f"); done \
+  < <(find guardrails -path 'guardrails/__tests__' -prune -o -type f \
+        \( -name '*.json' -o -name '*.yml' -o -name '*.yaml' \) -print0)
+for f in "${gr_parse_files[@]}"; do
+  case "$f" in
+    *.json) jq empty "$f" >/dev/null 2>&1 || bad "json parse: $f" ;;
+    *) ruby -ryaml -e "YAML.load_file(ARGV[0])" "$f" >/dev/null 2>&1 || bad "yaml parse: $f" ;;
+  esac
+done
 
 # --- JSONC (wrangler configs; comments are the point, so jq can't read them) ---
 # Strips // and /* */ comments with a string-aware scanner — a naive regex would
@@ -49,13 +74,13 @@ while i < n:
         i += 1
 json.loads("".join(out))
 PY
-done < <(find stacks/*/templates -type f -name '*.jsonc' -print0)
+done < <(find stacks/*/templates shared -type f -name '*.jsonc' -print0)
 
 # --- YAML (templates, plus this repo's OWN workflows — a kit whose CI file
 #     does not parse cannot enforce anything) ---
 while IFS= read -r -d '' f; do
   ruby -ryaml -e "YAML.load_file(ARGV[0])" "$f" >/dev/null 2>&1 || bad "yaml parse: $f"
-done < <(find stacks/*/templates .github -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 2>/dev/null)
+done < <(find stacks/*/templates .github shared -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 2>/dev/null)
 
 # The kit calls all five guard-rail layers mandatory in CORE.md; it has to run
 # them itself. This is the check that keeps it honest.
@@ -66,7 +91,7 @@ done
 # --- TOML ---
 while IFS= read -r -d '' f; do
   python3 -c "import tomllib,sys; tomllib.load(open(sys.argv[1],'rb'))" "$f" >/dev/null 2>&1 || bad "toml parse: $f"
-done < <(find stacks/*/templates -type f -name '*.toml' -print0)
+done < <(find stacks/*/templates shared -type f -name '*.toml' -print0)
 
 # --- TS/TSX lint: non-type-aware pass (type-aware .oxlintrc runs only inside a scaffold) ---
 ts_files=()
@@ -96,6 +121,14 @@ for d in stacks/*/; do
   [ -f "$d/templates/.oxlintrc.json" ] || continue
   lintdir="$(mktemp -d)"
   cp -R "$d/templates/." "$lintdir/"
+  # Materialize the guard-rail module the way a scaffold does. The stack's
+  # .oxlintrc.json loads ./scripts/guardrails/oxlint-plugin/index.js, and the
+  # module is no longer duplicated under templates/ — so without this copy oxlint
+  # fails to load the house plugin and this whole check reports a false RED.
+  mkdir -p "$lintdir/scripts/guardrails"
+  for item in $GR_MANIFEST; do
+    cp -R "guardrails/$item" "$lintdir/scripts/guardrails/"
+  done
   if python3 -c "
 import json, sys
 cfg = json.load(open(sys.argv[1]))
@@ -229,6 +262,19 @@ do
   [ -f "$f" ] || bad "cross-stack template referenced by marketing/expo is missing: $f"
 done
 
+# --- Same reasoning, the scaffold side: the scaffold names guardrails/<manifest
+#     item>, shared/.claude/settings.json, and shared/folder-README.md in its
+#     own prose (it copies the manifest out of guardrails/ and the two shared
+#     files straight into a new project). Nothing type-checks that prose, so a
+#     rename here would only surface as a broken scaffold, not a failed build. ---
+for item in $GR_MANIFEST; do
+  [ -e "guardrails/$item" ] \
+    || bad "scaffold-referenced path renamed or removed: guardrails/$item"
+done
+for f in shared/.claude/settings.json shared/folder-README.md; do
+  [ -f "$f" ] || bad "scaffold-referenced path renamed or removed: $f"
+done
+
 # --- Guard rails: every stack ships both workflows, and no stack ships a
 #     lefthook.yaml (the 2.x installer silently shadows it). ---
 for d in stacks/*/; do
@@ -269,28 +315,35 @@ for stack in console marketing backend-ts expo; do
 done
 
 
-# --- agent-guardrails: the copies, the declaration, and the old name ---------
+# --- agent-guardrails: the manifest, the declaration, and the old name -------
 # Three assertions, each guarding a distinct failure:
-#   (a) a stack's copy drifting from the kit source, which is the exact rot the
-#       module was built to end;
+#   (a) a manifest item missing from guardrails/ — the one copy a scaffold now
+#       reads — or a stack shipping its own scripts/guardrails/ again, which is
+#       the per-stack duplication this consolidation ended. This pair replaces
+#       the old item-by-item diff of five copies against the kit; with no copies
+#       left there is nothing to diff. It also subsumes the old "no stack ships
+#       __tests__/" check: any such tree reappearing fails on the absence
+#       assertion, fixtures included.
 #   (b) the ceiling DECLARED in guardrails.config.json disagreeing with the one
 #       oxlint actually enforces — two numbers for one rule is how they part
 #       company;
 #   (c) a lingering reference to the script guardrails replaced, which would
 #       leave a generated project invoking a file that no longer exists.
-gr_manifest='run.sh lib checks patterns schema.json oxlint-plugin'
+for item in $GR_MANIFEST; do
+  [ -e "guardrails/$item" ] \
+    || bad "guardrails: manifest item '$item' is missing from guardrails/ — the scaffold copies it from there"
+done
+[ -d guardrails/__tests__ ] \
+  || bad "guardrails: guardrails/__tests__/ is missing from the kit — it is the module's own test suite"
+
 for stack_dir in stacks/*/; do
   stack=$(basename "$stack_dir")
-  copy="$stack_dir/templates/scripts/guardrails"
-  [ -d "$copy" ] || { bad "guardrails: $stack has no scripts/guardrails/ copy"; continue; }
-  for item in $gr_manifest; do
-    diff -r "guardrails/$item" "$copy/$item" >/dev/null 2>&1 \
-      || bad "guardrails: $stack copy of $item differs from guardrails/ — re-copy, don't hand-edit"
-  done
-  # __tests__ deliberately stays in the kit: it is a deliberately-violating tree,
-  # and shipping it would trip the very gate it exists to test.
-  [ -e "$copy/__tests__" ] \
-    && bad "guardrails: $stack ships __tests__/ — the fixtures belong to the kit only"
+  # If templates/scripts/guardrails/ reappears under any stack, the per-stack
+  # duplication this consolidation removed is coming back. A scaffold copies
+  # the manifest straight out of the kit's guardrails/ now, so no stack should
+  # ever carry its own tree again — __tests__/ included.
+  [ -e "$stack_dir/templates/scripts/guardrails" ] \
+    && bad "guardrails: $stack ships templates/scripts/guardrails/ — copy the manifest from the kit's guardrails/ instead of duplicating it per-stack"
 
   cfg="$stack_dir/templates/guardrails.config.json"
   [ -f "$cfg" ] || { bad "guardrails: $stack has no guardrails.config.json"; continue; }
@@ -370,8 +423,56 @@ for stack_dir in stacks/*/; do
     done
   fi
 
-  hooks="$stack_dir/templates/.claude/settings.json"
-  [ -f "$hooks" ] || bad "guardrails: $stack ships no .claude/settings.json — the agent-hook layer is mandatory"
+  # No stack may ship its own .claude/settings.json any more: every project
+  # now scaffolds the agent-hook wiring from shared/.claude/settings.json
+  # (checked below). A per-stack copy reappearing means the canonical wiring
+  # has been forked, which is exactly the duplication this consolidation
+  # removed — and a fork can drift from run.sh silently, the same fail-open
+  # this whole module exists to prevent.
+  [ -e "$stack_dir/templates/.claude/settings.json" ] \
+    && bad "guardrails: $stack ships its own templates/.claude/settings.json — fork of the canonical shared/.claude/settings.json wiring"
+done
+
+# --- The agent-hook layer: one canonical wiring in shared/.claude/settings.json,
+#     not five per-stack copies. JSON validity is already caught by the generic
+#     JSON parse loop above (shared/ is in its search path); this checks the
+#     wiring ITSELF. The agent-hook layer is mandatory, so if this file stops
+#     invoking scripts/guardrails/run.sh — the gate every stack calls
+#     mandatory — every new project silently loses the layer at scaffold time,
+#     not just one stack's copy of it. ---
+hooks=shared/.claude/settings.json
+if [ ! -f "$hooks" ]; then
+  bad "guardrails: $hooks is missing — the agent-hook layer is mandatory"
+else
+  hook_cmd=$(jq -r '.hooks.PostToolUse[0].hooks[0].command // empty' "$hooks" 2>/dev/null)
+  stop_cmd=$(jq -r '.hooks.Stop[0].hooks[0].command // empty' "$hooks" 2>/dev/null)
+  case "$hook_cmd" in
+    *scripts/guardrails/run.sh*--hook*) : ;;
+    *) bad "guardrails: $hooks PostToolUse hook does not invoke scripts/guardrails/run.sh --hook" ;;
+  esac
+  case "$stop_cmd" in
+    *scripts/guardrails/run.sh*--stop*) : ;;
+    *) bad "guardrails: $hooks Stop hook does not invoke scripts/guardrails/run.sh --stop" ;;
+  esac
+fi
+
+# --- folder-README: one canonical file, plus the two stacks that genuinely
+#     differ. console/marketing/backend-ts used to each ship a byte-identical
+#     copy; if one of them ships its own again, that duplication is back and
+#     the two copies WILL drift, since nothing keeps hand-edited duplicates in
+#     sync. expo and rust ship a DIFFERENT folder-README.md on purpose, so this
+#     asserts their file still exists rather than asserting they DON'T have
+#     one — a future cleanup pass must not delete it thinking it is a
+#     duplicate of shared/folder-README.md. ---
+[ -f shared/folder-README.md ] \
+  || bad "shared: shared/folder-README.md is missing — console/marketing/backend-ts scaffold from it"
+for stack in console marketing backend-ts; do
+  [ -e "stacks/$stack/templates/folder-README.md" ] \
+    && bad "guardrails: stack '$stack' ships its own templates/folder-README.md — it is byte-identical to shared/folder-README.md and must scaffold from there instead"
+done
+for stack in expo rust; do
+  [ -f "stacks/$stack/templates/folder-README.md" ] \
+    || bad "stack '$stack' is missing templates/folder-README.md — it differs from shared/folder-README.md on purpose and must keep shipping its own"
 done
 
 # --- lint-base sync: lint/ is the single source; every TS stack ships a
@@ -404,7 +505,7 @@ done
 # The needle lives in a variable and this file excludes itself: otherwise the
 # assertion matches its own source and the gate fails on the check, not the code.
 old_gate='check-structure'
-gr_stale=$(grep -rl "$old_gate" stacks/ scripts/ CORE.md README.md .github/ \
+gr_stale=$(grep -rl "$old_gate" stacks/ scripts/ shared/ CORE.md README.md .github/ \
   --exclude=validate-templates.sh 2>/dev/null | tr '\n' ' ')
 [ -n "$gr_stale" ] && bad "guardrails: '$old_gate' still referenced in $gr_stale" 
 

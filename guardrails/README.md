@@ -1,0 +1,130 @@
+# agent-guardrails
+
+The kit's structural gate. One module, copied verbatim into every generated project,
+enforcing the rules a linter structurally cannot see: the folder tree, per-domain shape,
+colocated tests, barrels, banned dependencies, required files, committed secrets, and
+contextual code patterns.
+
+Anything oxlint / oxfmt / clippy / rustfmt already enforces stays with them. Two enforcers
+of one rule is how ceilings drift apart.
+
+## Two paths, one module
+
+This is the single most common source of confusion, so it is worth stating plainly:
+
+| | Path | What lives there |
+| --- | --- | --- |
+| **Source** | `guardrails/` — here, in the kit | The one copy anyone edits. Includes `__tests__/`. |
+| **Destination** | `scripts/guardrails/` — in a generated project | What a scaffold copies in. No `__tests__/`. |
+
+`CORE.md`, every stack's `SETUP.md`, the `.claude/settings.json` hooks, and each stack's
+`lefthook.yml` all name **`scripts/guardrails/`**, because they describe a generated
+project. A root-level `guardrails/` path and a `scripts/guardrails/` path are both correct;
+they are source and destination, not old and new.
+
+Until 2026-08 each stack also carried its own byte-identical copy at
+`stacks/<stack>/templates/scripts/guardrails/` — five copies, 130 files, kept honest only
+by a `diff -r` in CI. Those are gone. There is one source now, and the scaffold reads it
+directly.
+
+## What a scaffold copies
+
+The **manifest** — and never `__tests__/`:
+
+```bash
+mkdir -p scripts/guardrails
+for item in run.sh lib checks patterns schema.json oxlint-plugin; do
+  cp -R "$KIT/guardrails/$item" scripts/guardrails/
+done
+chmod +x scripts/guardrails/run.sh
+```
+
+Copy the **whole** set: `run.sh` sources `lib/` and `checks/` from beside itself, so
+copying it alone fails at runtime. `__tests__/` is excluded on purpose — it is a
+deliberately-violating fixture tree, and shipping it would trip the very gate it exists to
+test.
+
+The project then gets its stack's `guardrails.config.json` (from
+`stacks/<stack>/templates/`), which is the only per-stack part of the whole arrangement.
+
+## Layout
+
+```
+guardrails/
+├── run.sh              # entry point — repo · --file · --hook · --stop modes
+├── lib/                # config.sh (load + validate), report.sh (output, exit codes)
+├── checks/             # 12 checks, one file each
+├── oxlint-plugin/      # 5 house rules that run inside oxlint, as the file is written
+├── patterns/rust/      # ast-grep rules for what clippy doesn't cover
+├── schema.json         # the guardrails.config.json contract
+└── __tests__/          # fixtures, plugin and latency suites — kit only, never shipped
+```
+
+## One rule, one enforcer
+
+Everything a linter *can* see runs inside **oxlint** via the house plugin, so it fires as
+the file is written rather than at commit time. Everything else runs here.
+
+`ownedByLinter` in `guardrails.config.json` declares the split, and `gr_selected()` in
+`run.sh` skips whatever the linter owns. A check id is the unit of ownership, which is why
+`folder-readmes` is split out of `folder-tree` and `test-tree` out of `colocated-tests`: an
+id may not straddle what a linter can see and what it cannot.
+
+| | TS stacks (`console` · `marketing` · `backend-ts` · `expo`) | `rust` |
+| --- | --- | --- |
+| `ownedByLinter` | `folder-tree` · `colocated-tests` · `no-barrels` · `filename-case` · `patterns` | *(empty)* |
+| Runs in oxlint | those five, via `oxlint-plugin/` | nothing — oxlint cannot parse Rust |
+| Runs here | the remaining seven | all twelve |
+| Needs ast-grep | no — pattern rules run in oxlint | **yes** (`cargo install ast-grep --locked`) |
+
+## What differs per stack
+
+Only `guardrails.config.json`. The module itself is identical everywhere:
+
+| | `console` | `marketing` | `backend-ts` | `expo` | `rust` |
+| --- | --- | --- | --- | --- | --- |
+| `srcRoot` | `src` | `src` | `src` | `src` | `src` |
+| `src.topLevel` | app · ui · features · api · utilities · providers · constants · types | pages · layouts · sections · ui · content · utilities · constants · types | rpc · routes · services · utilities · constants · types | ui · features · api · utilities · providers · constants · types | *(not tree-checked)* |
+| Tests | `__tests__/` colocated | `__tests__/` colocated | `__tests__/` colocated | `__tests__/` colocated | sibling `tests/` |
+| File / function ceiling | 300 / 50 | 300 / 50 | 300 / 50 | 300 / 50 | 500 / 100 |
+| Banned deps | axios · yup · joi · valibot · superstruct · ajv | same | same | same | *(none listed)* |
+| Also carries | — | `requiredFiles` | `requiredFiles` | — | `filenameCase` |
+
+The ceilings are cross-checked against what oxlint and `clippy.toml` actually enforce, by
+`scripts/validate-templates.sh` — two numbers for one rule is how they part company.
+
+## Modes and exit codes
+
+```
+run.sh                  repo mode  — every check, whole tree. The gate.
+run.sh --file <path>…   scoped     — file-addressable checks for those paths
+run.sh --hook           PostToolUse — reads hook JSON on stdin, then --file
+run.sh --stop           Stop hook  — repo mode behind two early-outs
+run.sh --only a,b       run only the named checks (used by the test suite)
+run.sh --list           print every check id, one per line
+```
+
+`0` clean · `1` violations · `2` violations in a hook mode · `3` misconfigured, which covers
+a missing required tool (`jq` everywhere, ast-grep on rust) as well as a bad config.
+
+The `2` is load-bearing, not stylistic: Claude Code ignores a `1` from a hook. Only `2`
+shows stderr to the agent on `PostToolUse`, and only `2` blocks on `Stop`. A `--stop` that
+exited `1` would leave the whole layer inert while looking correctly wired up.
+
+## Changing a rule
+
+Edit it **here**. A generated project's `scripts/guardrails/` is copied verbatim and never
+hand-edited — change that project's `guardrails.config.json` instead. Stack differences are
+data, not code; the module is the same file everywhere on purpose.
+
+Then run the suites:
+
+```bash
+bash guardrails/__tests__/run-fixtures.sh    # bash checks, on real trees
+bash guardrails/__tests__/run-plugin.sh      # the oxlint house plugin, real oxlint
+bash guardrails/__tests__/run-latency.sh     # repo < 2000ms, --file < 250ms
+```
+
+The first two also run inside `scripts/validate-templates.sh`, which CI runs on every PR.
+The latency suite is run by hand: a slow gate gets routed around, so the budget is measured
+on a generated 500-file / 20-feature tree rather than on the fixtures.

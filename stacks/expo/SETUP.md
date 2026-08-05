@@ -22,14 +22,16 @@ you start — the theme tokens copied in Phase 3 already implement DESIGN.md.
 
 Copy the guard-rail module and its configuration:
 
-- `templates/scripts/guardrails/` → `scripts/guardrails/` (the whole directory,
-  **verbatim** — it is the kit's copy and is never hand-edited; change
-  `guardrails.config.json` instead)
+- `../../guardrails/` → `scripts/guardrails/` — copy the manifest items
+  (`run.sh lib checks patterns schema.json oxlint-plugin`), never
+  `__tests__/` (that's a deliberately-violating fixture tree — copying it would
+  trip the very gate it tests). The manifest travels together — **verbatim** —
+  and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `templates/.claude/settings.json` → `.claude/settings.json` (**committed** —
-  the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
-  still writing the code; CORE guard-rail layer 2)
+- `../../shared/.claude/settings.json` → `.claude/settings.json`
+  (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
+  while an agent is still writing the code; CORE guard-rail layer 2)
 
 `scripts/guardrails/run.sh` needs `jq` on PATH and exits 3 without it, so a
 missing dependency can never look like a clean run.
@@ -198,7 +200,7 @@ Copy these templates into the project root:
 | `templates/jest.setup.ts` | `jest.setup.ts` |
 | `templates/knip.json` | `knip.json` (unused files/exports/dependencies) |
 | `templates/.jscpd.json` | `.jscpd.json` (copy-paste detection; **keep both `"threshold": 0` and `"exitCode": 1`** — the threshold is what fails the gate, the exit code only matters if it is later raised) |
-| `templates/scripts/guardrails/` | `scripts/guardrails/` — the WHOLE directory — `run.sh` sources `lib/` and `checks/` from beside itself, so copying it alone fails at runtime (`mkdir -p scripts` first) |
+| `../../guardrails/` (manifest items `run.sh lib checks patterns schema.json oxlint-plugin` — never `__tests__/`) | `scripts/guardrails/` — `run.sh` sources `lib/` and `checks/` from beside itself, so copying less than the whole manifest fails at runtime (`mkdir -p scripts` first) |
 
 Copy the lefthook config **before** installing hooks. Use the `.yml` extension:
 lefthook 2.x's `install` generates a `lefthook.yml` stub that **shadows** a

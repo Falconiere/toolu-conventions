@@ -99,8 +99,17 @@ SETUP.md documents its own substitution convention; follow it as written.
 
 Two stacks deliberately reach across the kit: `marketing` copies its theme
 tokens and `globals.css` from `stacks/console/templates/`, and `expo` copies
-`utilities/http.ts` and `src/api/orpc.ts` from there too. That is not a mistake
-to "fix" by duplicating — one source, on purpose.
+`utilities/http.ts` and `src/api/orpc.ts` from there too. The same pattern holds
+one level up, for the pieces every stack shares rather than each keeping its own
+copy: the guard-rail module comes from `guardrails/` at the kit root (its
+manifest — `run.sh`, `lib/`, `checks/`, `patterns/`, `schema.json`,
+`oxlint-plugin/` — never the `__tests__/` fixtures) into the project's
+`scripts/guardrails/`, and the agent hooks come from
+`shared/.claude/settings.json` into the project's `.claude/settings.json`.
+Console, marketing, and backend-ts also take their `folder-README.md` from
+`shared/folder-README.md`; expo and rust ship their own instead, because those
+two genuinely differ from the shared one. None of this is a mistake to "fix" by
+duplicating — one source, on purpose.
 
 ## 3. Finish — human-only checklist
 
