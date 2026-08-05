@@ -73,10 +73,17 @@ jobs:
             shared/folder-README.md (console, marketing, backend-ts only — expo
             and rust ship their own, which genuinely differ).
 
-            PATHS IN PROSE. Relative links inside stacks/<stack>/SETUP.md are
-            relative to that file's own directory, so ../../guardrails/ and
-            ../../shared/... resolve to the repo root — the same convention the
-            pre-existing ../../CORE.md and ../../DESIGN.md links use.
+            PATHS IN PROSE. Copy SOURCES in a stack SETUP.md are anchored to
+            $KIT, the kit checkout, because the scaffolding agent's CWD is the
+            new project directory it is building, not the kit — a source
+            written relative to SETUP.md's own directory (../../guardrails/)
+            would resolve outside the project instead. templates/... inside a
+            stack SETUP.md means $KIT/stacks/<stack>/templates/.... Markdown
+            READING links ([../../CORE.md](../../CORE.md)) are the one
+            exception: they stay relative to the file's own directory and are
+            correct, so do not flag them. scripts/validate-templates.sh now
+            enforces both of the above, so a violation is a CI failure, not a
+            review judgement call.
 
             YOU SEE A DIFF, NOT THE REPO. Do not claim a file or directory is
             missing, stale, fabricated, or renamed on the strength of its absence

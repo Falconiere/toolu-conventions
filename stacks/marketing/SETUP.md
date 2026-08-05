@@ -6,6 +6,16 @@ gathers everything you need; after that, prefer acting over asking. When a step
 references a template, read it from this kit's `templates/` directory and adapt
 it (replace `{{PLACEHOLDERS}}`) — do not invent config from memory.
 
+Two locations matter, and they are not the same place. Set this once:
+
+```bash
+KIT=/path/to/toolu-conventions   # this kit's checkout — every copy SOURCE lives here
+```
+
+You work **in the new project directory**, never inside the kit. So every source
+path below is written `$KIT/…`, every destination is relative to the project, and
+`templates/…` is shorthand for `$KIT/stacks/marketing/templates/…`.
+
 **Target baseline (non-negotiable):** Astro (static output) · TypeScript
 (strictest) · bun · Vitest · oxlint + oxfmt + `astro check` · Lefthook ·
 Cloudflare Workers as the deploy target · the layout and conventions in
@@ -26,7 +36,7 @@ rock-solid. Welcome to the bit. 🎬
 
 Copy the guard-rail module and its configuration:
 
-- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+- `$KIT/guardrails/`
   → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin`), never
   `__tests__/` (that's a deliberately-violating fixture tree — copying it would
@@ -34,7 +44,7 @@ Copy the guard-rail module and its configuration:
   and is never hand-edited; change `guardrails.config.json` instead.
 - `templates/guardrails.config.json` → `guardrails.config.json` (this stack's
   ceilings, allowed directories and banned dependencies)
-- `../../shared/.claude/settings.json` (kit root `shared/`) → `.claude/settings.json`
+- `$KIT/shared/.claude/settings.json` → `.claude/settings.json`
   (**committed** — the `PostToolUse` + `Stop` hooks that run the guard rails
   while an agent is still writing the code; CORE guard-rail layer 2)
 
@@ -153,7 +163,7 @@ Astro template generated where they overlap:
   use the `.yml` name (lefthook 2.x's `install` writes a stub `lefthook.yml`
   that silently shadows a `lefthook.yaml`, so hooks never fire). Then run
   `bunx lefthook install`.
-- `../../guardrails/` (the kit root's `guardrails/`, two levels up from this file)
+- `$KIT/guardrails/`
   → `scripts/guardrails/` — copy the manifest items
   (`run.sh lib checks patterns schema.json oxlint-plugin` — never
   `__tests__/`), `mkdir -p scripts` first. `run.sh` sources `lib/` and
@@ -203,15 +213,15 @@ mkdir -p src/pages src/layouts src/sections src/ui/theme src/utilities \
 Then:
 
 1. Copy the theme tokens from the console kit —
-   `../console/templates/theme/{colors,spacing,typography,motion,icons}.ts` →
+   `$KIT/stacks/console/templates/theme/{colors,spacing,typography,motion,icons}.ts` →
    `src/ui/theme/`. **The console and the marketing site share one token set on
    purpose**: they are the same product, and a visitor who signs up should not
    feel a seam. Copy, don't fork.
 2. Copy the band-seam stylesheet from the console kit —
-   `../console/templates/globals.css` (or `globals.tailwind.css` if the design
+   `$KIT/stacks/console/templates/globals.css` (or `globals.tailwind.css` if the design
    called for Tailwind) → `src/ui/globals.css`. Read its header comment before
    writing any component.
-3. Copy [`../../DESIGN.md`](../../DESIGN.md) → `docs/design-language.md`
+3. Copy `$KIT/DESIGN.md` ([view](../../DESIGN.md)) → `docs/design-language.md`
    **verbatim**. The kit is not on disk once this site is scaffolded, so without
    this copy the design rules never reach the agents who build here.
 4. Copy `templates/env.ts` → `src/constants/env.ts`. It validates `PUBLIC_*`
@@ -224,7 +234,7 @@ Then:
    without it.
 6. Drop a `README.md` into each of `src/layouts`, `src/sections`, `src/ui`,
    `src/utilities`, `src/constants`, and `src/types`, generated from
-   `../../shared/folder-README.md`. Every `src/` directory except `src/pages`
+   `$KIT/shared/folder-README.md`. Every `src/` directory except `src/pages`
    carries one — the structure gate fails without it.
 7. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the specifics.
 

@@ -275,6 +275,32 @@ for f in shared/.claude/settings.json shared/folder-README.md; do
   [ -f "$f" ] || bad "scaffold-referenced path renamed or removed: $f"
 done
 
+# --- Copy SOURCES must be anchored to $KIT, never written relative to the
+#     SETUP.md's own location. A scaffolding agent runs these files with its
+#     CWD set to the NEW PROJECT directory, not the kit, so `../../guardrails/`
+#     resolves to somewhere outside the project and the step fails if followed
+#     literally. Markdown reading links ([`../../CORE.md`](../../CORE.md)) are
+#     fine — they are for a human browsing the repo, not a copy instruction —
+#     so strip link constructs before looking for a bare relative path. sed,
+#     not perl: this script already leans on sed throughout (the globals.css
+#     and clippy.toml checks above), and nothing here uses perl, so sed keeps
+#     the strip without adding a dependency the rest of the file doesn't have. ---
+for setup in stacks/*/SETUP.md; do
+  stray=$(sed -E 's/\[[^]]*\]\([^)]*\)//g' "$setup" | grep -n '\.\./' | head -5)
+  [ -n "$stray" ] \
+    && bad "guardrails: $setup has a copy source written relative to the file ($(printf '%s' "$stray" | head -1 | cut -c1-60)…) — anchor it to \$KIT/ instead; the agent's CWD is the new project, not the kit"
+done
+
+# --- Every stack SETUP.md must define the $KIT anchor itself. A stack that
+#     forgets this block leaves every $KIT/... path in it undefined — a
+#     scaffolding agent would fail on the very first `cp "$KIT/..."` line with
+#     an empty variable, silently, since `cp "/guardrails/x" ...` still parses
+#     as a command. ---
+for setup in stacks/*/SETUP.md; do
+  grep -q 'KIT=/path/to/toolu-conventions' "$setup" \
+    || bad "guardrails: $setup does not define KIT=/path/to/toolu-conventions — every \$KIT/ path in it is undefined without the anchor"
+done
+
 # --- Guard rails: every stack ships both workflows, and no stack ships a
 #     lefthook.yaml (the 2.x installer silently shadows it). ---
 for d in stacks/*/; do
