@@ -27,7 +27,7 @@ plugin at `scripts/guardrails/oxlint-plugin/`.
 
 Read [`CORE.md`](./CORE.md) now. Every rule in it binds the project you are
 about to create — including the platform defaults (Cloudflare Workers, Turso,
-better-auth, the kit's own `http.ts` instead of axios) and the four guard-rail
+better-auth, the kit's own `http.ts` instead of axios) and the five guard-rail
 layers. If the stack is `expo`, `console`, or `marketing`, read
 [`DESIGN.md`](./DESIGN.md) too — the theme tokens ship pre-filled with that
 language.
@@ -111,4 +111,4 @@ attempt them yourself.
 
 Every TS stack's checklist includes adding the `DEEPSEEK_API_KEY` repository
 secret and requiring both **CI** and **Code Review** on `main`. Without those,
-two of the four guard-rail layers in `CORE.md` are decorative.
+two of the five guard-rail layers in `CORE.md` are decorative.

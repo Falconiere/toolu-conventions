@@ -156,10 +156,10 @@ two numbers drift apart, and how an `oxlint-disable` silences half a rule.
   AST parsed already, so these belong there rather than in a second pass — and
   the agent sees the error at the moment it writes the file.
 - **agent-guardrails** (`scripts/guardrails/`) is left with what oxlint never
-  sees: per-folder READMEs, required files, config files that shadow each other,
-  banned dependencies in the manifest, committed secrets — facts about files the
-  linter is never asked to lint — plus **the whole Rust stack**, which oxlint
-  cannot parse at all.
+  sees: per-folder READMEs, a centralized test *directory*, required files,
+  config files that shadow each other, banned dependencies in the manifest,
+  committed secrets — facts about files and folders the linter is never asked to
+  lint — plus **the whole Rust stack**, which oxlint cannot parse at all.
 
 Which side owns what is **declared**, not implied: `ownedByLinter` in
 `guardrails.config.json` lists the checks the linter enforces, and the bash
@@ -173,8 +173,10 @@ and clippy actually enforce. The declaration is the source of truth; the linters
 are the enforcers.
 
 `scripts/guardrails/` is copied verbatim from the kit and is not hand-edited —
-change `guardrails.config.json` instead. It needs `jq`, and its pattern checks
-need ast-grep (`@ast-grep/cli`, a devDependency on the TypeScript stacks).
+change `guardrails.config.json` instead. It needs `jq` everywhere, and ast-grep
+on **Rust only** (`cargo install ast-grep --locked`), where the pattern rules
+have no other enforcer. The TypeScript stacks carry no ast-grep dependency at
+all: their pattern rules run inside oxlint.
 
 Two of the gate steps exist to keep the codebase from rotting quietly:
 

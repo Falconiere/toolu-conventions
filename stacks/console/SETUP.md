@@ -359,8 +359,10 @@ Add `cloudflare()` to the `vite.config.ts` plugin list, create `src/worker.ts`
 `"compatibility_flags": ["nodejs_compat"]`. Turso credentials are Worker secrets
 (`.dev.vars` locally, `wrangler secret put` deployed) and are read from the
 Worker's `env` — they never touch `src/constants/env.ts`. `src/worker.ts` is a
-new top-level entry: add `worker` handling to `scripts/guardrails/run.sh` if you
-move it into a folder.
+new top-level entry: if you move it into a folder, add that folder to
+`src.topLevel` in `guardrails.config.json`. Never hand-edit
+`scripts/guardrails/` — it is copied verbatim from the kit, and the kit's CI
+diffs it.
 
 Add a `"cf-typegen": "wrangler types"` script and run it, then commit the
 generated `worker-configuration.d.ts` **and add it to `tsconfig.json`'s
@@ -486,7 +488,7 @@ Deploying for real (`bun run deploy`) needs a Cloudflare account and
 
 ## Phase 9 — CI and the review guard rails
 
-The gate exists at four layers, and this phase installs the last two. See
+The gate exists at five layers, and this phase installs the last two. See
 [`../../CORE.md`](../../CORE.md) → "Quality gates & guardrails" for the full
 picture.
 

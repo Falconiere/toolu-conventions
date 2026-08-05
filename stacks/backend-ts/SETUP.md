@@ -279,9 +279,10 @@ bun add @tursodatabase/serverless
 run on a Worker. `@libsql/client` is the legacy name — only reach for it via the
 Drizzle path in Phase 6c.)
 
-Adding `src/db/` introduces a new top-level dir, so add `db` to `allowed_dirs`
-in `scripts/guardrails/run.sh` and give it a `README.md`, or the structure gate
-rejects it.
+Adding `src/db/` introduces a new top-level dir, so add `db` to `src.topLevel`
+in `guardrails.config.json` and give it a `README.md`, or the structure gate
+rejects it. Never hand-edit `scripts/guardrails/` — it is copied verbatim from
+the kit, and the kit's CI diffs it.
 
 ```ts
 // src/db/client.ts
@@ -425,7 +426,7 @@ mkdir -p .github/workflows
    `DEEPSEEK_API_KEY` repository secret.
 
 See [`../../CORE.md`](../../CORE.md) → "Quality gates & guardrails" for how the
-four layers fit together.
+five layers fit together.
 
 ---
 

@@ -27,8 +27,13 @@ GR_DIR=$(cd "$(dirname "$0")" && pwd)
 
 # Order is the order they run in. File-addressable checks first so --file mode
 # short-circuits cheaply.
+#
+# A check id is the unit of ownership: `ownedByLinter` names ids, and declaring
+# one skips the WHOLE check. So an id may not straddle what a linter can see and
+# what it cannot — folder-readmes and test-tree are split out of folder-tree and
+# colocated-tests for exactly that reason.
 GR_CHECKS_FILE='folder-tree file-size colocated-tests no-barrels filename-case patterns'
-GR_CHECKS_REPO='banned-deps shadow-configs required-files secrets'
+GR_CHECKS_REPO='folder-readmes test-tree banned-deps shadow-configs required-files secrets'
 GR_CHECKS_ALL="$GR_CHECKS_FILE $GR_CHECKS_REPO"
 
 gr_list() {
@@ -61,7 +66,11 @@ gr_run_checks() {
 }
 
 GR_MODE=repo
-GR_PATHS=''
+# An array, not a space-joined string: a staged path may contain a space, and a
+# string would split "src/my file.ts" into two paths that match nothing — the
+# violation then silently vanishes. Unquoted expansion also glob-expands, so a
+# path holding a `*` would fan out into whatever happened to be on disk.
+GR_PATHS=()
 GR_ONLY=''
 
 while [ $# -gt 0 ]; do
@@ -74,10 +83,10 @@ while [ $# -gt 0 ]; do
       shift
       while [ $# -gt 0 ]; do
         case "$1" in --*) break ;; esac
-        GR_PATHS="$GR_PATHS $1"
+        GR_PATHS+=("$1")
         shift
       done
-      [ -n "$GR_PATHS" ] || gr_fatal '--file needs at least one path'
+      [ "${#GR_PATHS[@]}" -gt 0 ] || gr_fatal '--file needs at least one path'
       ;;
     --hook) GR_MODE=hook; shift ;;
     --stop) GR_MODE=stop; shift ;;
@@ -100,7 +109,7 @@ case "$GR_MODE" in
     ;;
 
   file)
-    for target in $GR_PATHS; do
+    for target in "${GR_PATHS[@]}"; do
       gr_run_checks file "$target"
     done
     [ "$GR_FAIL" -eq 0 ] && exit 0 || exit 1

@@ -43,7 +43,7 @@ gr_check_patterns() {
   if [ "$mode" = 'file' ]; then
     target=$path
   else
-    target=$(gr_cfg '.srcRoot')
+    target=$GR_SRC_ROOT
     [ -d "$target" ] || return 0
   fi
 

@@ -313,6 +313,22 @@ for stack_dir in stacks/*/; do
     if [ -n "$actual_fn" ] && [ "$declared_fn" != "$actual_fn" ]; then
       bad "guardrails: $stack declares functionSize.max=$declared_fn but .oxlintrc.json max-lines-per-function=$actual_fn"
     fi
+
+    # The per-glob ceilings need the same assertion as the base one. console and
+    # expo declare functionSize.overrides {"**/*.tsx": 80} and carry a matching
+    # .oxlintrc.json override; without this, one can be edited and the other left
+    # behind — two numbers for one rule, which is the whole failure mode.
+    while IFS=$'\t' read -r glob want; do
+      [ -n "$glob" ] || continue
+      got=$(jq -r --arg g "$glob" \
+        '[.overrides[]? | select((.files // []) | index($g)) | .rules["max-lines-per-function"][1].max] | first // empty' \
+        "$oxlintrc")
+      if [ -z "$got" ]; then
+        bad "guardrails: $stack declares functionSize.overrides[\"$glob\"]=$want but .oxlintrc.json has no max-lines-per-function override for $glob"
+      elif [ "$got" != "$want" ]; then
+        bad "guardrails: $stack declares functionSize.overrides[\"$glob\"]=$want but .oxlintrc.json enforces $got"
+      fi
+    done < <(jq -r '.functionSize.overrides // {} | to_entries[] | "\(.key)\t\(.value)"' "$cfg")
   fi
 
   clippy_cfg="$stack_dir/templates/clippy.toml"

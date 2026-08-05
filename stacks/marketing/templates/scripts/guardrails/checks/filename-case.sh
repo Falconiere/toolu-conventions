@@ -13,6 +13,9 @@ gr_fc_apply() {
   path=${5-}
 
   if [ "$mode" = 'file' ]; then
+    # Scoped to srcRoot exactly like the repo-mode walk below: build.rs and the
+    # root-level configs are not source, and the repo gate never sees them.
+    case "$path" in "$GR_SRC_ROOT"/*) ;; *) return 0 ;; esac
     # shellcheck disable=SC2254
     case "${path##*/}" in $glob) ;; *) return 0 ;; esac
     printf '%s\n' "${path##*/}" | awk -v re="$regex" '$0 ~ re { found = 1 } END { exit !found }' && return 0

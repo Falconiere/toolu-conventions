@@ -20,7 +20,10 @@ GR_FS_AWK='
     sub(/^[ \t]+/, "", line)
     if (line == "") next
     if (line ~ /^\/\//) next          # // …
-    if (line ~ /^#/) next             # # …
+    # "# …" is a comment in shell/yaml/toml, but "#[derive(…)]" and "#![…]" are
+    # Rust ATTRIBUTES — code, and dense in exactly the stack where this check is
+    # the only enforcer. Skipping them undercounted every .rs file it measured.
+    if (line ~ /^#/ && line !~ /^#!?\[/) next
     if (line ~ /^\/\*/) { inblock = 1 }
     if (inblock) { if (line ~ /\*\//) inblock = 0; next }
     if (line ~ /^\*/) next            # continuation of a /* … */ block

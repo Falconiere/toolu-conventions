@@ -307,7 +307,7 @@ mkdir -p .github/workflows
    `DEEPSEEK_API_KEY` repository secret.
 
 See [`../../CORE.md`](../../CORE.md) → "Quality gates & guardrails" for how the
-four layers fit together.
+five layers fit together.
 
 ---
 

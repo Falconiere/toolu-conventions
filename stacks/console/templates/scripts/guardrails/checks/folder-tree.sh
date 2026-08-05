@@ -1,11 +1,17 @@
 # folder-tree.sh — the allowed source tree shape.
 #
-# Three rules from one config block:
-#   src.topLevel      the only directories permitted directly under srcRoot
-#   src.nested        a glob-keyed allowlist of subdirectories, which is how
-#                     intra-domain shape is expressed — "features/*" constrains
-#                     every feature folder without naming any of them
-#   src.requireReadme directories that must carry a README.md index
+# Two rules from one config block:
+#   src.topLevel  the only directories permitted directly under srcRoot
+#   src.nested    a glob-keyed allowlist of subdirectories, which is how
+#                 intra-domain shape is expressed — "features/*" constrains
+#                 every feature folder without naming any of them
+#
+# src.requireReadme is NOT here: it is a fact about README files, which oxlint
+# never lints, so it lives in its own `folder-readmes` check. That separation is
+# load-bearing. `ownedByLinter` is keyed on check id, and every TypeScript stack
+# declares folder-tree linter-owned — so while the README rules lived in this
+# function, declaring it owned switched them off in the bash module while nothing
+# in the oxlint plugin ever picked them up. One check id, one enforcement surface.
 #
 # src.topLevel OMITTED means unconstrained (the Rust stack: module names are
 # arbitrary). An empty array means nothing is allowed. They are different, and
@@ -101,30 +107,4 @@ gr_check_folder_tree() {
   while IFS= read -r dir; do
     gr_ft_check_dir "${dir#"$GR_SRC_ROOT"/}" "$dir"
   done < <(find "$GR_SRC_ROOT" -mindepth 1 -type d ! -path '*/node_modules/*' 2>/dev/null)
-
-  for name in $GR_REQUIRE_README; do
-    if [ -d "$GR_SRC_ROOT/$name" ] && [ ! -f "$GR_SRC_ROOT/$name/README.md" ]; then
-      gr_violation folder-tree "$GR_SRC_ROOT/$name" \
-        'missing README.md' \
-        "add one from templates/folder-README.md — it is how an agent answers \"where does X live\" without reading the tree"
-    fi
-  done
-
-  # Every domain folder carries its own README too, so a feature is
-  # self-describing the moment it exists.
-  rest_map=$GR_NESTED_MAP
-  while [ -n "$rest_map" ]; do
-    entry=${rest_map%%;*}
-    case "$rest_map" in *\;*) rest_map=${rest_map#*;} ;; *) rest_map='' ;; esac
-    key=${entry%%|*}
-    case "$key" in */\*) ;; *) continue ;; esac
-    prefix=${key%/\*}
-    [ -d "$GR_SRC_ROOT/$prefix" ] || continue
-    for domain in "$GR_SRC_ROOT/$prefix"/*/; do
-      [ -d "$domain" ] || continue
-      [ -f "${domain}README.md" ] || gr_violation folder-tree "${domain%/}" \
-        'domain folder has no README.md' \
-        'add one listing what belongs in this domain and what does not'
-    done
-  done
 }

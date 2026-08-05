@@ -97,28 +97,11 @@ gr_cache_config() {
   ' "$GR_CONFIG_FILE")
 }
 
-# gr_cfg <jq-filter> — one scalar, empty string when absent. For the cold paths
-# only (repo-scope checks that run once); anything per-file uses the cache.
-gr_cfg() {
-  jq -r "$1 // empty" "$GR_CONFIG_FILE"
-}
-
-# gr_cfg_arr <jq-filter> — array elements, one per line, empty when absent.
-gr_cfg_arr() {
-  jq -r "$1 // [] | .[]" "$GR_CONFIG_FILE"
-}
-
-# gr_cfg_has <jq-filter> — true when the key exists at all. The distinction
-# matters: an omitted src.topLevel means "unconstrained" (the Rust stack, whose
-# module names are arbitrary), while an empty array would reject every module.
-gr_cfg_has() {
-  jq -e "$1 != null" "$GR_CONFIG_FILE" >/dev/null 2>&1
-}
-
-# gr_match_glob <path> <glob> — POSIX glob match, honouring ** as "any depth".
-gr_match_glob() {
-  case "$1" in
-    $2) return 0 ;;
-    *) return 1 ;;
-  esac
-}
+# Deliberately no gr_cfg / gr_cfg_arr / gr_cfg_has / gr_match_glob helpers here.
+# Every value is read once by gr_cache_config above and every check reads the
+# cached variable, so a second jq-per-call accessor has no caller — and the
+# "omitted vs empty array" distinction those helpers existed to express is
+# already carried by GR_TOPLEVEL_SET. This directory is copied verbatim into
+# every project, so an unused helper is not free: it is five more copies of code
+# nothing exercises, in the one module whose whole point is that copies do not
+# rot.

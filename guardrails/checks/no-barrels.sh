@@ -37,6 +37,11 @@ gr_check_no_barrels() {
   [ -n "$GR_BARREL_NAMES" ] || return 0
 
   if [ "$mode" = 'file' ]; then
+    # Scoped to srcRoot exactly like the repo-mode walk below, and like the
+    # oxlint rule that replaced this on the TypeScript stacks. Unscoped, a hook
+    # or a Lefthook run reads Expo's root-level app/index.tsx routes — which the
+    # repo gate never looks at — as barrels.
+    case "$path" in "$GR_SRC_ROOT"/*) ;; *) return 0 ;; esac
     gr_nb_one "$path"
     return 0
   fi

@@ -16,7 +16,7 @@ in a browser — product shape, folder trees, rules, and guard rails in one page
 | Path | Purpose |
 | --- | --- |
 | [`SETUP.md`](./SETUP.md) | ★ Entry point. Router: prereq checks → intake questions → dispatch to a stack kit. |
-| [`CORE.md`](./CORE.md) | Stack-agnostic house rules every stack inherits — hard rules, the platform defaults, and the four guard-rail layers. |
+| [`CORE.md`](./CORE.md) | Stack-agnostic house rules every stack inherits — hard rules, the platform defaults, and the five guard-rail layers. |
 | [`DESIGN.md`](./DESIGN.md) | Stack-agnostic UI/UX language (CodaSignal "Signal") the `console`/`marketing`/`expo` theme tokens ship pre-filled with. |
 | `stacks/console/` | The authenticated product app — React + Vite + TanStack Router · TS strict · bun · Vitest → Cloudflare Workers. |
 | `stacks/marketing/` | The public website — Astro (static) · TS strictest · bun · Vitest → Cloudflare Workers. |

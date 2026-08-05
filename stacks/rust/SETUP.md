@@ -26,8 +26,11 @@ Copy the guard-rail module and its configuration:
   the `PostToolUse` + `Stop` hooks that run the guard rails while an agent is
   still writing the code; CORE guard-rail layer 2)
 
-`scripts/guardrails/run.sh` needs `jq` on PATH and exits 3 without it, so a
-missing dependency can never look like a clean run.
+`scripts/guardrails/run.sh` needs `jq` **and ast-grep** on PATH and exits 3
+without either, so a missing dependency can never look like a clean run. Rust is
+the stack that still needs ast-grep — oxlint cannot parse Rust, so the pattern
+rules have no other enforcer. Install with `cargo install ast-grep --locked`
+locally; the CI template installs it as its own step before the structure gate.
 
 ## 0. Prerequisites
 

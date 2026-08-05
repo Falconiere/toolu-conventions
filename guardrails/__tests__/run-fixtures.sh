@@ -46,9 +46,14 @@ count_check() {
 
 CLEAN=$(bash "$HERE/lib/mkrepo.sh" clean)
 DIRTY=$(bash "$HERE/lib/mkrepo.sh" violating)
-trap 'rm -rf "$CLEAN" "$DIRTY" "${SCRATCH:-}"' EXIT
+# BROKEN_RULE is written into the REAL rules directory by the fail-closed
+# assertion. It has to come off in the trap: an interrupted run that left it
+# behind would make every later run — and validate-templates.sh's verbatim-copy
+# diff — fail on a file the suite created.
+BROKEN_RULE=''
+trap 'rm -rf "$CLEAN" "$DIRTY" "${SCRATCH:-}"; rm -f "${BROKEN_RULE:-}"' EXIT
 
-ALL_CHECKS='folder-tree file-size colocated-tests no-barrels filename-case banned-deps shadow-configs required-files secrets patterns'
+ALL_CHECKS='folder-tree folder-readmes file-size colocated-tests test-tree no-barrels filename-case banned-deps shadow-configs required-files secrets patterns'
 
 echo 'guardrails fixtures'
 
@@ -105,7 +110,7 @@ if tagged folder-tree; then
   fi
   # Set-level checks must stay silent in --file mode.
   quiet=1
-  for check in banned-deps shadow-configs required-files secrets; do
+  for check in folder-readmes test-tree banned-deps shadow-configs required-files secrets; do
     [ "$(count_check "$out" "$check")" -eq 0 ] || quiet=0
   done
   [ "$quiet" -eq 1 ] && ok 'AC-4  set-level checks silent in --file mode' \
@@ -338,15 +343,58 @@ fi
 # reports green. This is the regression test for exactly that bug.
 if tagged patterns || [ -z "$ONLY" ]; then
   SC=$(bash "$HERE/lib/mkrepo.sh" violating)
-  broken="$HERE/../patterns/rust/zz-broken.yml"
-  printf 'id: zz-broken\nlanguage: rust\nrule:\n  pattern: "((("\n' > "$broken"
+  BROKEN_RULE="$HERE/../patterns/rust/zz-broken.yml"
+  printf 'id: zz-broken\nlanguage: rust\nrule:\n  pattern: "((("\n' > "$BROKEN_RULE"
   gr_in "$SC" --only patterns; out=$OUT
   s=$STATUS
-  rm -f "$broken"
+  rm -f "$BROKEN_RULE"; BROKEN_RULE=''
   if [ "$s" -eq 3 ] && printf '%s' "$out" | grep -q 'ast-grep exited'; then
     ok 'AC-19 a malformed ast-grep rule exits 3, never a silent green'
   else
     bad 'AC-19 patterns must fail CLOSED on a broken rule' "exit=$s out=$out"
+  fi
+  rm -rf "$SC"
+fi
+
+# ------------------------------------------------------ ownedByLinter scoping
+# A check id is the unit of ownership, so an id may not straddle what the linter
+# can see and what it cannot. folder-tree and colocated-tests used to carry the
+# README rules and the centralized-directory scan — neither of which any oxlint
+# rule enforces — so every TypeScript stack, all of which declare those two
+# linter-owned, silently stopped enforcing them in BOTH places.
+if [ -z "$ONLY" ]; then
+  SC=$(bash "$HERE/lib/mkrepo.sh" violating)
+  jq '.ownedByLinter = ["folder-tree","colocated-tests","no-barrels","filename-case","patterns"]' \
+    "$SC/guardrails.config.json" > "$SC/t" && mv "$SC/t" "$SC/guardrails.config.json"
+  gr_in "$SC"; out=$OUT
+  silent=1
+  for check in folder-tree colocated-tests no-barrels filename-case patterns; do
+    [ "$(count_check "$out" "$check")" -eq 0 ] || silent=0
+  done
+  [ "$silent" -eq 1 ] && ok 'AC-20 ownedByLinter skips exactly the checks it names' \
+    || bad 'AC-20 a linter-owned check must not also run here' "$out"
+
+  kept=1
+  for check in folder-readmes test-tree; do
+    [ "$(count_check "$out" "$check")" -eq 1 ] || kept=0
+  done
+  [ "$kept" -eq 1 ] && ok 'AC-20 rules no linter enforces survive ownedByLinter' \
+    || bad 'AC-20 folder-readmes/test-tree must still fire on a linter-owned stack' "$out"
+  rm -rf "$SC"
+fi
+
+# ------------------------------------------------------- paths with a space
+# Lefthook hands {staged_files} straight through, and a filename may hold a
+# space. Word-splitting the list dropped the violation entirely — the worst
+# possible failure for a gate, because it reads as a pass.
+if [ -z "$ONLY" ]; then
+  SC=$(bash "$HERE/lib/mkrepo.sh" clean)
+  printf 'export const spaced = 1;\n' > "$SC/src/utilities/Bad Name.ts"
+  gr_in "$SC" --file 'src/utilities/Bad Name.ts'; out=$OUT
+  if [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" filename-case)" -eq 1 ]; then
+    ok 'AC-4  --file handles a path containing a space'
+  else
+    bad 'AC-4  a spaced path must not be split into nonexistent paths' "exit=$STATUS out=$out"
   fi
   rm -rf "$SC"
 fi
