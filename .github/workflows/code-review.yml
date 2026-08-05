@@ -43,6 +43,12 @@ jobs:
           # the latter two, a reviewer reading only CORE.md sees the destination
           # path scripts/guardrails/ and concludes the kit-side guardrails/ source
           # is stale — which it did, three review rounds running.
+          #
+          # Read from the BASE ref, so the two new files above do nothing on the
+          # PR that introduces them — they only start informing reviews once this
+          # merges. CODEBASE_OVERVIEW below comes from the head, which is why the
+          # layout facts are restated there too rather than left to RULES_GLOB
+          # alone. That is not redundancy; it is the only half that works today.
           RULES_GLOB: |
             CORE.md
             guardrails/README.md
@@ -90,6 +96,19 @@ jobs:
             from the diff or from CORE.md's prose: unchanged files are simply not
             shown to you. Report a path only when the diff itself contains
             evidence it is wrong.
+
+            A DELETION OF A DUPLICATE IS NOT A DELETION OF THE ORIGINAL. This
+            diff deletes the five per-stack mirrors under
+            stacks/<stack>/templates/scripts/guardrails/. For every file deleted
+            there, the original still exists at guardrails/<same relative path>
+            and is unchanged, so it does not appear in the diff. Deleted
+            stacks/marketing/templates/scripts/guardrails/oxlint-plugin/index.js
+            therefore means the marketing DUPLICATE is gone, not that
+            oxlint-plugin is gone: guardrails/oxlint-plugin/ is present, and
+            every item in the manifest resolves. Do not conclude from these
+            deletions that a manifest item is missing or that a copy step would
+            fail — that has been reported and refuted repeatedly, and the copy
+            block has been executed end to end to confirm it.
 
             A defect here is therefore: a template that contradicts its own
             stack's gate (its .oxlintrc.json, scripts/guardrails/run.sh, or
