@@ -25,6 +25,7 @@ committed; CI installs with `--frozen-lockfile`.
 | Lint / format | `oxlint` + `oxfmt` (+ `oxlint-tsgolint` for type-aware) | oxlint reads `.astro` frontmatter too; oxfmt handles `.ts`/`.tsx` (JSX included) but cannot parse `.astro` component syntax. The template body is `astro check`'s job. |
 | Git hooks | `lefthook` | Pre-commit lint + format on staged files. |
 | Deploy | `wrangler` (dev dependency) | Cloudflare Workers CLI — the house deploy target. |
+| Structural pattern checks | `@ast-grep/cli` | `scripts/guardrails/checks/patterns.sh` shells out to it on every edit; as a devDependency it resolves from `node_modules/.bin` instead of paying `bunx`'s package-resolution cost each time. |
 
 ---
 
