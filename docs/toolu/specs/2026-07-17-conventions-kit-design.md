@@ -4,14 +4,14 @@
 
 ## Problem
 
-Every new personal repo restarts the conventions conversation: folder layout, lint/test tooling, naming rules, CI gate. The rules exist (toolu house style) but live in plugin skills and memory, not in a distributable artifact an agent can execute. Result: drift between repos and repeated setup work. The Qwick native boilerplate proved the fix: a markdown kit an agent runs end-to-end (`SETUP.md` + `STRUCTURE.md` + `LIBRARIES.md` + `templates/`) that scaffolds identical projects every time.
+Every new personal repo restarts the conventions conversation: folder layout, lint/test tooling, naming rules, CI gate. The rules exist (toolu house style) but live in plugin skills and memory, not in a distributable artifact an agent can execute. Result: drift between repos and repeated setup work. A private native boilerplate proved the fix: a markdown kit an agent runs end-to-end (`SETUP.md` + `STRUCTURE.md` + `LIBRARIES.md` + `templates/`) that scaffolds identical projects every time.
 
 ## Non-Goals
 
 1. Not a CLI/code generator — markdown docs + copy-ready templates only; a coding agent is the executor.
 2. No team/org governance (approval flows, Confluence export). Personal use; a version note in README suffices.
 3. No baked-in backend infra (DB, cloud provider, auth vendor) — integrations are opt-in at setup time.
-4. No fork-parity with the Qwick kit — it is the model, not an upstream.
+4. No fork-parity with the reference kit — it is the model, not an upstream.
 5. No monorepo conventions in v1 — single-repo projects only. For Rust this means single-crate only; Cargo workspaces are out of scope.
 
 ## Architecture
@@ -20,7 +20,7 @@ Every new personal repo restarts the conventions conversation: folder layout, li
 
 Driving trade-off: **per-stack maintainability over single-file simplicity.** A monolithic SETUP.md branching across four stacks was rejected — every stack change would churn one giant file and agents would page through three irrelevant stacks. Single-stack-first was rejected because all four stacks were explicitly requested.
 
-Reuse: `CORE.md` codifies the already-enforced toolu conventions (no barrels, kebab-case filename = export, colocated tests, real-data testing, size ceilings, doc lines, docs-in-sync, quality gate). The expo stack derives directly from `SidegigLLC/qwick-native-mobile-boilderplate` (fetched via `gh`); web/backend-ts/rust derive from CORE + curated defaults.
+Reuse: `CORE.md` codifies the already-enforced toolu conventions (no barrels, kebab-case filename = export, colocated tests, real-data testing, size ceilings, doc lines, docs-in-sync, quality gate). The expo stack derives directly from a private native boilerplate repo (fetched via `gh`); web/backend-ts/rust derive from CORE + curated defaults.
 
 ## Interfaces / Schema
 
