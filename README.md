@@ -228,10 +228,14 @@ Specs, plans, and decision records live in [`docs/toolu/`](./docs/toolu/).
 
 ---
 
-> **Version:** v0.2 · last updated 2026-08, when `agent-guardrails` landed (the entry
-> below); everything before it shipped in 2026-07.
+> **v0.3** (2026-08) — one guardrails source. The five byte-identical copies of the module
+> under `stacks/*/templates/scripts/guardrails/` are gone; a scaffold copies the manifest
+> straight out of the kit's [`guardrails/`](./guardrails/). New [`shared/`](./shared/) holds
+> the template files that were identical across stacks — the agent-hook `settings.json` and
+> the folder-README. Stack `SETUP.md` files name the kit path and the project path
+> distinctly, and the paths are documented rather than inferred.
 >
-> `web` renamed to `console` and rebuilt on React + Vite + TanStack Router; new
+> **v0.2** (2026-07, plus `agent-guardrails` in 2026-08) — `web` renamed to `console` and rebuilt on React + Vite + TanStack Router; new
 > `marketing` (Astro) kit; `backend-ts` moved to Cloudflare Workers + Turso; better-auth
 > adopted; oRPC + TanStack Query as the API layer; Zod adopted as the one validator
 > (replacing hand-written guards); axios replaced by the kit's `http.ts`; knip + jscpd
