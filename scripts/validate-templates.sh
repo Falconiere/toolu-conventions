@@ -373,11 +373,16 @@ done
 #     first time it happened: secret-content.sh landed as the 13th while both
 #     READMEs still advertised 12. Only the "# N checks" tree comments are
 #     asserted here — the prose that spells the number in words ("all
-#     thirteen") is not, so keep those in step by hand when this fires. ---
+#     thirteen") is not, so keep those in step by hand when this fires.
+#
+#     Anchored to the tree-diagram line, not a bare substring: an unrelated
+#     sentence elsewhere in the doc that happens to contain the right number
+#     would otherwise satisfy the grep while the diagram itself stayed stale —
+#     a check answering a question nobody asked. ---
 check_count=$(find guardrails/checks -maxdepth 1 -name '*.sh' -type f | wc -l | tr -d ' ')
 for doc in README.md guardrails/README.md; do
-  grep -q "# $check_count checks" "$doc" \
-    || bad "guardrails: $doc does not say '# $check_count checks' — guardrails/checks/ holds $check_count, and the tree comment has drifted"
+  grep -qE "^.*── checks/ *# $check_count checks" "$doc" \
+    || bad "guardrails: $doc's checks/ tree line does not say '# $check_count checks' — guardrails/checks/ holds $check_count, and the diagram has drifted"
 done
 [ -d guardrails/__tests__ ] \
   || bad "guardrails: guardrails/__tests__/ is missing from the kit — it is the module's own test suite"
