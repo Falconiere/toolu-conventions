@@ -49,7 +49,7 @@ gr_sc_exempt() {
 # gr_sc_scan <path> — one grep, first match wins: a file with two leaked
 # secrets still only needs the one fix instruction to start acting on.
 gr_sc_scan() {
-  local path match kind
+  local path match kind errfile errtext status
   path=$1
   gr_sc_exempt "$path" && return 0
   [ -f "$path" ] || return 0
@@ -64,7 +64,21 @@ gr_sc_scan() {
   # at all — at which point it silently reads STDIN instead of the file. On a
   # single --file invocation that just means the wrong thing gets scanned; in
   # the old per-file repo-mode loop it was worse — see gr_sc_repo_list below.
-  match=$(grep -E -I -n -m1 -e "$GR_SC_PATTERN" -- "$path" 2>/dev/null) || return 0
+  #
+  # stderr is captured, never discarded: grep exiting 1 with a quiet stderr is
+  # the one legitimate "clean file" outcome. Anything else — a diagnostic on
+  # stderr, or an exit status above 1 (unreadable file, EISDIR) — is a scan
+  # that did NOT happen, and a scan that did not happen must fail the gate
+  # closed, not report the file as clean. Same doctrine as the batch pass and
+  # patterns.sh.
+  errfile=$(mktemp)
+  match=$(grep -E -I -n -m1 -e "$GR_SC_PATTERN" -- "$path" 2>"$errfile")
+  status=$?
+  errtext=$(cat "$errfile")
+  rm -f "$errfile"
+  if [ -n "$errtext" ] || [ "$status" -gt 1 ]; then
+    gr_fatal "secret-content scan failed on $path: ${errtext:-grep exited $status}"
+  fi
   [ -n "$match" ] || return 0
   kind=$(gr_sc_kind "${match#*:}")
   gr_violation secret-content "$path" \
@@ -124,19 +138,23 @@ gr_sc_repo_list() {
 # grep on N>=1 files returns 0 (matched somewhere), 1 (matched nowhere), or
 # >=2 (a real failure: unreadable file, EISDIR, etc — -f above should have
 # already filtered non-files out, but a permission-denied file can still
-# reach here). xargs then remaps ITS OWN exit status from whatever grep
+# reach here). xargs then remaps ITS OWN exit status from whatever its child
 # returned: 0 stays 0, any of 1..125 collapses to 123, 126/127 pass through
-# unchanged, a killing signal becomes 128+signal. 1 and >=2 both live inside
-# that 1..125 band, so "xargs exited 123" cannot by itself tell "nothing
-# matched" apart from "grep choked on a file" — and if the survivor list is
-# large enough that xargs splits it into several grep invocations, one
-# batch's real error and a different batch's clean no-match collapse into
-# that same 123 together. The exit code is therefore NOT the fail-closed
-# signal here: grep's stderr is. A clean run — matches, no matches, or a mix
-# of both across batches — never writes to stderr; only a real error does.
-# So matches are read from stdout regardless of what status came back, and
-# ANY stderr output fails the whole scan closed (gr_fatal) rather than risk
-# having silently skipped whatever file that batch was in the middle of.
+# unchanged, a killing signal becomes 128+signal. Bare grep under xargs would
+# therefore be ambiguous — 1 (clean no-match) and >=2 (real error) both land
+# in that 1..125 band, and with a survivor list large enough to split across
+# several grep invocations, one batch's error and another's clean no-match
+# collapse into the same 123.
+#
+# So grep runs under a one-line sh wrapper that absorbs exit 1 — the ONE
+# status that legitimately means "scanned everything, found nothing" — and
+# lets every other failure through. After that remap the xargs status is
+# unambiguous and fail-closed on its own: 0 = every file scanned (matches or
+# not), anything else = at least one batch did NOT complete its scan, and a
+# scan that did not happen must never pass the gate. grep's stderr is
+# captured as a second, independent tripwire and any output there also fails
+# the run closed — belt and braces, since this is the check other checks
+# trust to be paranoid.
 gr_sc_scan_batch() {
   local list errfile hitfile status path errtext
   list=$1
@@ -144,14 +162,15 @@ gr_sc_scan_batch() {
   # stdout goes to a file, not $(...): the -Z output is NUL-delimited and
   # command substitution silently drops NUL bytes.
   hitfile=$(mktemp)
-  xargs -0 grep -E -I -l -Z -e "$GR_SC_PATTERN" -- < "$list" > "$hitfile" 2>"$errfile"
+  xargs -0 sh -c 'pat=$1; shift; grep -E -I -l -Z -e "$pat" -- "$@" || [ $? -eq 1 ]' sh "$GR_SC_PATTERN" \
+    < "$list" > "$hitfile" 2>"$errfile"
   status=$?
   errtext=$(cat "$errfile")
   rm -f "$errfile"
   [ -z "$errtext" ] || { rm -f "$hitfile"; gr_fatal "secret-content repo scan failed: $errtext"; }
   case "$status" in
-    0 | 123) ;; # 0 = matched somewhere, 123 = grep found nothing anywhere (see contract above)
-    *) rm -f "$hitfile"; gr_fatal "secret-content repo scan: grep exited $status unexpectedly" ;;
+    0) ;; # every batch completed its scan — with or without matches
+    *) rm -f "$hitfile"; gr_fatal "secret-content repo scan: batch exited $status — a batch did not finish scanning" ;;
   esac
   while IFS= read -r -d '' path; do
     gr_sc_scan "$path"
