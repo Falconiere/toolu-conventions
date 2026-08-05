@@ -262,15 +262,13 @@ do
   [ -f "$f" ] || bad "cross-stack template referenced by marketing/expo is missing: $f"
 done
 
-# --- Same reasoning, the scaffold side: the scaffold names guardrails/<manifest
-#     item>, shared/.claude/settings.json, and shared/folder-README.md in its
-#     own prose (it copies the manifest out of guardrails/ and the two shared
-#     files straight into a new project). Nothing type-checks that prose, so a
-#     rename here would only surface as a broken scaffold, not a failed build. ---
-for item in $GR_MANIFEST; do
-  [ -e "guardrails/$item" ] \
-    || bad "scaffold-referenced path renamed or removed: guardrails/$item"
-done
+# --- Same reasoning, the scaffold side: the scaffold names
+#     shared/.claude/settings.json and shared/folder-README.md in its own prose
+#     (it copies both straight into a new project). Nothing type-checks that
+#     prose, so a rename here would only surface as a broken scaffold, not a
+#     failed build. The manifest items are asserted once, further down with the
+#     rest of the agent-guardrails checks — two loops over $GR_MANIFEST meant
+#     one missing item reported itself twice, in two messages free to drift. ---
 for f in shared/.claude/settings.json shared/folder-README.md; do
   [ -f "$f" ] || bad "scaffold-referenced path renamed or removed: $f"
 done
@@ -284,9 +282,15 @@ done
 #     so strip link constructs before looking for a bare relative path. sed,
 #     not perl: this script already leans on sed throughout (the globals.css
 #     and clippy.toml checks above), and nothing here uses perl, so sed keeps
-#     the strip without adding a dependency the rest of the file doesn't have. ---
+#     the strip without adding a dependency the rest of the file doesn't have.
+#
+#     The strip reads the WHOLE file (`:a;N;$!ba`) rather than line by line: a
+#     link wrapped across two lines leaves its tail — `notes](../../DESIGN.md)`
+#     — on a line of its own, and a per-line strip cannot see the `[` that
+#     opened it, so a perfectly good reading link would fail this check. These
+#     files wrap at ~80 columns, so that is a matter of time, not a hypothetical. ---
 for setup in stacks/*/SETUP.md; do
-  stray=$(sed -E 's/\[[^]]*\]\([^)]*\)//g' "$setup" | grep -n '\.\./' | head -5)
+  stray=$(sed -E ':a;N;$!ba; s/\[[^]]*\]\([^)]*\)//g' "$setup" | grep -n '\.\./' | head -5)
   [ -n "$stray" ] \
     && bad "guardrails: $setup has a copy source written relative to the file ($(printf '%s' "$stray" | head -1 | cut -c1-60)…) — anchor it to \$KIT/ instead; the agent's CWD is the new project, not the kit"
 done
