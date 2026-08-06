@@ -7,7 +7,7 @@ import { profiles } from '@/schema/profiles-table';
 // Real data, no mocks. The round-trip runs inside workerd against the Turso
 // database named in .dev.vars, which the pool loads as bindings. A mocked
 // client would prove the mock works and hide every integration break — the
-// exact failure mode CORE rule 6 exists for.
+// exact failure mode CORE rule 7 exists for.
 
 describe('config validation', () => {
   test('rejects a URL that is not libsql://', () => {

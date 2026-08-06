@@ -186,7 +186,7 @@ blocked-patterns list.
     `src/` outside a `__tests__/`).
 14. **Tests run in the real runtime, against real data.** The Vitest pool boots
     workerd with this project's `wrangler.jsonc` and `.dev.vars`, so a test hits
-    a real Turso database. A mock-only test is banned (CORE rule 6) — it proves
+    a real Turso database. A mock-only test is banned (CORE rule 7) — it proves
     the mock works and hides every integration break. — enforced by
     `vitest.config.ts` (the pool) + (review) for the mock rule.
 15. **No `any`.** No `as any`, `: any`, `as unknown as T`. Use `unknown` + type

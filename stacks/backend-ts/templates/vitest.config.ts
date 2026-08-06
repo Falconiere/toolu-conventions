@@ -8,7 +8,7 @@ import { defineConfig } from 'vitest/config';
 // request (missing binding, unsupported API, wrong compatibility flag).
 //
 // Local secrets come from `.dev.vars`, so a test hits the real Turso database
-// you point it at — real data, no mocks (CORE rule 6).
+// you point it at — real data, no mocks (CORE rule 7).
 export default defineConfig({
   plugins: [
     cloudflareTest({
