@@ -31,7 +31,12 @@ shape before anything objects.
    in config is not an error; only its internal shape is checked.
 5. **No auto-fixing.** Guardrails report and exit nonzero. They never rewrite a
    file. An agent or a human does the fix.
-6. **No monorepo support** — single-repo projects, consistent with the kit.
+6. ~~**No monorepo support** — single-repo projects, consistent with the kit.~~
+   **Superseded 2026-08-06** by [`2026-08-06-database-ts-monorepo-design.md`](./2026-08-06-database-ts-monorepo-design.md):
+   a root `guardrails.workspace.json` names the packages and `run.sh` re-execs
+   itself once per package, so every check still runs in the single-root shape
+   it was written for. The thirteen check ids are unchanged — workspace support
+   is dispatch, not a new check.
 
 ## Architecture
 

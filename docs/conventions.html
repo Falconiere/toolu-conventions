@@ -553,7 +553,7 @@
           </dl>
           <p class="body" style="margin-top: 1.75rem">
             Mobile and systems work have their own kits (Expo and Rust) when the
-            product needs them. Not every idea needs all five stacks.
+            product needs them. Not every idea needs all six stacks.
           </p>
         </div>
       </section>
@@ -602,6 +602,12 @@
               <h3 class="subhead">Systems / CLI</h3>
               <p>Single-crate Rust with strict clippy and rustfmt. Use when the work is a tool or service that belongs in Rust, not TypeScript.</p>
               <p class="tech">cargo · clippy −D warnings · rustfmt · cargo test</p>
+            </article>
+            <article class="stack-card">
+              <p class="label">database-ts</p>
+              <h3 class="subhead">The database, alone</h3>
+              <p>Schema, migrations and the client factory as their own workspace package beside the API. Never scaffolded alone — it joins a backend-ts project through one intake question.</p>
+              <p class="tech">Drizzle · Turso · Bun workspaces · Vitest in workerd</p>
             </article>
           </div>
           <p class="body" style="margin-top: 2rem">

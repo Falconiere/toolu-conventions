@@ -43,6 +43,12 @@ language.
    | `backend-ts` | The HTTP API | Hono → Cloudflare Workers (workerd) + Turso |
    | `expo` | The mobile app | Expo / React Native |
    | `rust` | A CLI or service in Rust | Single crate |
+   | `database-ts` | The database, as its own package | Drizzle + Turso, a Bun workspace package beside `backend-ts` |
+
+   > The kit has **six** stacks but only **five you choose here**. `database-ts`
+   > is reached through the `backend-ts` intake question below, never on its
+   > own: a database package with no consumer has no gate, no bindings, and
+   > nothing to be typed against.
 
    > A full product is usually **three** of these — `marketing`, `console`, and
    > `backend-ts` — each its own repo. If the user describes a whole product,
@@ -60,7 +66,7 @@ language.
    | --- | --- |
    | console | API layer (oRPC client + TanStack Query bindings) · auth client (better-auth) · same-project Worker API (`@cloudflare/vite-plugin` + Turso; default no) |
    | marketing | Content collections (blog/changelog) · SSR via `@astrojs/cloudflare` (default no — static) · an interactive island · analytics |
-   | backend-ts | Database (**Turso**, default yes) · auth (better-auth, server half) · structured logging · Drizzle ORM over Turso |
+   | backend-ts | Database (**Turso**, default yes) · auth (better-auth, server half) · structured logging · Drizzle ORM over Turso — and if Drizzle, **separate database package?** (default yes), which scaffolds `database-ts` into a Bun workspace |
    | expo | API layer (oRPC client + TanStack Query bindings; the kit's `http.ts` for everything else) · auth (better-auth client + `expo-secure-store`) · local storage (`@react-native-async-storage/async-storage`) |
    | rust | CLI parsing (`clap`) · HTTP service (`axum` + `tokio`) · serialization (`serde`/`serde_json`) |
 
@@ -92,7 +98,15 @@ language.
 ## 2. Dispatch
 
 Open `stacks/<stack>/SETUP.md` and execute it end to end with the intake
-answers. Templates referenced there live in `stacks/<stack>/templates/` under
+answers.
+
+**If the answer to *separate database package?* was yes**, the backend-ts kit
+hands off to `stacks/database-ts/SETUP.md` partway through, and the project
+becomes a Bun workspace. Order matters: the workspace root first (its
+`package.json`, `guardrails.workspace.json`, `knip.json`, `lefthook.yml` and
+both workflows all come from `shared/workspace/`), then `packages/database`,
+then `packages/api`. Do not create a `guardrails.config.json` at the root — see
+CORE.md → "Monorepos" for why its absence is load-bearing. Templates referenced there live in `stacks/<stack>/templates/` under
 their real filenames (only `CLAUDE.md.template` is suffixed — rename it to
 `CLAUDE.md` when copying). Placeholder style is per-stack — each stack's
 SETUP.md documents its own substitution convention; follow it as written.

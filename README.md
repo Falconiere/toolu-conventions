@@ -4,12 +4,12 @@
 
 **A conventions kit an AI agent can execute.**
 Hand [`SETUP.md`](./SETUP.md) to a coding agent and it scaffolds a new project with the
-same structure, tooling, and guard rails every time — across five stacks.
+same structure, tooling, and guard rails every time — across six stacks.
 
 [![CI](https://github.com/Falconiere/toolu-conventions/actions/workflows/ci.yml/badge.svg)](./.github/workflows/ci.yml)
 [![Code Review](https://github.com/Falconiere/toolu-conventions/actions/workflows/code-review.yml/badge.svg)](./.github/workflows/code-review.yml)
 [![Guide](https://img.shields.io/badge/guide-GitHub%20Pages-0b7285)](https://falconiere.github.io/toolu-conventions/)
-[![Stacks](https://img.shields.io/badge/stacks-5-333)](#the-five-stacks)
+[![Stacks](https://img.shields.io/badge/stacks-6-333)](#the-six-stacks)
 
 [Guide](https://falconiere.github.io/toolu-conventions/) ·
 [Design system](https://falconiere.github.io/toolu-conventions/design-system.html) ·
@@ -66,7 +66,7 @@ flowchart LR
   G["DESIGN.md<br/>UI language"] --> C
 ```
 
-## The five stacks
+## The six stacks
 
 | Stack | Builds | Runs on |
 | --- | --- | --- |
@@ -75,6 +75,13 @@ flowchart LR
 | [`backend-ts`](./stacks/backend-ts/) | The HTTP API | Hono → Cloudflare Workers (workerd) · Turso · Vitest in the real runtime |
 | [`expo`](./stacks/expo/) | The mobile app | Expo (latest SDK) · Expo Router · bun · Jest |
 | [`rust`](./stacks/rust/) | A CLI or service | Single crate · clippy `-D warnings` · rustfmt · cargo test |
+| [`database-ts`](./stacks/database-ts/) | The database, as its own package | Drizzle + Turso · a Bun workspace package beside `backend-ts` · Vitest in workerd |
+
+Five of those six are chosen directly. **`database-ts` is not** — it is reached through
+the `backend-ts` intake question *separate database package?*, and turns that project into
+a Bun workspace (`packages/api` + `packages/database`). A database package with no
+consumer has no gate and nothing to be typed against, so the kit will not scaffold one
+alone.
 
 A full product is usually **three repos** from this kit — `marketing` (the public site),
 `console` (the app behind the login), and `backend-ts` (the API they both talk to). They

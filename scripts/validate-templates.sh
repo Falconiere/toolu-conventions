@@ -362,6 +362,46 @@ for suite in run-fixtures.sh run-plugin.sh run-latency.sh; do
     || bad "the kit's ci.yml does not run guardrails/__tests__/$suite — that suite is unverified by CI"
 done
 
+# --- The documented stack count must match the stacks that exist.
+#
+#     Adding a stack touches six prose surfaces, and the failure mode is that
+#     five get updated and one keeps saying "five stacks" for a year. Assert the
+#     number rather than trusting the person who adds the seventh. Each stack
+#     must also be NAMED wherever stacks are enumerated, so a count that happens
+#     to match cannot hide a missing row. ---
+stack_count=$(find stacks -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+case "$stack_count" in
+  5) stack_word='five' ;;
+  6) stack_word='six' ;;
+  7) stack_word='seven' ;;
+  *) stack_word='' ;;
+esac
+if [ -z "$stack_word" ]; then
+  bad "stacks/ holds $stack_count stacks and validate-templates.sh has no word for that — add it to the case above"
+else
+  for doc in README.md docs/index.html docs/conventions.html docs/how-it-works.html; do
+    grep -qi "$stack_word stacks" "$doc" \
+      || bad "$doc does not say \"$stack_word stacks\" — stacks/ holds $stack_count and the prose has drifted"
+    # Presence is not enough. A doc that mentions the count in four places and
+    # gets three of them updated still reads "five stacks" somewhere, and an
+    # -q match on the ONE corrected line would call that clean. Assert that no
+    # OTHER count word appears next to "stacks" anywhere in the file.
+    for wrong in five six seven; do
+      [ "$wrong" = "$stack_word" ] && continue
+      stale=$(grep -in "$wrong stacks" "$doc" | head -1)
+      [ -n "$stale" ] \
+        && bad "$doc still says \"$wrong stacks\" — stacks/ holds $stack_count ($stack_word): $stale"
+    done
+  done
+fi
+for d in stacks/*/; do
+  stack=$(basename "$d")
+  for doc in README.md SETUP.md docs/conventions.html; do
+    grep -q "$stack" "$doc" \
+      || bad "$doc never mentions the '$stack' stack — it is enumerated there and this one is missing"
+  done
+done
+
 # --- The console stack must NOT ship a vitest config: its own
 #     guardrails/run.sh fails the gate when one exists (a vitest config
 #     replaces vite.config.ts rather than merging, dropping the router plugin
