@@ -1,0 +1,13 @@
+# Pre-commit runs from the WORKSPACE ROOT, and {staged_files} spans packages.
+# guardrails buckets those paths by owning package itself — do not try to split
+# them here.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: guardrails
+      run: bash scripts/guardrails/run.sh --file {staged_files}
+    - name: lint
+      run: bun --filter '*' run lint
+    - name: format
+      glob: '*.{ts,tsx,json,jsonc}'
+      run: bunx oxfmt --check {staged_files}

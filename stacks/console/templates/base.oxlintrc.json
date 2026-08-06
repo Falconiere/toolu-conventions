@@ -83,6 +83,7 @@
     "house/no-barrels": "error",
     "house/no-bare-fetch": "error",
     "house/no-hardcoded-hex": "error",
+    "house/no-module-scope-database": "error",
     "import/no-default-export": "error"
   },
   "overrides": [

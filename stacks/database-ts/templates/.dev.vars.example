@@ -1,0 +1,5 @@
+# Local test credentials. wrangler loads .dev.vars beside this package's
+# wrangler.jsonc, so the vitest pool can reach a real Turso database.
+# .dev.vars itself is git-ignored — the gate fails if it is ever tracked.
+TURSO_URL=libsql://your-database.turso.io
+TURSO_AUTH_TOKEN=

@@ -1,0 +1,92 @@
+# GitHub Actions — the quality gate for every PR (and pushes to main).
+#
+# The WORKSPACE variant. Each package owns its own gate, so almost everything
+# here fans out with `bun --filter` rather than running once at the root.
+#
+# Copy to `.github/workflows/ci.yml`. Keep the Bun version in sync with the Bun
+# you develop against locally.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: types · lint · format · structure · unused · dupes · test · build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      # One install for the whole workspace — that is what workspaces are for.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # `worker-configuration.d.ts` is committed so `tsc` works on a fresh
+      # clone. Regenerating it and failing on a diff catches the common mistake:
+      # adding a binding to wrangler.jsonc without regenerating, so
+      # `c.env.NEW_THING` type-checks locally against a stale definition.
+      - name: Check generated Worker types are current
+        working-directory: packages/api
+        run: |
+          bun run cf-typegen
+          git diff --exit-code -- worker-configuration.d.ts
+
+      - name: Type-check
+        run: bun --filter '*' run type-check
+
+      # Fanned out on purpose, and it is not merely tidiness: the guardrails
+      # oxlint plugin resolves guardrails.config.json from the working
+      # directory. A single root-level `oxlint .` would either lint every
+      # package against one config or — since a workspace root deliberately has
+      # no such file — fail closed at plugin load. Neither is what you want in
+      # CI; run it inside each package.
+      - name: Lint
+        run: bun --filter '*' run lint
+
+      - name: Format check
+        run: bun --filter '*' run fmt:check
+
+      # Repo mode from the root. run.sh reads guardrails.workspace.json, checks
+      # the root-level rules here, and re-execs itself once per package.
+      - name: Structure check
+        run: bash scripts/guardrails/run.sh
+
+      # knip is configured once at the root with a `workspaces` block, because
+      # it has to see the whole graph to know that packages/api importing
+      # @project/database is a real use of that package's exports.
+      - name: Unused files, exports, dependencies (knip)
+        run: bunx knip
+
+      - name: Copy-paste detection (jscpd)
+        run: bun --filter '*' run check:dupes
+
+      # Runs inside workerd via @cloudflare/vitest-pool-workers. The database
+      # package needs real Turso credentials, so its round-trip tests are the
+      # one thing CI cannot cover without them — set the repo secrets, or
+      # accept that the schema is proven only by type-checking here.
+      - name: Test
+        run: bun --filter '*' run test
+
+      # A dry-run deploy: bundles the Worker and validates the config without
+      # publishing. Catches an unsupported import or a bad binding before merge
+      # — including a database package that accidentally imported a Node-native
+      # entry, which only fails at bundle time.
+      - name: Build (dry-run deploy)
+        working-directory: packages/api
+        run: bunx wrangler deploy --dry-run --outdir dist

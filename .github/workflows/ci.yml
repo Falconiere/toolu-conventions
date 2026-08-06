@@ -68,8 +68,16 @@ jobs:
       - name: Guard rails — fixture suite
         run: bash guardrails/__tests__/run-fixtures.sh
 
+      # The oxlint half of the same split. This suite existed for a long time
+      # without CI ever running it, which meant every house rule — the ones that
+      # fire while an agent is still typing — was unverified by the gate.
+      - name: Guard rails — oxlint plugin suite
+        run: bash guardrails/__tests__/run-plugin.sh
+
       # A slow gate is a gate people route around, so the budget is asserted
-      # rather than assumed, against a generated 500-file tree.
+      # rather than assumed, against a generated 500-file tree. The workspace
+      # cases split the SAME tree across two packages, so what they measure is
+      # the cost of the re-exec, not a bigger repo.
       - name: Guard rails — latency budget
         run: bash guardrails/__tests__/run-latency.sh
 
