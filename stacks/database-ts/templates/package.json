@@ -20,18 +20,18 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@libsql/client": "^0.16.0",
-    "drizzle-orm": "^0.45.2",
-    "zod": "^4.1.13"
+    "@libsql/client": "0.16.0",
+    "drizzle-orm": "0.45.2",
+    "zod": "4.1.13"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.20.2",
-    "drizzle-kit": "^0.32.0",
-    "jscpd": "^4.0.5",
-    "knip": "^5.64.4",
-    "oxlint": "^1.77.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.0",
-    "wrangler": "^4.45.0"
+    "@cloudflare/vitest-pool-workers": "0.20.2",
+    "drizzle-kit": "0.32.0",
+    "jscpd": "4.0.5",
+    "knip": "5.64.4",
+    "oxlint": "1.77.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.0",
+    "wrangler": "4.45.0"
   }
 }

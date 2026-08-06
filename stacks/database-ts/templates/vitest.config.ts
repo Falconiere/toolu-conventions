@@ -12,8 +12,10 @@ import { defineConfig } from 'vitest/config';
 // database you point it at. A mock client is banned (CORE rule 7).
 export default defineConfig({
   plugins: [cloudflareTest({ wrangler: { configPath: './wrangler.jsonc' } })],
+  // No passWithNoTests. This package SHIPS a test file, so a run that matches
+  // nothing means the glob broke, not that nobody has written tests yet — and
+  // passing on it would hide exactly that.
   test: {
     include: ['src/**/__tests__/**/*.test.ts'],
-    passWithNoTests: true,
   },
 });
