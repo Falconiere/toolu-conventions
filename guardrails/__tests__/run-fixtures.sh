@@ -599,13 +599,23 @@ if [ -z "$ONLY" ]; then
     || bad 'AC-2  3 must beat 1 when packages disagree' "exit=$STATUS out=$OUT"
   rm -rf "$WS"
 
-  # --file and --hook take an explicit path, so they can reject one that belongs
-  # to no package outright — repo mode never sees such a file at all.
+  # In --file mode an unowned path is one of two very different things, and
+  # conflating them breaks the commit hook. lefthook expands {staged_files}
+  # across whatever the commit touched, so staging a ROOT file must not block
+  # it — there is no file-addressable check at a workspace root to run anyway.
   WS=$(bash "$HERE/lib/mkrepo.sh" workspace)
-  mkdir -p "$WS/outside" && printf 'export const stray = 1;\n' > "$WS/outside/stray.ts"
-  OUT=$(cd "$WS" && bash "$GR" --file outside/stray.ts 2>&1); STATUS=$?
-  [ "$STATUS" -eq 3 ] && ok 'AC-3  --file on a path under no package exits 3' \
-    || bad 'AC-3  an unowned path must exit 3, not pass silently' "exit=$STATUS out=$OUT"
+  OUT=$(cd "$WS" && bash "$GR" --file package.json guardrails.workspace.json 2>&1); STATUS=$?
+  [ "$STATUS" -eq 0 ] && ok 'AC-3  --file on workspace-root files does not block the commit' \
+    || bad 'AC-3  staging a root file must not exit nonzero' "exit=$STATUS out=$OUT"
+
+  # A file inside a package the manifest forgot is the other thing, and it is
+  # still fatal: its ancestor's guardrails.config.json is the evidence.
+  mkdir -p "$WS/packages/worker/src"
+  cp "$WS/packages/api/guardrails.config.json" "$WS/packages/worker/"
+  printf 'export const stray = 1;\n' > "$WS/packages/worker/src/stray.ts"
+  OUT=$(cd "$WS" && bash "$GR" --file packages/worker/src/stray.ts 2>&1); STATUS=$?
+  [ "$STATUS" -eq 3 ] && ok 'AC-3  --file inside an unlisted package still exits 3' \
+    || bad 'AC-3  a file in an unlisted package must exit 3' "exit=$STATUS out=$OUT"
   rm -rf "$WS"
 
   rm -rf "$WS_CLEAN" "$WS_DIRTY"

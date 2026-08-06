@@ -61,6 +61,10 @@ printf 'export const t = 1;\n'                            > "$TREE/src/features/
 # one, inside a function. A textual rule cannot tell them apart.
 printf 'export const load = () => createDatabase({ url: "x" });\n' \
   > "$TREE/src/features/shifts/hooks/use-database.ts"
+# createClient is the constructor name for supabase, redis, urql and others.
+# Module scope, but nothing to do with a database — must stay silent.
+printf 'import { createClient } from "urql";\nexport const gql = createClient({ url: "/graphql" });\n' \
+  > "$TREE/src/features/shifts/hooks/urql-client.ts"
 
 # --- exactly one violation per rule ------------------------------------------
 VIOLATING="$TREE/src/features/shifts/utils/helper.ts
@@ -68,19 +72,22 @@ $TREE/src/features/shifts/stray.test.ts
 $TREE/src/features/shifts/screens/bad.tsx
 $TREE/src/features/shifts/screens/color.ts
 $TREE/src/features/shifts/components/index.ts
-$TREE/src/features/shifts/components/module-db.ts"
+$TREE/src/features/shifts/components/module-db.ts
+$TREE/src/features/shifts/components/static-db.ts"
 printf 'export const h = 1;\n'                            > "$TREE/src/features/shifts/utils/helper.ts"
 printf 'export const stray = 1;\n'                        > "$TREE/src/features/shifts/stray.test.ts"
 printf 'export const load = () => fetch("/shifts");\n'    > "$TREE/src/features/shifts/screens/bad.tsx"
 printf 'export const c = "#ff0000";\n'                    > "$TREE/src/features/shifts/screens/color.ts"
 printf 'export * from "./shifts-screen";\n'               > "$TREE/src/features/shifts/components/index.ts"
 printf 'export const db = createDatabase({ url: "x" });\n' > "$TREE/src/features/shifts/components/module-db.ts"
+printf 'export class Repo {\n  static db = createDatabase({ url: "x" });\n}\n' \
+  > "$TREE/src/features/shifts/components/static-db.ts"
 
 out=$(cd "$TREE" && $OXLINT . 2>&1)
 
 echo 'oxlint house plugin'
 
-for rule in folder-tree colocated-tests no-barrels no-bare-fetch no-hardcoded-hex no-module-scope-database; do
+for rule in folder-tree colocated-tests no-barrels no-bare-fetch no-hardcoded-hex; do
   n=$(printf '%s\n' "$out" | grep -c "house($rule)" || true)
   if [ "$n" -eq 1 ]; then
     ok "$rule: exactly one violation"
@@ -88,6 +95,12 @@ for rule in folder-tree colocated-tests no-barrels no-bare-fetch no-hardcoded-he
     bad "$rule: expected exactly 1, got $n" "$(printf '%s\n' "$out" | grep "house($rule)" | head -2)"
   fi
 done
+
+# Two for this one: a module-scope const AND a static class field, which runs at
+# module load just the same. The ClassBody early-return used to exempt it.
+n=$(printf '%s\n' "$out" | grep -c "house(no-module-scope-database)" || true)
+[ "$n" -eq 2 ] && ok 'no-module-scope-database: const and static field both flagged' \
+  || bad "no-module-scope-database: expected 2, got $n" "$(printf '%s\n' "$out" | grep 'house(no-module-scope-database)' | head -3)"
 
 # The exemptions are the whole reason these are rules and not greps.
 # Match the REPORTED PATH at line start — a remedy message may legitimately name
@@ -100,7 +113,8 @@ for clean in \
   'src/app/index.tsx' \
   'src/app/shifts/index.tsx' \
   'src/features/shifts/__tests__/s.test.tsx' \
-  'src/features/shifts/hooks/use-database.ts'; do
+  'src/features/shifts/hooks/use-database.ts' \
+  'src/features/shifts/hooks/urql-client.ts'; do
   if printf '%s\n' "$out" | grep -q "^$clean:"; then
     bad "clean file reported: $clean" "$(printf '%s\n' "$out" | grep "^$clean:" | head -1)"
   else

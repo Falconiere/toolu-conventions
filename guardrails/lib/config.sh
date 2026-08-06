@@ -85,6 +85,12 @@ gr_validate_keys() {
 # workspace mode.
 gr_is_workspace() {
   GR_WS_MANIFEST=''
+  # A re-exec'd child sets this. GR_CONFIG alone is not enough to stop
+  # recursion: the child clears it to an EMPTY string so it resolves its own
+  # config, and `[ -n "" ]` is false — so a package that somehow held a
+  # manifest of its own would fan out again, forever. An explicit marker says
+  # what is meant, and nesting is refused rather than silently recursed.
+  [ -n "${GR_WS_CHILD-}" ] && return 1
   [ -n "${GR_CONFIG-}" ] && return 1
   [ -f "$GR_WS_FILE" ] || return 1
   # Both documents at the root is ambiguous — which one governs the checks that

@@ -28,6 +28,8 @@ cp "$KIT/shared/workspace/knip.json"                 ./knip.json
 cp "$KIT/shared/workspace/lefthook.yml"              ./lefthook.yml
 mkdir -p scripts
 cp -R "$KIT/guardrails" ./scripts/guardrails
+# __tests__/ is the kit's own suite, and its fixtures are violating-by-design
+# trees — shipping them would trip the gate they exist to test.
 rm -rf ./scripts/guardrails/__tests__
 mkdir -p .claude && cp "$KIT/shared/.claude/settings.json" .claude/settings.json
 ```
@@ -49,8 +51,12 @@ From `$ROOT`:
 mkdir -p packages/database
 cp -R "$KIT/stacks/database-ts/templates/." packages/database/
 mv packages/database/CLAUDE.md.template packages/database/CLAUDE.md
-mv packages/database/base.oxlintrc.json packages/database/.oxlintrc.json
 ```
+
+Both `.oxlintrc.json` and `base.oxlintrc.json` ship, and neither is renamed:
+the thin one carries this stack's ceilings and overrides and `extends` the
+shared base beside it. Renaming the base over the thin one would silently drop
+every override.
 
 Then, inside `packages/database`:
 
@@ -62,7 +68,7 @@ Then, inside `packages/database`:
 
 ## Phase 3 — the schema
 
-`src/schema/user-table.ts` ships a `profiles` example. Replace it with the real
+`src/schema/profiles-table.ts` ships a `profiles` example. Replace it with the real
 tables, one file each, and register every one in `src/schema/tables.ts`.
 
 Do **not** add better-auth's `user`, `session`, `account` or `verification`
@@ -80,7 +86,7 @@ bun run db:migrate     # applies it
 `drizzle/` is generated and committed. Never hand-edit it.
 
 Ordering matters on a fresh database, and it is not automated: run
-**better-auth's** migrator first (`npx auth migrate` in the API package), then
+**better-auth's** migrator first (`npx auth@latest migrate` in the API package), then
 this one. Two migrators against one database is the cost of letting better-auth
 keep its own tables; the alternative was hand-maintaining its generated schema.
 

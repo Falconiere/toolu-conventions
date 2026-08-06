@@ -8,9 +8,13 @@
     "./types": "./src/types/database.ts"
   },
   "scripts": {
-    "check": "bun run typecheck && bun run lint && bun run test && bash scripts/guardrails/run.sh",
-    "typecheck": "tsc --noEmit",
-    "lint": "oxlint --type-aware && oxfmt --check .",
+    "check": "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run check:unused && bun run check:dupes && bun run test",
+    "type-check": "tsc --noEmit",
+    "lint": "oxlint --type-aware --deny-warnings",
+    "fmt:check": "oxfmt --check .",
+    "check:structure": "bash scripts/guardrails/run.sh",
+    "check:unused": "knip",
+    "check:dupes": "jscpd",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
@@ -23,6 +27,8 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.20.2",
     "drizzle-kit": "^0.32.0",
+    "jscpd": "^4.0.5",
+    "knip": "^5.64.4",
     "oxlint": "^1.77.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0",
