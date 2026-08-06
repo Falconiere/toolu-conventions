@@ -26,11 +26,14 @@ cp "$KIT/shared/workspace/package.json"              ./package.json
 cp "$KIT/shared/workspace/guardrails.workspace.json" ./guardrails.workspace.json
 cp "$KIT/shared/workspace/knip.json"                 ./knip.json
 cp "$KIT/shared/workspace/lefthook.yml"              ./lefthook.yml
-mkdir -p scripts
-cp -R "$KIT/guardrails" ./scripts/guardrails
-# __tests__/ is the kit's own suite, and its fixtures are violating-by-design
-# trees — shipping them would trip the gate they exist to test.
-rm -rf ./scripts/guardrails/__tests__
+mkdir -p scripts/guardrails
+# The MANIFEST, never the whole directory. __tests__/ is the kit's own suite and
+# its fixtures are violating-by-design trees — copying it in and deleting it
+# again leaves the deletion one edit away from being dropped.
+for item in run.sh lib checks patterns schema.json workspace.schema.json oxlint-plugin; do
+  cp -R "$KIT/guardrails/$item" scripts/guardrails/
+done
+chmod +x scripts/guardrails/run.sh
 mkdir -p .claude && cp "$KIT/shared/.claude/settings.json" .claude/settings.json
 ```
 
@@ -60,7 +63,14 @@ every override.
 
 Then, inside `packages/database`:
 
-1. Substitute `<project-name>` in `package.json`, `wrangler.jsonc` and `CLAUDE.md`.
+1. Substitute `<project-name>` everywhere it appears — one pass, so no file is
+   missed:
+
+   ```bash
+   grep -rl '<project-name>' packages/database \
+     | xargs sed -i.bak "s/<project-name>/$PROJECT_NAME/g"
+   find packages/database -name '*.bak' -delete
+   ```
 2. `bun install` from `$ROOT` (workspaces install together).
 3. Copy `.dev.vars.example` to `.dev.vars` and `.env.example` to `.env`, and
    fill in the Turso URL and token. Both are git-ignored; the gate fails if
