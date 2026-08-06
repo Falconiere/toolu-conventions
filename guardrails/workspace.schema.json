@@ -22,8 +22,8 @@
       "uniqueItems": true,
       "items": {
         "type": "string",
-        "pattern": "^[^/].*[^/]$",
-        "description": "Repo-relative directory, no leading or trailing slash — e.g. \"packages/database\"."
+        "pattern": "^(?!.*\\.\\.)[^/].*[^/]$",
+        "description": "Repo-relative directory, no leading or trailing slash and no \"..\" segment — e.g. \"packages/database\". run.sh cd's into each of these, so a traversal here would take the whole gate outside the repo."
       },
       "description": "Every package guardrails governs. Each must exist on disk and hold a guardrails.config.json; either failure exits 3 rather than being skipped. minItems is 1 because an empty list is indistinguishable from a manifest nobody finished writing, and it would make the whole gate pass while checking nothing."
     },
