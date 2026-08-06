@@ -48,7 +48,12 @@ gr_ws_exec() {
   shift
   (
     cd "$gr_ws_pkg" || exit 3
-    GR_CONFIG='' GR_WS_CHILD=1 GR_PATH_PREFIX="$gr_ws_pkg/" exec "$GR_DIR/run.sh" "$@"
+    # Exported explicitly. A `VAR=x exec cmd` prefix does put VAR in the child's
+    # environment in bash — verified — but it reads like it might not, and the
+    # failure it would cause if it ever did not is infinite re-exec. Not worth
+    # leaving to a subtlety of special-builtin assignment semantics.
+    export GR_CONFIG='' GR_WS_CHILD=1 GR_PATH_PREFIX="$gr_ws_pkg/"
+    exec "$GR_DIR/run.sh" "$@"
   )
 }
 

@@ -134,10 +134,25 @@ The mechanism:
   it, so a workspace run reports `packages/database/src/foo.ts`. Unset in the
   single-repo case, where output is unchanged.
 
-`GR_SCRIPTS_VERSION` **stays at 1**. Workspace support is purely additive — a
-single-root config behaves identically — and bumping it would make every
-already-scaffolded project emit the "re-copy `scripts/guardrails/`" warning
-(`guardrails/lib/config.sh:45-49`) for a feature it does not use.
+`GR_SCRIPTS_VERSION` goes to **2** — reversing the original decision here, and
+the reasoning is worth keeping because the first version was right about the
+wrong thing. Workspace support on its own *is* purely additive: a single-root
+config behaves identically, and bumping for it alone would have warned every
+already-scaffolded project about a feature it does not use.
+
+What changes the answer is that the same release adds
+`house/no-module-scope-database` to `lint/base.oxlintrc.json`. That couples the
+shared lint base to a plugin newer than the copy any existing project has under
+`scripts/guardrails/`: re-copy the base without the plugin and oxlint fails at
+**plugin load** — the whole lint step, not one rule. That is exactly what the
+version warning exists to prevent, so it fires, and every shipped config ships
+at version 2.
+
+`scripts/validate-templates.sh` additionally asserts both directions of that
+coupling: every `house/*` rule the base configures is exported by the plugin,
+and every exported rule is configured. The forward direction makes the breakage
+impossible to ship; the reverse catches the quieter bug, a rule that looks
+enforced and never runs.
 
 ### The other gate steps in a workspace
 

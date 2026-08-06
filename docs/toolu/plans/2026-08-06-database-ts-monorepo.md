@@ -79,7 +79,7 @@ become true once C has landed.
     "ac_refs": ["AC-2", "AC-20"],
     "model": "sonnet",
     "depends_on": ["ws-schema"],
-    "input": "Second key set GR_WS_REQUIRED_KEYS='version packages' plus the optional list, selected by which file is present. Both files at the root exits 3. Empty packages array exits 3. GR_SCRIPTS_VERSION stays 1 — do not bump it."
+    "input": "Second key set GR_WS_REQUIRED_KEYS='version packages' plus the optional list, selected by which file is present. Both files at the root exits 3. Empty packages array exits 3. GR_SCRIPTS_VERSION goes to 2 and every shipped config with it — not for the workspace dispatch, which is additive, but because this same change adds house/no-module-scope-database to the shared lint base and so couples it to a newer plugin copy."
   },
   {
     "id": "ws-report-prefix",
