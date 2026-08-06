@@ -149,7 +149,14 @@ if gr_is_workspace; then
       payload=$(cat)
       edited=$(printf '%s' "$payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
       [ -n "$edited" ] || exit 0
-      edited=${edited#"$PWD"/}
+      # An absolute path OUTSIDE the workspace survives this substitution
+      # unchanged, and every check works repo-relative — so it would be tested
+      # as a relative path that does not exist and exit 0. An edit we cannot
+      # place is not an edit we can vouch for; say so rather than pass it.
+      case "$edited" in
+        "$PWD"/*) edited=${edited#"$PWD"/} ;;
+        /*) gr_fatal "\"$edited\" is outside the workspace root ($PWD) — guardrails cannot place it in a package" ;;
+      esac
       [ -e "$edited" ] || exit 0
       gr_ws_require_owned "$edited"
       gr_ws_run_paths "$edited"

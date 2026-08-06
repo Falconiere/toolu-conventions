@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "check": "bun --filter '*' run check",
+    "check": "bun run check:structure && bun run check:unused && bun --filter '*' run check",
     "type-check": "bun --filter '*' run type-check",
     "lint": "bun --filter '*' run lint",
     "fmt:check": "bun --filter '*' run fmt:check",

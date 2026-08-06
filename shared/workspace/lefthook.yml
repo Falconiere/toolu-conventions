@@ -1,11 +1,16 @@
-# Pre-commit runs from the WORKSPACE ROOT, and {staged_files} spans packages.
-# guardrails buckets those paths by owning package itself — do not try to split
-# them here.
+# Repo mode, not --file, and that is deliberate.
+#
+# --file only checks the paths handed to it, and in a workspace an unowned root
+# path is skipped — there is no file-addressable check at a workspace root to
+# run against it. So a banned dependency added to the ROOT package.json, or a
+# root .dev.vars getting tracked, would sail past a --file hook. Repo mode reads
+# the manifest, runs the root-level checks here, and re-execs per package; it is
+# ~1.3s on a 500-file tree, which is cheaper than finding out in CI.
 pre-commit:
   parallel: true
   jobs:
     - name: guardrails
-      run: bash scripts/guardrails/run.sh --file {staged_files}
+      run: bash scripts/guardrails/run.sh
     - name: lint
       run: bun --filter '*' run lint
     - name: format
