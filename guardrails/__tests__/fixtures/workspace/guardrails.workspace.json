@@ -1,6 +1,6 @@
 {
   "$schema": "../../workspace.schema.json",
-  "version": 1,
+  "version": 2,
   "packages": [
     "packages/api",
     "packages/database"
