@@ -2,12 +2,18 @@
   "name": "<project-name>",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "check": "bun --filter '*' run check",
+    "type-check": "bun --filter '*' run type-check",
     "lint": "bun --filter '*' run lint",
-    "test": "bun --filter '*' run test",
-    "typecheck": "bun --filter '*' run typecheck"
+    "fmt:check": "bun --filter '*' run fmt:check",
+    "check:structure": "bash scripts/guardrails/run.sh",
+    "check:unused": "knip",
+    "check:dupes": "bun --filter '*' run check:dupes",
+    "test": "bun --filter '*' run test"
   },
   "devDependencies": {
     "knip": "^5.64.4",

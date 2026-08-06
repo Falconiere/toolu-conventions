@@ -2,7 +2,7 @@ import { env } from 'cloudflare:test';
 import { eq } from 'drizzle-orm';
 import { expect, test } from 'vitest';
 import { createDatabase } from '@/client/create-database';
-import { profiles } from '@/schema/user-table';
+import { profiles } from '@/schema/profiles-table';
 
 // Real data, no mocks. These run inside workerd against the Turso database
 // named in .dev.vars, which the pool loads as bindings. A mocked client would

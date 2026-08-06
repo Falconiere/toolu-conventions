@@ -48,7 +48,7 @@ gr_ws_exec() {
   shift
   (
     cd "$gr_ws_pkg" || exit 3
-    GR_CONFIG='' GR_PATH_PREFIX="$gr_ws_pkg/" exec "$GR_DIR/run.sh" "$@"
+    GR_CONFIG='' GR_WS_CHILD=1 GR_PATH_PREFIX="$gr_ws_pkg/" exec "$GR_DIR/run.sh" "$@"
   )
 }
 
@@ -125,14 +125,29 @@ gr_ws_run_paths() {
   return "$gr_ws_status"
 }
 
-# gr_ws_require_owned <path…> — every path must belong to a listed package.
+# gr_ws_require_owned <path…> — an unowned path is either a root file (fine) or
+# an unlisted package (fatal), and the two must not be confused.
 #
-# Fails closed. A file outside every package is not "nothing to check": it is a
-# source tree the manifest forgot, and passing it silently is how a whole
-# package stays unguarded for months.
+# Rejecting every unowned path looks like the fail-closed choice and is not: a
+# workspace root legitimately holds package.json, knip.json and the manifest
+# itself, lefthook expands {staged_files} across whatever the commit touched, so
+# staging any one of them would exit 3 and block every such commit. That is a
+# broken hook, not a guard rail.
+#
+# The property actually worth keeping is that a package the manifest forgot
+# never passes silently. So walk up from the path: a guardrails.config.json in
+# any ancestor means a real package that is not listed, and that is still fatal.
+# Nothing above it means a root-level file, and there is no file-addressable
+# check at a workspace root to run against it — repo mode owns those.
 gr_ws_require_owned() {
   for gr_ws_p in "$@"; do
-    [ -n "$(gr_ws_owner "$gr_ws_p")" ] || gr_fatal \
-      "\"$gr_ws_p\" is under no package listed in $GR_WS_FILE — add its package to the manifest, or move the file into one"
+    [ -n "$(gr_ws_owner "$gr_ws_p")" ] && continue
+    gr_ws_dir=${gr_ws_p%/*}
+    while [ -n "$gr_ws_dir" ] && [ "$gr_ws_dir" != "$gr_ws_p" ]; do
+      [ -f "$gr_ws_dir/guardrails.config.json" ] && gr_fatal \
+        "\"$gr_ws_dir\" has a guardrails.config.json but is not listed in $GR_WS_FILE — add it to packages, or delete the config; an unlisted package is never checked and the gate still reports green"
+      [ "$gr_ws_dir" = "${gr_ws_dir%/*}" ] && break
+      gr_ws_dir=${gr_ws_dir%/*}
+    done
   done
 }

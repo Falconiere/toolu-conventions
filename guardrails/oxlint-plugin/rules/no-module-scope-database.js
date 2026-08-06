@@ -12,18 +12,28 @@
 // make, and it is why this is a rule rather than a banned string.
 import { isInTestDir, isUnderSrc, relative } from '../config.js';
 
-const CONSTRUCTORS = new Set(['createDatabase', 'drizzle', 'createClient']);
+// `createDatabase` and `drizzle` are unambiguous. `createClient` is not — it is
+// the constructor name for supabase, redis, urql and a dozen others, and
+// flagging every module-scope `createClient()` would make this rule noise in
+// files that have nothing to do with a database. So it counts only when this
+// file imported it from a libsql/turso module.
+const ALWAYS = new Set(['createDatabase', 'drizzle']);
+const WHEN_IMPORTED_FROM_DATABASE = new Set(['createClient']);
+const DATABASE_MODULE = /^(@libsql\/|@tursodatabase\/|drizzle-orm)/;
 
-/** Is this node inside a function body, or evaluated when the module loads? */
+/** Is this node evaluated when the module loads, or only when something calls it? */
 function isModuleScope(node) {
   for (let parent = node.parent; parent; parent = parent.parent) {
     switch (parent.type) {
       case 'FunctionDeclaration':
       case 'FunctionExpression':
       case 'ArrowFunctionExpression':
-      case 'MethodDefinition':
-      case 'ClassBody':
         return false;
+      // Deliberately NOT ClassBody or MethodDefinition. A method's body is a
+      // FunctionExpression and is already caught above, so listing them here
+      // only ever exempted the thing that is not a method: a class FIELD
+      // initializer, which runs per construction — and a `static` one runs at
+      // module load, exactly the case this rule exists to catch.
       default:
         break;
     }
@@ -40,10 +50,22 @@ export const noModuleScopeDatabase = {
     const relPath = relative(context.filename ?? context.getFilename?.() ?? '');
     if (!isUnderSrc(relPath) || isInTestDir(relPath)) return {};
 
+    const fromDatabaseModule = new Set();
+
     return {
+      ImportDeclaration(node) {
+        if (!DATABASE_MODULE.test(node.source?.value ?? '')) return;
+        for (const spec of node.specifiers ?? []) {
+          if (spec.local?.name) fromDatabaseModule.add(spec.local.name);
+        }
+      },
       CallExpression(node) {
         if (node.callee?.type !== 'Identifier') return;
-        if (!CONSTRUCTORS.has(node.callee.name)) return;
+        const name = node.callee.name;
+        const watched =
+          ALWAYS.has(name) ||
+          (WHEN_IMPORTED_FROM_DATABASE.has(name) && fromDatabaseModule.has(name));
+        if (!watched) return;
         if (!isModuleScope(node)) return;
         context.report({
           node,

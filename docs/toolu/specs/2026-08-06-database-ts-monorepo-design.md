@@ -112,11 +112,19 @@ The mechanism:
   packages — lefthook expands `{staged_files}` across the whole commit. Workspace
   mode **buckets the paths by owning package and re-execs once per bucket**,
   passing each child only the paths it owns, rewritten package-relative.
-- Fails closed on all five ambiguous cases, each exiting 3: a listed package
-  with no `guardrails.config.json`; a listed package directory absent from
-  disk; an empty `packages` array; a changed file under no listed package; and
+- Fails closed on the ambiguous cases, each exiting 3: a listed package with no
+  `guardrails.config.json`; a listed package directory absent from disk; an
+  empty `packages` array; a package path containing `..`; a package that exists
+  but is not listed (found in repo mode, or via a `--file` path inside it); and
   both `guardrails.config.json` and `guardrails.workspace.json` at the root.
-  None is skipped, none degrades to a pass.
+
+  A `--file` path at the workspace **root** is explicitly *not* one of them.
+  Rejecting every unowned path looks like the fail-closed choice and is not:
+  lefthook expands `{staged_files}` across the whole commit, so staging
+  `package.json` would exit 3 and block it. That is a broken hook, not a guard
+  rail — and there is no file-addressable check at a root to run anyway. The
+  property worth keeping is that a *forgotten package* never passes, which the
+  ancestor-config walk preserves.
 - Checks themselves are **unchanged**. Each runs with the working directory
   already inside its package, which is the single-root case they were written
   for.
@@ -324,7 +332,9 @@ templates. No mocks, no fixtures-in-memory.
   package; both `guardrails.config.json` and `guardrails.workspace.json` at the
   root.
 - **AC-3:** `--file` with a staged set spanning both packages runs both, with
-  each package's checks seeing only its own paths, package-relative.
+  each package's checks seeing only its own paths, package-relative. A staged
+  set of workspace-root files exits 0 rather than blocking the commit, while a
+  path inside an unlisted package still exits 3.
 - **AC-4:** `run.sh --hook` invoked from the workspace root with a real
   PostToolUse payload naming a violating file inside `packages/database` exits
   2 and reports that file's violation.

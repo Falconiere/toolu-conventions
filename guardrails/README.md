@@ -98,12 +98,17 @@ Two rules that are load-bearing rather than stylistic:
   lists only root-level ones. Listing a package's secret in both makes it
   report twice.
 
-It fails closed in six ways, all exit 3, because each of them would otherwise
-leave a source tree unguarded while the gate reported green: a listed package
-with no config; a listed package directory that is absent; an empty `packages`
-array; a package that exists but is **not** listed (its stray config is the
-evidence); both documents at the root; and a `--file`/`--hook` path belonging to
-no listed package.
+It fails closed in six ways, all exit 3, because each would otherwise leave a
+source tree unguarded while the gate reported green: a listed package with no
+config; a listed package directory that is absent; an empty `packages` array; a
+package path containing `..` (run.sh cd's into these); a package that exists but
+is **not** listed, in repo mode or via a `--file` path inside it — its stray
+`guardrails.config.json` is the evidence; and both documents at the root.
+
+A `--file` path at the workspace **root** is not one of them. lefthook expands
+`{staged_files}` across whatever the commit touched, so treating `package.json`
+as an unguarded tree would block every commit that edits it, and there is no
+file-addressable check at a workspace root to run against it regardless.
 
 ## One rule, one enforcer
 
@@ -118,16 +123,17 @@ id may not straddle what a linter can see and what it cannot.
 | | TS stacks (`console` · `marketing` · `backend-ts` · `expo`) | `rust` |
 | --- | --- | --- |
 | `ownedByLinter` | `folder-tree` · `colocated-tests` · `no-barrels` · `filename-case` · `patterns` | *(empty)* |
-| Runs in oxlint | those five — three as house rules (`house/folder-tree`, `house/colocated-tests`, `house/no-barrels`), `filename-case` as the built-in `unicorn/filename-case`, and `patterns` as `house/no-bare-fetch` + `house/no-hardcoded-hex` | nothing — oxlint cannot parse Rust |
+| Runs in oxlint | those five — three as house rules (`house/folder-tree`, `house/colocated-tests`, `house/no-barrels`), `filename-case` as the built-in `unicorn/filename-case`, and `patterns` as `house/no-bare-fetch` + `house/no-hardcoded-hex` + `house/no-module-scope-database` | nothing — oxlint cannot parse Rust |
 | Runs here | the remaining eight | all thirteen |
 | Needs ast-grep | no — pattern rules run in oxlint | **yes** (`cargo install ast-grep --locked`) |
 
 Two of the five are not one-rule-per-id, which is why `validate-templates.sh` special-cases
 them when it checks that a linter-owned id is actually configured: `filename-case` maps to an
-oxlint built-in rather than anything in `oxlint-plugin/`, and `patterns` maps to two house
-rules at once. The plugin itself exports exactly five rules — `folder-tree`,
-`colocated-tests`, `no-bare-fetch`, `no-barrels`, `no-hardcoded-hex` — which is a different
-five from the `ownedByLinter` list above.
+oxlint built-in rather than anything in `oxlint-plugin/`, and `patterns` maps to three house
+rules at once. The plugin exports six rules — `folder-tree`, `colocated-tests`,
+`no-bare-fetch`, `no-barrels`, `no-hardcoded-hex`, `no-module-scope-database` — which is a
+different set from the five in the `ownedByLinter` list above; the counts are not meant to
+match, and reading one as the other is the mistake this paragraph exists to prevent.
 
 ## What differs per stack
 
