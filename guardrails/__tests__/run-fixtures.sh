@@ -469,5 +469,144 @@ if [ -z "$ONLY" ]; then
   rm -rf "$SC"
 fi
 
+# ------------------------------------------------------------- workspace mode
+#
+# A monorepo root has no guardrails.config.json, and all three wired
+# invocations (PostToolUse, Stop, lefthook's {staged_files}) run from there. So
+# every assertion below drives the REAL root of a real two-package git repo —
+# the same way the hooks will.
+#
+# The two fixtures are built to make the isolation provable rather than
+# plausible: `packages/api` has fileSize.max 300 and owns nothing by linter,
+# `packages/database` has fileSize.max 20 and declares folder-tree
+# ownedByLinter. wide-service.ts and wide-table.ts are the SAME 40-line file in
+# both packages, and src/nope/ exists in both.
+if [ -z "$ONLY" ]; then
+  WS_CLEAN=$(bash "$HERE/lib/mkrepo.sh" workspace)
+  WS_DIRTY=$(bash "$HERE/lib/mkrepo.sh" workspace-violating)
+
+  gr_in "$WS_CLEAN"; out=$OUT
+  if [ "$STATUS" -eq 0 ] && [ -z "$out" ]; then
+    ok 'AC-1  clean workspace: exit 0, no output'
+  else
+    bad 'AC-1  clean workspace must be silent' "exit=$STATUS output=$out"
+  fi
+
+  gr_in "$WS_DIRTY"; ws_out=$OUT
+  [ "$STATUS" -eq 1 ] && ok 'AC-1  violating workspace: exit 1' \
+    || bad 'AC-1  violating workspace must exit 1' "exit=$STATUS"
+
+  # Every path is reported through GR_PATH_PREFIX, or a person cannot tell
+  # which package to open.
+  unprefixed=$(printf '%s\n' "$ws_out" | grep '^guardrails\[' | grep -c ' src/' || true)
+  [ "$unprefixed" -eq 0 ] && ok 'AC-1  workspace paths carry their package prefix' \
+    || bad "AC-1  $unprefixed violation(s) reported an unprefixed src/ path" "$ws_out"
+
+  # The heart of it: same file, same length, two ceilings. If the re-exec ever
+  # became an in-process loop, gr_cache_config's globals would leak and this
+  # would fire twice or not at all.
+  if printf '%s\n' "$ws_out" | grep -q 'packages/database/src/schema/wide-table.ts' \
+    && ! printf '%s\n' "$ws_out" | grep -q 'packages/api/src/services/wide-service.ts'; then
+    ok 'AC-6  each package is held to its OWN fileSize ceiling'
+  else
+    bad 'AC-6  a 40-line file must break max 20 and pass max 300' "$ws_out"
+  fi
+
+  # Same directory name in both packages; only the one whose config does NOT
+  # declare folder-tree ownedByLinter may report it.
+  if printf '%s\n' "$ws_out" | grep -q 'packages/api/src/nope' \
+    && ! printf '%s\n' "$ws_out" | grep -q 'packages/database/src/nope'; then
+    ok 'AC-8  ownedByLinter is honoured per package, not per run'
+  else
+    bad 'AC-8  the linter-owned package must skip folder-tree, the other must not' "$ws_out"
+  fi
+
+  # Root-level checks read the manifest, which has no source tree of its own.
+  # Package secrets are each package's own business — listing them at the root
+  # too made every one report twice.
+  if [ "$(count_check "$ws_out" banned-deps)" -eq 1 ] \
+    && [ "$(count_check "$ws_out" secrets)" -eq 2 ]; then
+    ok 'AC-7  root manifest checks the root, packages check themselves'
+  else
+    bad 'AC-7  expected 1 banned-deps and 2 secrets (root + package), no duplicates' "$ws_out"
+  fi
+
+  # Lefthook expands {staged_files} across the whole commit, so one --file call
+  # routinely spans packages.
+  gr_in "$WS_DIRTY" --file packages/database/src/schema/wide-table.ts packages/api/src/nope/README.md
+  out=$OUT
+  if [ "$STATUS" -eq 1 ] \
+    && printf '%s\n' "$out" | grep -q 'packages/database/src/schema/wide-table.ts' \
+    && printf '%s\n' "$out" | grep -q 'packages/api/src/nope'; then
+    ok 'AC-3  --file spanning two packages runs both'
+  else
+    bad 'AC-3  a staged set spanning packages must check every package' "exit=$STATUS out=$out"
+  fi
+
+  # Exit 2, not 1: Claude Code ignores a 1 from a hook, so a 1 here would leave
+  # enforcement layer 2 inert while looking wired up. The parent consumes the
+  # payload and hands the child --file, because a child cannot re-read stdin.
+  OUT=$(cd "$WS_DIRTY" && printf '{"tool_input":{"file_path":"%s/packages/database/src/schema/wide-table.ts"}}' "$WS_DIRTY" \
+    | bash "$GR" --hook 2>&1)
+  STATUS=$?
+  if [ "$STATUS" -eq 2 ] && printf '%s\n' "$OUT" | grep -q 'packages/database/src/schema/wide-table.ts'; then
+    ok 'AC-4  --hook from a workspace root exits 2 and names the file'
+  else
+    bad 'AC-4  --hook must exit 2 with the prefixed path' "exit=$STATUS out=$OUT"
+  fi
+
+  touch "$WS_DIRTY/dirty.txt" "$WS_CLEAN/dirty.txt"
+  OUT=$(cd "$WS_DIRTY" && printf '{}' | bash "$GR" --stop 2>&1); STATUS=$?
+  [ "$STATUS" -eq 2 ] && ok 'AC-5  --stop blocks on a dirty violating workspace' \
+    || bad 'AC-5  --stop must exit 2 to block' "exit=$STATUS"
+  OUT=$(cd "$WS_CLEAN" && printf '{}' | bash "$GR" --stop 2>&1); STATUS=$?
+  [ "$STATUS" -eq 0 ] && ok 'AC-5  --stop passes a dirty CLEAN workspace' \
+    || bad 'AC-5  --stop must not block a clean tree' "exit=$STATUS out=$OUT"
+
+  # Fail closed, five ways. Each of these is a configuration a person could
+  # plausibly write, and every one of them would otherwise leave a source tree
+  # unguarded while the gate reported green.
+  ws_fatal() { # <label> <mutation-applied-to-$WS>
+    WS=$(bash "$HERE/lib/mkrepo.sh" workspace)
+    eval "$2"
+    OUT=$(cd "$WS" && bash "$GR" 2>&1); STATUS=$?
+    [ "$STATUS" -eq 3 ] && ok "AC-2  $1 exits 3" \
+      || bad "AC-2  $1 must exit 3, not be skipped" "exit=$STATUS out=$OUT"
+    rm -rf "$WS"
+  }
+  ws_fatal 'a package with no guardrails.config.json' 'rm "$WS/packages/database/guardrails.config.json"'
+  ws_fatal 'a listed package directory that is absent'  'rm -rf "$WS/packages/database"'
+  ws_fatal 'an empty packages array' \
+    'python3 -c "import json,sys;p=sys.argv[1];d=json.load(open(p));d[\"packages\"]=[];json.dump(d,open(p,\"w\"))" "$WS/guardrails.workspace.json"'
+  ws_fatal 'both a config and a manifest at the root' \
+    'cp "$WS/packages/api/guardrails.config.json" "$WS/guardrails.config.json"'
+  # An unlisted package is the repo-mode version of the same hazard: repo mode
+  # only walks what the manifest names, so a forgotten package is unvisited, not
+  # clean. Its stray config is the evidence.
+  ws_fatal 'a package that exists but is not listed' \
+    'mkdir -p "$WS/packages/worker/src" && cp "$WS/packages/api/guardrails.config.json" "$WS/packages/worker/"'
+
+  # --file and --hook take an explicit path, so they can reject one that belongs
+  # to no package outright — repo mode never sees such a file at all.
+  WS=$(bash "$HERE/lib/mkrepo.sh" workspace)
+  mkdir -p "$WS/outside" && printf 'export const stray = 1;\n' > "$WS/outside/stray.ts"
+  OUT=$(cd "$WS" && bash "$GR" --file outside/stray.ts 2>&1); STATUS=$?
+  [ "$STATUS" -eq 3 ] && ok 'AC-3  --file on a path under no package exits 3' \
+    || bad 'AC-3  an unowned path must exit 3, not pass silently' "exit=$STATUS out=$OUT"
+  rm -rf "$WS"
+
+  rm -rf "$WS_CLEAN" "$WS_DIRTY"
+fi
+
+# ------------------------------------------------------ the check-count guard
+# Workspace support is DISPATCH, not a new check. If this number moves, either a
+# check was added (update the docs and validate-templates.sh) or dispatch grew a
+# check id it should not have.
+if [ -z "$ONLY" ]; then
+  listed=$(bash "$GR" --list | wc -l | tr -d ' ')
+  [ "$listed" -eq 13 ] && ok 'AC-9  --list still reports exactly 13 checks' \
+    || bad "AC-9  expected 13 check ids, got $listed"
+fi
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

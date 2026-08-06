@@ -10,9 +10,17 @@
 # Set to 1 by gr_violation. run.sh reads it to pick an exit code.
 GR_FAIL=0
 
+# Prefix prepended to every reported path. Empty in the single-repo case, where
+# output must stay byte-identical. In a workspace, run.sh re-execs itself once
+# per package with the working directory INSIDE that package, so every check
+# reports package-relative paths ("src/foo.ts") with nothing saying which
+# package. The parent exports this so the violation reads
+# "packages/database/src/foo.ts" — the path a person can actually open.
+GR_PATH_PREFIX=${GR_PATH_PREFIX-}
+
 # gr_violation <check-id> <path> <problem> <remedy>
 gr_violation() {
-  printf 'guardrails[%s] %s: %s — %s\n' "$1" "$2" "$3" "$4" >&2
+  printf 'guardrails[%s] %s%s: %s — %s\n' "$1" "$GR_PATH_PREFIX" "$2" "$3" "$4" >&2
   GR_FAIL=1
 }
 

@@ -52,13 +52,58 @@ The project then gets its stack's `guardrails.config.json` (from
 ```
 guardrails/
 ├── run.sh              # entry point — repo · --file · --hook · --stop modes
-├── lib/                # config.sh (load + validate), report.sh (output, exit codes)
+├── lib/                # config.sh (load + validate), report.sh (output, exit codes),
+│                       #   workspace.sh (monorepo dispatch)
 ├── checks/             # 13 checks, one file each
-├── oxlint-plugin/      # 5 house rules that run inside oxlint, as the file is written
+├── oxlint-plugin/      # house rules that run inside oxlint, as the file is written
 ├── patterns/rust/      # ast-grep rules for what clippy doesn't cover
 ├── schema.json         # the guardrails.config.json contract
+├── workspace.schema.json  # the guardrails.workspace.json contract (monorepos)
 └── __tests__/          # fixtures, plugin and latency suites — kit only, never shipped
 ```
+
+## Monorepos
+
+A single-repo project has one `guardrails.config.json` at its root. A workspace
+has one **per package**, plus a `guardrails.workspace.json` at the root naming
+them:
+
+```jsonc
+{
+  "version": 1,
+  "packages": ["packages/api", "packages/database"],
+  "bannedDeps": ["axios"],
+  "secrets": { "neverTracked": [".dev.vars"] },
+  "shadowConfigs": []
+}
+```
+
+`run.sh` re-execs itself once per package, with the working directory inside it
+and `GR_PATH_PREFIX` set, so every check runs in the single-root shape it was
+written for and violations still read `packages/database/src/foo.ts`. The four
+repo-level checks — `banned-deps`, `shadow-configs`, `required-files`,
+`secrets` — run once at the root against the manifest.
+
+Two rules that are load-bearing rather than stylistic:
+
+- **There must be no `guardrails.config.json` at a workspace root.** The oxlint
+  plugin resolves that filename from `process.cwd()`, so a root file under that
+  name would let a root-level oxlint run lint every package against one config
+  and silently disable whatever each package declares `ownedByLinter`. Under
+  the manifest's own name, a root-level oxlint run fails closed at plugin load
+  instead. Run oxlint per package (`bun --filter '*' run lint`). Having both
+  files at the root exits 3.
+- **Each package guards its own secrets.** wrangler reads `.dev.vars` beside
+  each `wrangler.jsonc`, so every package config lists its own; the manifest
+  lists only root-level ones. Listing a package's secret in both makes it
+  report twice.
+
+It fails closed in six ways, all exit 3, because each of them would otherwise
+leave a source tree unguarded while the gate reported green: a listed package
+with no config; a listed package directory that is absent; an empty `packages`
+array; a package that exists but is **not** listed (its stray config is the
+evidence); both documents at the root; and a `--file`/`--hook` path belonging to
+no listed package.
 
 ## One rule, one enforcer
 
