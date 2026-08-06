@@ -123,6 +123,59 @@ while [ $# -gt 0 ]; do
 done
 
 gr_require_jq
+
+# Workspace roots take a different path: there is no source tree here, so the
+# per-package config never loads and the run fans out instead. Everything below
+# is unchanged for a single-repo project, which is every project today.
+if gr_is_workspace; then
+  . "$GR_DIR/lib/workspace.sh"
+  gr_load_workspace
+  for check in $GR_WS_ROOT_CHECKS; do
+    . "$GR_DIR/checks/$check.sh"
+  done
+
+  case "$GR_MODE" in
+    repo) gr_ws_run_repo; exit $? ;;
+
+    file)
+      gr_ws_require_owned "${GR_PATHS[@]}"
+      gr_ws_run_paths "${GR_PATHS[@]}"
+      exit $?
+      ;;
+
+    hook)
+      # The parent owns stdin — a child can no longer read a consumed payload,
+      # so resolve the path here and hand the child --file instead.
+      payload=$(cat)
+      edited=$(printf '%s' "$payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+      [ -n "$edited" ] || exit 0
+      edited=${edited#"$PWD"/}
+      [ -e "$edited" ] || exit 0
+      gr_ws_require_owned "$edited"
+      gr_ws_run_paths "$edited"
+      # A hook must exit 2, not 1: Claude Code ignores a 1 from a hook, so the
+      # violation would never reach the agent. 3 stays 3 — misconfiguration is
+      # not a violation.
+      status=$?
+      [ "$status" -eq 1 ] && exit 2
+      exit "$status"
+      ;;
+
+    stop)
+      payload=$(cat 2>/dev/null || printf '{}')
+      active=$(printf '%s' "$payload" | jq -r '.stop_hook_active // false' 2>/dev/null)
+      [ "$active" = 'true' ] && exit 0
+      if git rev-parse --git-dir >/dev/null 2>&1; then
+        [ -z "$(git status --porcelain 2>/dev/null)" ] && exit 0
+      fi
+      gr_ws_run_repo
+      status=$?
+      [ "$status" -eq 1 ] && exit 2
+      exit "$status"
+      ;;
+  esac
+fi
+
 gr_load_config
 gr_cache_config
 for check in $GR_CHECKS_ALL; do

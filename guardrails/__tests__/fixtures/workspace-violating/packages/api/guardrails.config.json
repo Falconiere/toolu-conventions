@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../schema.json",
+  "version": 1,
+  "srcRoot": "src",
+  "src": { "topLevel": ["services","utilities"], "nested": {}, "requireReadme": ["services","utilities"] },
+  "fileSize": { "max": 300, "skipExtensions": [".md"] },
+  "functionSize": { "max": 50 },
+  "testDir": "__tests__",
+  "testGlob": "*.test.ts",
+  "barrelNames": ["index.ts"],
+  "bannedDeps": ["axios"],
+  "requiredFiles": [{"path":"wrangler.jsonc","why":"the Worker has no deploy config without it"}],
+  "secrets": { "neverTracked": [".dev.vars"] },
+  "shadowConfigs": [],
+  "ownedByLinter": []
+}

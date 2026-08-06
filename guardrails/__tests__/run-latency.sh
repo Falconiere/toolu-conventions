@@ -83,4 +83,67 @@ measure() {
 measure 'repo mode' "$REPO_BUDGET_MS"
 measure '--file' "$FILE_BUDGET_MS" --file src/features/domain-7/components/part-3.tsx
 
+# ---------------------------------------------------------------- workspace
+#
+# Workspace mode re-execs run.sh once per package, so it pays a fork and a
+# fresh jq config read that a single-root run does not. The budget does not get
+# to grow for that: the SAME 500 files are split across two packages, so this
+# measures the overhead of the split, not a bigger tree. If it regresses, the
+# dispatch is doing per-package work that belongs in the parent.
+WS=$(mktemp -d)
+trap 'rm -rf "$TREE" "$WS"' EXIT
+
+mkdir -p "$WS/packages/api" "$WS/packages/database"
+cp "$TREE/package.json" "$WS/"
+cat > "$WS/guardrails.workspace.json" <<'EOF'
+{
+  "version": 1,
+  "packages": ["packages/api", "packages/database"],
+  "bannedDeps": ["axios"],
+  "secrets": { "neverTracked": [".dev.vars"] },
+  "shadowConfigs": []
+}
+EOF
+for pkg in api database; do
+  dest="$WS/packages/$pkg"
+  cp "$TREE/guardrails.config.json" "$TREE/package.json" "$TREE/wrangler.jsonc" "$TREE/lefthook.yml" "$dest/"
+  mkdir -p "$dest/src/ui/theme" "$dest/src/api" "$dest/src/utilities" "$dest/src/app" "$dest/src/features"
+  for d in ui features api utilities; do printf '# %s\n' "$d" > "$dest/src/$d/README.md"; done
+  cp "$TREE/src/utilities/http.ts" "$dest/src/utilities/http.ts"
+done
+# 10 domains each — the same 500 files, split down the middle.
+half=0
+for i in $(seq 1 20); do
+  half=$(( half + 1 ))
+  [ "$half" -le 10 ] && pkg=api || pkg=database
+  cp -R "$TREE/src/features/domain-$i" "$WS/packages/$pkg/src/features/domain-$i"
+done
+ln -sf "$native" "$WS/packages/api/node_modules/.bin/ast-grep" 2>/dev/null || {
+  mkdir -p "$WS/packages/api/node_modules/.bin" "$WS/packages/database/node_modules/.bin"
+  [ -n "$native" ] && ln -sf "$native" "$WS/packages/api/node_modules/.bin/ast-grep"
+  [ -n "$native" ] && ln -sf "$native" "$WS/packages/database/node_modules/.bin/ast-grep"
+}
+
+ws_count=$(find "$WS/packages" -path '*/src/*' -type f | wc -l)
+printf 'workspace tree: %s files across 2 packages\n' "$ws_count"
+
+measure_in() {
+  label=$1
+  budget=$2
+  dir=$3
+  shift 3
+  start=$(now_ms)
+  (cd "$dir" && bash "$GR" "$@" >/dev/null 2>&1)
+  elapsed=$(( $(now_ms) - start ))
+  if [ "$elapsed" -le "$budget" ]; then
+    printf '  ok    %-12s %5sms (budget %sms)\n' "$label" "$elapsed" "$budget"
+  else
+    printf '  FAIL  %-12s %5sms exceeds budget %sms\n' "$label" "$elapsed" "$budget"
+    fail=1
+  fi
+}
+
+measure_in 'ws repo' "$REPO_BUDGET_MS" "$WS"
+measure_in 'ws --file' "$FILE_BUDGET_MS" "$WS" --file packages/api/src/features/domain-7/components/part-3.tsx
+
 exit "$fail"
