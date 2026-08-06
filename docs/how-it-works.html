@@ -567,7 +567,7 @@
                 </li>
                 <li data-done style="--i: 2">
                   <span class="step-name">dispatch to a stack</span>
-                  <span class="step-note">One answer, one path. The other four are never read.</span>
+                  <span class="step-note">One answer, one path. The other four are never read. (database-ts is not on this list — it is reached from the backend-ts intake, as a workspace package.)</span>
                   <ul class="chips">
                     <li class="chip">marketing</li>
                     <li class="chip" data-picked>console</li>
@@ -592,7 +592,7 @@
             </div>
             <div class="viz-foot">
               <figcaption>
-                The five stacks are siblings, not layers: a project picks one.
+                The six stacks are siblings, not layers: a project picks one — except database-ts, which joins a backend-ts project as a workspace package.
                 Everything below inherits <code class="code">CORE.md</code> either way.
               </figcaption>
             </div>

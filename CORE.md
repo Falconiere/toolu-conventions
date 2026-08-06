@@ -249,6 +249,43 @@ findings. It needs a `DEEPSEEK_API_KEY` repository secret.
 Both CI and Code Review should be **required checks** on `main`. That is on every
 stack's human-only checklist, because only a human can set it.
 
+## Monorepos
+
+A project is single-repo by default, and most stay that way. A **Bun
+workspace** is the exception, taken when a piece of a project has a genuine
+surface of its own — today that means the `database-ts` package beside a
+`backend-ts` API. Cargo workspaces remain out of scope; the Rust stack is one
+crate.
+
+The rules below are not preferences. Each of them is the difference between a
+gate that enforces and a gate that reports green over unchecked code.
+
+1. **One `guardrails.config.json` per package, never at the root.** The root
+   carries `guardrails.workspace.json`, a different document with its own
+   schema, naming the packages and holding the repo-level checks. `run.sh`
+   re-execs itself once per package so every check runs in the single-root
+   shape it was written for.
+2. **The root must NOT have a `guardrails.config.json`.** The oxlint house
+   plugin resolves that filename from the working directory, so one at the root
+   would let a root-level lint run check every package against it and silently
+   disable whatever each package declares `ownedByLinter`. Its absence makes a
+   root-level run fail closed at plugin load. Having both files there exits 3.
+3. **Fan the gate out per package** — `bun --filter '*' run check`. Never run
+   `oxlint` from the workspace root, for the reason in rule 2.
+4. **Each package guards its own secrets.** wrangler reads `.dev.vars` beside
+   each `wrangler.jsonc`; the manifest lists only root-level ones. Listing a
+   package's secret in both reports it twice.
+5. **A package's public surface is its `package.json` `exports` map**, pointing
+   subpaths at concrete files. This is how a package gets an API without a
+   barrel, which stays banned (rule 1 of every stack).
+6. **knip is configured once at the root** with a `workspaces` block. It needs
+   the whole graph to see that one package importing another is a real use of
+   its exports; per-package configs report every export of a library package as
+   dead.
+7. **Every package must be listed.** A package that exists but is not in the
+   manifest is never visited, and the gate still passes — so a stray
+   `guardrails.config.json` outside the listed packages exits 3.
+
 ## Package management
 
 TypeScript stacks use **bun** (install, run, scripts). Rust uses **cargo**.

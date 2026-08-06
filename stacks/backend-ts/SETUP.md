@@ -411,10 +411,33 @@ sanctioned writers and both reach Workers Logs.) Turn on request logging with
 Hono's `logger()` middleware, and keep `observability.enabled` on in
 `wrangler.jsonc` so the logs are actually retained.
 
-### 6c. Drizzle ORM
+### 6c. Drizzle ORM, in a separate database package
 
 Only when the schema and query surface justify typed models and migrations —
-the raw client is enough for a handful of statements.
+the raw client from Phase 6a is enough for a handful of statements.
+
+When they do, Drizzle does **not** go in this package. Ask the operator:
+
+> **Separate database package?** (default yes when Drizzle is wanted)
+
+**Yes** — hand off to [`../database-ts/SETUP.md`](../database-ts/SETUP.md) and
+execute it end to end. It converts this project into a Bun workspace
+(`packages/api` + `packages/database`), so run it *before* going further, and
+come back here for Phase 7. The schema, the client factory and the migrations
+all live there; this package gains a workspace dependency and writes queries
+against the exported tables:
+
+```ts
+import { createDatabase } from '@<project-name>/database/client';
+import { profiles } from '@<project-name>/database/schema';
+import { eq } from 'drizzle-orm';
+```
+
+`drizzle-orm` stays a direct dependency here too — the operators (`eq`, `and`,
+…) are needed to write those queries. **Delete `src/db/`** if Phase 6a created
+it, and drop `db` from `src.topLevel` again.
+
+**No** — keep it in this package:
 
 ```bash
 bun add drizzle-orm @libsql/client
@@ -425,6 +448,11 @@ Use the **web** entry point (`@libsql/client/web`), which is fetch-only and the
 one that runs on workerd; the default entry is Node-native and will not. Put the
 schema in `src/db/schema.ts`, the client in `src/db/client.ts`, migrations in
 `drizzle/`, and set `dialect: 'turso'` in `drizzle.config.ts`.
+
+Either way, better-auth keeps its own `user`/`session`/`account`/`verification`
+tables and runs its own migrator. Do not move them into the schema you control;
+two migrators over one database is survivable, two schema definitions of the
+same table is not.
 
 ---
 

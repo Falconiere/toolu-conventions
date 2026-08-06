@@ -12,7 +12,11 @@ Every new personal repo restarts the conventions conversation: folder layout, li
 2. No team/org governance (approval flows, Confluence export). Personal use; a version note in README suffices.
 3. No baked-in backend infra (DB, cloud provider, auth vendor) — integrations are opt-in at setup time.
 4. No fork-parity with the reference kit — it is the model, not an upstream.
-5. No monorepo conventions in v1 — single-repo projects only. For Rust this means single-crate only; Cargo workspaces are out of scope.
+5. ~~No monorepo conventions in v1 — single-repo projects only. For Rust this means single-crate only; Cargo workspaces are out of scope.~~
+   **Superseded 2026-08-06** by [`2026-08-06-database-ts-monorepo-design.md`](./2026-08-06-database-ts-monorepo-design.md):
+   the kit is monorepo-capable via Bun workspaces, and ships one workspace
+   template pair (`backend-ts` + `database-ts`). The Rust half of this non-goal
+   still stands — single-crate only, Cargo workspaces remain out of scope.
 
 ## Architecture
 

@@ -55,10 +55,15 @@ it. `LIBRARIES.md` names the ones that do.
 ```
 
 > Folder vocabulary (`rpc`, `routes`, `services`, `utilities`, `constants`,
-> `types`) is intentional. Middleware and a DB layer are added under
-> `src/middleware/` and `src/db/` respectively **only when** an integration is
-> wired — add the new dir to `allowed_dirs` in `scripts/guardrails/run.sh` when
-> you do (see `SETUP.md`).
+> `types`) is intentional. Middleware is added under `src/middleware/` **only
+> when** an integration is wired — add the new dir to `src.topLevel` in
+> `guardrails.config.json` when you do (see `SETUP.md`).
+>
+> **`src/db/` is not on that list by default.** With Drizzle, the database is
+> its own workspace package — see [`../database-ts/`](../database-ts/STRUCTURE.md)
+> — and this service imports from `@<project>/database/…` instead. A bare Turso
+> client (SETUP Phase 6a, no ORM) may still live in `src/db/`; if you later take
+> the package, that directory goes away.
 
 ## `rpc/` vs `routes/`
 
