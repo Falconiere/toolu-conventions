@@ -362,6 +362,38 @@ for suite in run-fixtures.sh run-plugin.sh run-latency.sh; do
     || bad "the kit's ci.yml does not run guardrails/__tests__/$suite — that suite is unverified by CI"
 done
 
+# --- Every house/* rule the shared lint base references must be EXPORTED by the
+#     plugin, and vice versa.
+#
+#     Referencing a rule the plugin does not export makes oxlint fail at plugin
+#     load — the whole lint step, not one rule. That is a real failure mode with
+#     a real trigger: adding a rule to lint/base.oxlintrc.json couples the base
+#     to a plugin newer than the copy any already-scaffolded project has under
+#     scripts/guardrails/. The reverse gap is quieter and worse: a rule the
+#     plugin exports but nothing configures never runs, and looks enforced.
+#
+#     Asserted mechanically because it has been claimed to be broken more than
+#     once by reading the plugin's export list out of date. This settles it in
+#     CI instead of by inspection. ---
+referenced=$(jq -r '.rules | keys[] | select(startswith("house/"))' lint/base.oxlintrc.json | sort)
+exported=$(GR_CONFIG=stacks/backend-ts/templates/guardrails.config.json node -e \
+  "import('./guardrails/oxlint-plugin/index.js').then(m=>console.log(Object.keys(m.default.rules).map(r=>'house/'+r).join('\n')))" \
+  2>/dev/null | sort)
+if [ -z "$exported" ]; then
+  bad "lint-base: could not load guardrails/oxlint-plugin/index.js to read its exported rules"
+else
+  while IFS= read -r rule; do
+    [ -n "$rule" ] || continue
+    printf '%s\n' "$exported" | grep -qx "$rule" \
+      || bad "lint-base: lint/base.oxlintrc.json configures $rule but the plugin does not export it — oxlint fails at PLUGIN LOAD, killing the whole lint step"
+  done <<< "$referenced"
+  while IFS= read -r rule; do
+    [ -n "$rule" ] || continue
+    printf '%s\n' "$referenced" | grep -qx "$rule" \
+      || bad "lint-base: the plugin exports $rule but lint/base.oxlintrc.json never configures it — it looks enforced and never runs"
+  done <<< "$exported"
+fi
+
 # --- The documented stack count must match the stacks that exist.
 #
 #     Adding a stack touches six prose surfaces, and the failure mode is that

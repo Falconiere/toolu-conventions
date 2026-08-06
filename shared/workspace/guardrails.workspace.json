@@ -1,10 +1,23 @@
 {
   "$schema": "./scripts/guardrails/workspace.schema.json",
-  "version": 1,
-  "packages": ["packages/api", "packages/database"],
-  "bannedDeps": ["axios", "yup", "joi", "valibot", "superstruct", "ajv"],
+  "version": 2,
+  "packages": [
+    "packages/api",
+    "packages/database"
+  ],
+  "bannedDeps": [
+    "axios",
+    "yup",
+    "joi",
+    "valibot",
+    "superstruct",
+    "ajv"
+  ],
   "secrets": {
-    "neverTracked": [".dev.vars", ".env"]
+    "neverTracked": [
+      ".dev.vars",
+      ".env"
+    ]
   },
   "shadowConfigs": [
     {

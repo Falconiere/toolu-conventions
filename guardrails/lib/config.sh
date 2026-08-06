@@ -5,9 +5,16 @@
 # than falling back to a default. A guard rail that silently stops enforcing is
 # worse than no guard rail, because you stop looking at it.
 
-# Bumped when a change to the scripts requires a config change. run.sh warns
-# (never fails) when a project's copied config trails this.
-GR_SCRIPTS_VERSION=1
+# Bumped when a change to the scripts requires the project to re-copy something.
+# run.sh warns (never fails) when a project's copied config trails this.
+#
+# 2 — the shared lint base gained house/no-module-scope-database. A project that
+#     re-copies lint/base.oxlintrc.json without also re-copying
+#     scripts/guardrails/oxlint-plugin/ references a rule its plugin copy does
+#     not export, and oxlint then fails at PLUGIN LOAD — the whole lint step,
+#     not one rule. Workspace support alone would not have justified a bump
+#     (it is additive); this does, because it couples the two.
+GR_SCRIPTS_VERSION=2
 
 GR_REQUIRED_KEYS='version srcRoot src fileSize functionSize testDir testGlob barrelNames bannedDeps shadowConfigs'
 GR_OPTIONAL_KEYS='$schema barrelExempt requiredFiles secrets filenameCase ownedByLinter'
