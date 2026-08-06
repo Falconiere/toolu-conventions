@@ -35,13 +35,14 @@ cat > "$TREE/.oxlintrc.json" <<'JSON'
     "house/colocated-tests": "error",
     "house/no-barrels": "error",
     "house/no-bare-fetch": "error",
-    "house/no-hardcoded-hex": "error"
+    "house/no-hardcoded-hex": "error",
+    "house/no-module-scope-database": "error"
   }
 }
 JSON
 
 mkdir -p "$TREE/src/features/shifts"/{screens,components,__tests__} \
-         "$TREE/src/features/shifts/utils" \
+         "$TREE/src/features/shifts/utils" "$TREE/src/features/shifts/hooks" \
          "$TREE/src/ui/theme/tokens" "$TREE/src/utilities" "$TREE/src/app/shifts"
 
 # --- files that must stay SILENT ---------------------------------------------
@@ -56,24 +57,30 @@ printf 'export const dark = "#0a84ff";\n'                 > "$TREE/src/ui/theme/
 printf 'export const get = (u: string) => fetch(u);\n'    > "$TREE/src/utilities/http.ts"
 printf 'export const S = () => null;\n'                   > "$TREE/src/features/shifts/screens/shifts-screen.tsx"
 printf 'export const t = 1;\n'                            > "$TREE/src/features/shifts/__tests__/s.test.tsx"
+# The point of no-module-scope-database: this is the SAME call as the violating
+# one, inside a function. A textual rule cannot tell them apart.
+printf 'export const load = () => createDatabase({ url: "x" });\n' \
+  > "$TREE/src/features/shifts/hooks/use-database.ts"
 
 # --- exactly one violation per rule ------------------------------------------
 VIOLATING="$TREE/src/features/shifts/utils/helper.ts
 $TREE/src/features/shifts/stray.test.ts
 $TREE/src/features/shifts/screens/bad.tsx
 $TREE/src/features/shifts/screens/color.ts
-$TREE/src/features/shifts/components/index.ts"
+$TREE/src/features/shifts/components/index.ts
+$TREE/src/features/shifts/components/module-db.ts"
 printf 'export const h = 1;\n'                            > "$TREE/src/features/shifts/utils/helper.ts"
 printf 'export const stray = 1;\n'                        > "$TREE/src/features/shifts/stray.test.ts"
 printf 'export const load = () => fetch("/shifts");\n'    > "$TREE/src/features/shifts/screens/bad.tsx"
 printf 'export const c = "#ff0000";\n'                    > "$TREE/src/features/shifts/screens/color.ts"
 printf 'export * from "./shifts-screen";\n'               > "$TREE/src/features/shifts/components/index.ts"
+printf 'export const db = createDatabase({ url: "x" });\n' > "$TREE/src/features/shifts/components/module-db.ts"
 
 out=$(cd "$TREE" && $OXLINT . 2>&1)
 
 echo 'oxlint house plugin'
 
-for rule in folder-tree colocated-tests no-barrels no-bare-fetch no-hardcoded-hex; do
+for rule in folder-tree colocated-tests no-barrels no-bare-fetch no-hardcoded-hex no-module-scope-database; do
   n=$(printf '%s\n' "$out" | grep -c "house($rule)" || true)
   if [ "$n" -eq 1 ]; then
     ok "$rule: exactly one violation"
@@ -92,7 +99,8 @@ for clean in \
   'src/ui/theme/tokens/dark.ts' \
   'src/app/index.tsx' \
   'src/app/shifts/index.tsx' \
-  'src/features/shifts/__tests__/s.test.tsx'; do
+  'src/features/shifts/__tests__/s.test.tsx' \
+  'src/features/shifts/hooks/use-database.ts'; do
   if printf '%s\n' "$out" | grep -q "^$clean:"; then
     bad "clean file reported: $clean" "$(printf '%s\n' "$out" | grep "^$clean:" | head -1)"
   else

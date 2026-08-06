@@ -1,0 +1,10 @@
+{
+  // This package ships no Worker — it is a library the API imports. The config
+  // exists so @cloudflare/vitest-pool-workers can boot workerd for the tests,
+  // which is what keeps them running in the same runtime as production rather
+  // than in Node. Verified: the pool does not require a `main` entry.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "<project-name>-database",
+  "compatibility_date": "2026-01-01",
+  "compatibility_flags": ["nodejs_compat"]
+}

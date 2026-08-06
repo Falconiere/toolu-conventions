@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  "entry": [
+    "src/client/create-database.ts",
+    "src/schema/tables.ts",
+    "src/types/database.ts",
+    "vitest.config.ts",
+    "drizzle.config.ts"
+  ],
+  "project": ["src/**/*.ts"],
+  "ignoreBinaries": ["wrangler", "drizzle-kit"]
+}

@@ -310,15 +310,56 @@ for setup in stacks/*/SETUP.md; do
 done
 
 # --- Guard rails: every stack ships both workflows, and no stack ships a
-#     lefthook.yaml (the 2.x installer silently shadows it). ---
+#     lefthook.yaml (the 2.x installer silently shadows it).
+#
+#     database-ts is exempt from the workflow rule and from nothing else. It
+#     scaffolds a PACKAGE inside a workspace, not a repository, and a package
+#     has no .github/ of its own — the workspace root owns CI, from
+#     shared/workspace/. Shipping per-package workflows would give one repo two
+#     CI definitions racing over the same gate. The root pair is asserted just
+#     below instead, so the coverage moves rather than disappearing. ---
 for d in stacks/*/; do
   stack=$(basename "$d")
-  for wf in ci.yml code-review.yml; do
-    [ -f "$d/templates/.github/workflows/$wf" ] \
-      || bad "stack '$stack' is missing templates/.github/workflows/$wf"
-  done
+  if [ "$stack" != 'database-ts' ]; then
+    for wf in ci.yml code-review.yml; do
+      [ -f "$d/templates/.github/workflows/$wf" ] \
+        || bad "stack '$stack' is missing templates/.github/workflows/$wf"
+    done
+  fi
   [ -f "$d/templates/lefthook.yaml" ] \
     && bad "stack '$stack' ships lefthook.yaml — must be lefthook.yml"
+done
+
+# --- The workspace root template set. These are what a monorepo scaffolds
+#     instead of the per-stack equivalents. ---
+for f in package.json guardrails.workspace.json knip.json lefthook.yml ci.yml code-review.yml; do
+  [ -f "shared/workspace/$f" ] \
+    || bad "shared/workspace/ is missing $f — a scaffolded workspace root would have no $f"
+done
+
+# A guardrails.config.json at a workspace root is the one thing that must never
+# ship: the oxlint plugin resolves that filename from the working directory, so
+# one here lets a root-level lint run check every package against it and
+# silently disable whatever each package declares ownedByLinter. Its ABSENCE is
+# what makes a root-level run fail closed.
+[ -e shared/workspace/guardrails.config.json ] \
+  && bad "shared/workspace/ ships a guardrails.config.json — a workspace root must carry only guardrails.workspace.json, or oxlint lints every package against the root config"
+
+# The manifest has its own contract, and it is not schema.json's.
+[ -f guardrails/workspace.schema.json ] \
+  || bad "guardrails: workspace.schema.json is missing — guardrails.workspace.json would have no contract"
+jq -e '.required | index("packages")' guardrails/workspace.schema.json >/dev/null 2>&1 \
+  || bad "guardrails: workspace.schema.json does not require 'packages' — a manifest naming nothing would validate"
+jq -e --slurpfile s guardrails/workspace.schema.json \
+  'has("packages") and (has("srcRoot") | not)' shared/workspace/guardrails.workspace.json >/dev/null 2>&1 \
+  || bad "shared/workspace/guardrails.workspace.json must name packages and must NOT carry srcRoot — it governs no source tree of its own"
+
+# The kit's OWN ci.yml must run every guardrails suite. run-plugin.sh went a
+# long time unrun, which meant the house rules — the ones that fire while an
+# agent is still typing — were untested by the gate.
+for suite in run-fixtures.sh run-plugin.sh run-latency.sh; do
+  grep -q "$suite" .github/workflows/ci.yml \
+    || bad "the kit's ci.yml does not run guardrails/__tests__/$suite — that suite is unverified by CI"
 done
 
 # --- The console stack must NOT ship a vitest config: its own

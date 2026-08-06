@@ -1,0 +1,46 @@
+# CLAUDE.md — @<project-name>/database
+
+Read this first. This package is the database and nothing else.
+
+## What this package is
+
+The Drizzle schema, the Turso client factory, and the migrations. It has **no
+Worker entry and no `index.ts`** — its public surface is the `exports` map in
+`package.json`, which points at three concrete files.
+
+## Repo map
+
+| Path | Holds |
+| --- | --- |
+| `src/client/create-database.ts` | The per-request factory. The only place the client is constructed. |
+| `src/schema/` | One file per table, plus `tables.ts` composing them into the value drizzle needs. |
+| `src/constants/env.ts` | The Zod schema for caller-supplied credentials. |
+| `src/types/database.ts` | `Database`, inferred from the factory. |
+| `drizzle/` | Generated migrations. Committed, never hand-edited. |
+
+## Hard rules
+
+1. **Never construct the client at module scope.** A Worker evaluates a module
+   once per isolate and shares it across requests. `house/no-module-scope-database`
+   fails the lint; it is not a style preference.
+2. **Use the `/web` entries.** `@libsql/client/web` and `drizzle-orm/libsql/web`.
+   The defaults are Node-native and will not run on workerd.
+3. **No barrels.** No `index.ts`. Add a public entry by adding a subpath to the
+   `exports` map, pointing at the concrete file.
+4. **One table per file**, named after what it exports, registered in
+   `tables.ts`.
+5. **Config comes in as an argument.** This package reads no bindings and no
+   `process.env` — the API holds `c.env` and passes the values.
+6. **Never touch better-auth's tables.** It owns `user`, `session`, `account`
+   and `verification` and migrates them itself; `drizzle.config.ts` filters
+   them. Adding them here means two migrators fighting over one database.
+7. **Tests run in workerd against a real Turso database.** No mock client.
+8. **`max-lines: 300`**, code lines only.
+
+## Gate
+
+`bun run check` — typecheck, lint, tests, guardrails. From the workspace root,
+`bun --filter '*' run check` runs it for every package.
+
+Never run oxlint from the workspace root: it resolves `guardrails.config.json`
+from the working directory, and there is deliberately none there.

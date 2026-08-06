@@ -19,6 +19,7 @@ import { folderTree } from './rules/folder-tree.js';
 import { noBareFetch } from './rules/no-bare-fetch.js';
 import { noBarrels } from './rules/no-barrels.js';
 import { noHardcodedHex } from './rules/no-hardcoded-hex.js';
+import { noModuleScopeDatabase } from './rules/no-module-scope-database.js';
 
 export default {
   meta: { name: 'house' },
@@ -28,5 +29,6 @@ export default {
     'no-bare-fetch': noBareFetch,
     'no-barrels': noBarrels,
     'no-hardcoded-hex': noHardcodedHex,
+    'no-module-scope-database': noModuleScopeDatabase,
   },
 };

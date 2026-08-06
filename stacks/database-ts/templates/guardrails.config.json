@@ -1,0 +1,39 @@
+{
+  "$schema": "./scripts/guardrails/schema.json",
+  "version": 1,
+  "srcRoot": "src",
+  "src": {
+    "topLevel": ["client", "schema", "constants", "types"],
+    "nested": {
+      "client": ["__tests__"],
+      "schema": ["__tests__"]
+    },
+    "requireReadme": ["client", "schema", "constants", "types"]
+  },
+  "fileSize": { "max": 300, "skipExtensions": [".ts"] },
+  "functionSize": { "max": 50 },
+  "testDir": "__tests__",
+  "testGlob": "*.test.ts",
+  "barrelNames": ["index.ts"],
+  "bannedDeps": ["axios", "yup", "joi", "valibot", "superstruct", "ajv"],
+  "requiredFiles": [
+    {
+      "path": "drizzle.config.ts",
+      "why": "without it the schema has no migration path, and the tables drift from the types silently"
+    }
+  ],
+  "secrets": { "neverTracked": [".dev.vars"] },
+  "shadowConfigs": [
+    {
+      "found": "lefthook.yaml",
+      "use": "lefthook.yml",
+      "why": "the lefthook 2.x installer shadows a .yaml, so the hooks never run"
+    },
+    {
+      "found": "wrangler.toml",
+      "use": "wrangler.jsonc",
+      "why": "two Worker configs is how you test against one database and deploy against another"
+    }
+  ],
+  "ownedByLinter": ["folder-tree", "colocated-tests", "no-barrels", "filename-case", "patterns"]
+}
