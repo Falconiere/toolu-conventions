@@ -132,6 +132,14 @@ gr_load_workspace() {
     "$GR_CONFIG_FILE lists no packages — a workspace that governs nothing passes every check while enforcing none"
 
   for gr_ws_pkg in $GR_WS_PACKAGES; do
+    # run.sh cd's into each of these, so a traversal segment would take the
+    # whole gate outside the repo and check a tree nobody is looking at. The
+    # schema forbids it too, but nothing validates against the schema at gate
+    # time — this is the enforcement.
+    case "$gr_ws_pkg" in
+      /*|*..*) gr_fatal \
+        "$GR_CONFIG_FILE lists package \"$gr_ws_pkg\" — package paths must be repo-relative with no \"..\" segment" ;;
+    esac
     [ -d "$gr_ws_pkg" ] || gr_fatal \
       "$GR_CONFIG_FILE lists package \"$gr_ws_pkg\" but no such directory exists — fix the path or drop the entry"
     [ -f "$gr_ws_pkg/guardrails.config.json" ] || gr_fatal \

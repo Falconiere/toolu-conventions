@@ -198,7 +198,7 @@ become true once C has landed.
   {
     "id": "kit-docs",
     "title": "README, the three docs/*.html pages, and superseding both prior specs",
-    "check": "grep -q 'stacks-6' README.md && grep -q 'database-ts' README.md && grep -q 'database-ts' docs/index.html && grep -q 'database-ts' docs/conventions.html && grep -q 'database-ts' docs/how-it-works.html && grep -q 'superseded' docs/toolu/specs/2026-07-17-conventions-kit-design.md && grep -q 'superseded' docs/toolu/specs/2026-08-04-agent-guardrails-design.md",
+    "check": "grep -q 'stacks-6' README.md && grep -q 'database-ts' README.md && grep -q 'database-ts' docs/index.html && grep -q 'database-ts' docs/conventions.html && grep -q 'database-ts' docs/how-it-works.html && grep -qi 'superseded' docs/toolu/specs/2026-07-17-conventions-kit-design.md && grep -q '2026-08-06-database-ts-monorepo-design' docs/toolu/specs/2026-07-17-conventions-kit-design.md && grep -qi 'superseded' docs/toolu/specs/2026-08-04-agent-guardrails-design.md && grep -q '2026-08-06-database-ts-monorepo-design' docs/toolu/specs/2026-08-04-agent-guardrails-design.md",
     "ac_refs": ["AC-15", "AC-17"],
     "model": "sonnet",
     "depends_on": ["root-setup"],

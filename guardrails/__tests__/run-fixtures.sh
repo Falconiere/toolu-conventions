@@ -585,6 +585,19 @@ if [ -z "$ONLY" ]; then
   # clean. Its stray config is the evidence.
   ws_fatal 'a package that exists but is not listed' \
     'mkdir -p "$WS/packages/worker/src" && cp "$WS/packages/api/guardrails.config.json" "$WS/packages/worker/"'
+  ws_fatal 'a package path containing ..' \
+    'python3 -c "import json,sys;p=sys.argv[1];d=json.load(open(p));d[\"packages\"]=[\"packages/../../elsewhere\"];json.dump(d,open(p,\"w\"))" "$WS/guardrails.workspace.json"'
+
+  # Exit-code precedence across packages. One package merely violates (1), the
+  # other is misconfigured (3). 3 has to win: a broken guard rail reported as a
+  # violation looks like something a developer can fix by editing their code,
+  # and they will "fix" it by deleting the file it points at.
+  WS=$(bash "$HERE/lib/mkrepo.sh" workspace-violating)
+  printf 'not json at all\n' > "$WS/packages/api/guardrails.config.json"
+  OUT=$(cd "$WS" && bash "$GR" 2>&1); STATUS=$?
+  [ "$STATUS" -eq 3 ] && ok 'AC-2  a misconfigured package outranks a violating one (3 beats 1)' \
+    || bad 'AC-2  3 must beat 1 when packages disagree' "exit=$STATUS out=$OUT"
+  rm -rf "$WS"
 
   # --file and --hook take an explicit path, so they can reject one that belongs
   # to no package outright — repo mode never sees such a file at all.
