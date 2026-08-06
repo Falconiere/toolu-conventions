@@ -13,8 +13,11 @@ export default defineConfig({
   schema: './src/schema/tables.ts',
   out: './drizzle',
   tablesFilter: AUTH_TABLES,
+  // Deliberately not `?? ''`. An empty URL makes drizzle-kit fail somewhere
+  // deep with a parse error; an absent one makes it say the credential is
+  // missing, which is the thing that is actually wrong.
   dbCredentials: {
-    url: process.env.TURSO_URL ?? '',
+    url: process.env.TURSO_URL,
     authToken: process.env.TURSO_AUTH_TOKEN,
   },
 });

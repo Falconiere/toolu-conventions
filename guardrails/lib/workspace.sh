@@ -85,10 +85,13 @@ gr_ws_require_listed() {
     [ -n "$(gr_ws_owner "$gr_ws_found")" ] && continue
     gr_fatal \
       "\"$gr_ws_dir\" has a guardrails.config.json but is not listed in $GR_WS_FILE — add it to packages, or delete the config; an unlisted package is never checked and the gate still reports green"
-    # -prune, not -not -path: the filter form still DESCENDS into every
-    # node_modules before discarding the results, and this runs on every repo
-    # mode — which means every Stop hook.
-  done < <(find . -name node_modules -prune -o -name guardrails.config.json -print 2>/dev/null)
+    # -prune, not -not -path: the filter form still DESCENDS into every pruned
+    # directory before discarding the results, and this runs on every repo mode
+    # — which means every Stop hook. .git and the build outputs are pruned for
+    # the same reason, and dist/ additionally because a config copied into a
+    # build artefact is not a package anyone needs to be warned about.
+  done < <(find . \( -name node_modules -o -name .git -o -name dist -o -name build -o -name .wrangler \) -prune \
+             -o -name guardrails.config.json -print 2>/dev/null)
 }
 
 # gr_ws_run_repo — every package, plus the root. Used by both repo and stop mode.
@@ -142,12 +145,12 @@ gr_ws_run_paths() {
 gr_ws_require_owned() {
   for gr_ws_p in "$@"; do
     [ -n "$(gr_ws_owner "$gr_ws_p")" ] && continue
-    gr_ws_dir=${gr_ws_p%/*}
-    while [ -n "$gr_ws_dir" ] && [ "$gr_ws_dir" != "$gr_ws_p" ]; do
+    # A path with no slash is a root file and has no ancestor to walk.
+    case "$gr_ws_p" in */*) gr_ws_dir=${gr_ws_p%/*} ;; *) continue ;; esac
+    while : ; do
       [ -f "$gr_ws_dir/guardrails.config.json" ] && gr_fatal \
         "\"$gr_ws_dir\" has a guardrails.config.json but is not listed in $GR_WS_FILE — add it to packages, or delete the config; an unlisted package is never checked and the gate still reports green"
-      [ "$gr_ws_dir" = "${gr_ws_dir%/*}" ] && break
-      gr_ws_dir=${gr_ws_dir%/*}
+      case "$gr_ws_dir" in */*) gr_ws_dir=${gr_ws_dir%/*} ;; *) break ;; esac
     done
   done
 }

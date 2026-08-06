@@ -555,6 +555,16 @@ if [ -z "$ONLY" ]; then
     bad 'AC-4  --hook must exit 2 with the prefixed path' "exit=$STATUS out=$OUT"
   fi
 
+  # An absolute path outside the workspace survives the ${edited#$PWD/} strip
+  # unchanged, and every check works repo-relative — so it would be tested as a
+  # relative path that does not exist and exit 0. An edit we cannot place is not
+  # an edit we can vouch for.
+  OUT=$(cd "$WS_CLEAN" && printf '{"tool_input":{"file_path":"/etc/hosts"}}' \
+    | bash "$GR" --hook 2>&1)
+  STATUS=$?
+  [ "$STATUS" -eq 3 ] && ok 'AC-4  --hook on a path outside the workspace exits 3' \
+    || bad 'AC-4  an unplaceable edit must not pass silently' "exit=$STATUS out=$OUT"
+
   touch "$WS_DIRTY/dirty.txt" "$WS_CLEAN/dirty.txt"
   OUT=$(cd "$WS_DIRTY" && printf '{}' | bash "$GR" --stop 2>&1); STATUS=$?
   [ "$STATUS" -eq 2 ] && ok 'AC-5  --stop blocks on a dirty violating workspace' \
