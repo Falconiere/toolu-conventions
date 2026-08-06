@@ -90,7 +90,8 @@ gr_ws_require_listed() {
     # — which means every Stop hook. .git and the build outputs are pruned for
     # the same reason, and dist/ additionally because a config copied into a
     # build artefact is not a package anyone needs to be warned about.
-  done < <(find . \( -name node_modules -o -name .git -o -name dist -o -name build -o -name .wrangler \) -prune \
+  done < <(find . \( -name node_modules -o -name .git -o -name dist -o -name build \
+                   -o -name out -o -name coverage -o -name .wrangler -o -name .next \) -prune \
              -o -name guardrails.config.json -print 2>/dev/null)
 }
 

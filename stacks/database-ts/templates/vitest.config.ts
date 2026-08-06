@@ -9,7 +9,7 @@ import { defineConfig } from 'vitest/config';
 // that proves the Node path works proves nothing about production.
 //
 // Local credentials come from `.dev.vars`, so a test hits the real Turso
-// database you point it at. A mock client is banned (CORE rule 6).
+// database you point it at. A mock client is banned (CORE rule 7).
 export default defineConfig({
   plugins: [cloudflareTest({ wrangler: { configPath: './wrangler.jsonc' } })],
   test: {
