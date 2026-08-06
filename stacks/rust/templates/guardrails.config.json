@@ -18,7 +18,9 @@
   },
   "testDir": "tests",
   "testGlob": "",
-  "barrelNames": [],
+  "barrelNames": [
+    "mod.rs"
+  ],
   "barrelExempt": [],
   "bannedDeps": [],
   "filenameCase": [
