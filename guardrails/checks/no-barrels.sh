@@ -20,15 +20,27 @@ gr_nb_exempt() {
 }
 
 gr_nb_one() {
-  local target base name
+  local target base name problem remedy
   target=$1
   base=${target##*/}
   for name in $GR_BARREL_NAMES; do
     [ "$base" = "$name" ] || continue
     gr_nb_exempt "$target" && return 0
-    gr_violation no-barrels "$target" \
-      'barrel file' \
-      'delete it and import the concrete file — a re-export layer hides dead code from knip'
+    # mod.rs gets its own remedy: Rust has no knip and no re-export/import fix
+    # to point at — the actual move is renaming the file up a level next to
+    # its folder (stacks/rust/STRUCTURE.md's "declare submodules from the
+    # parent file", not the TS barrel's "delete and import concrete").
+    case "$name" in
+      mod.rs)
+        problem='mod.rs barrel'
+        remedy='rename it to a sibling file next to its folder (src/foo/mod.rs → src/foo.rs) and declare the submodules there'
+        ;;
+      *)
+        problem='barrel file'
+        remedy='delete it and import the concrete file — a re-export layer hides dead code from knip'
+        ;;
+    esac
+    gr_violation no-barrels "$target" "$problem" "$remedy"
     return 0
   done
 }

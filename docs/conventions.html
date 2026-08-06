@@ -859,9 +859,9 @@
 
               <ul class="note-list" style="margin-top: 1.25rem">
                 <li>Every symbol traces to exactly one file — a grep or <code>ast-grep</code> hit lands on the definition, never a re-export hop. The main reason this rule exists: it is what an agent navigating cold needs most.</li>
-                <li>Dead code stays visible to <code>knip</code>. With no re-export layer to hide behind, an export nothing imports is genuinely dead instead of merely unreached-by-a-shallow-check.</li>
+                <li>Dead code stays visible to <code>knip</code> (TypeScript). With no re-export layer to hide behind, an export nothing imports is genuinely dead instead of merely unreached-by-a-shallow-check.</li>
                 <li>No accidental import cycles. A re-export hub is the classic way two modules end up depending on each other; importing the concrete file every time keeps the dependency graph a real DAG.</li>
-                <li>Smaller bundles. Pulling one name through a barrel can drag its whole re-export graph into the bundle on tooling that doesn't tree-shake perfectly; a direct import ships only what it touches.</li>
+                <li>Smaller bundles (TypeScript). Pulling one name through a barrel can drag its whole re-export graph into the bundle on tooling that doesn't tree-shake perfectly; a direct import ships only what it touches.</li>
                 <li>Fewer merge conflicts. A barrel file is a hotspot every PR adding an export collides on; with no shared re-export file, there's nothing there to collide over.</li>
                 <li>Narrower rebuilds. A barrel turns into a dependency hub — touching one exported file invalidates the barrel and everything that imports it, including code that only wanted an unrelated export.</li>
                 <li>One-hop navigation. Go-to-definition lands on the implementation directly, not on a re-export line that then has to be jumped again.</li>

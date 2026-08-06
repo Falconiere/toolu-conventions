@@ -631,6 +631,25 @@ if [ -z "$ONLY" ]; then
   rm -rf "$WS_CLEAN" "$WS_DIRTY"
 fi
 
+# ------------------------------------------------------ mod.rs barrel (Rust)
+# barrelNames is stack-specific; the Rust template sets it to ["mod.rs"] with
+# its own remedy (no knip, no "import the concrete file" — Rust's fix is
+# renaming the file up a level, not adding an import). Nothing exercised that
+# wiring or the remedy branch until this block.
+if tagged no-barrels || [ -z "$ONLY" ]; then
+  SC=$(bash "$HERE/lib/mkrepo.sh" clean)
+  jq '.barrelNames = ["mod.rs"]' "$SC/guardrails.config.json" > "$SC/t" && mv "$SC/t" "$SC/guardrails.config.json"
+  mkdir -p "$SC/src/store"
+  printf 'pub mod shift_store;\n' > "$SC/src/store/mod.rs"
+  gr_in "$SC" --file src/store/mod.rs; out=$OUT
+  if [ "$(count_check "$out" no-barrels)" -eq 1 ] && printf '%s' "$out" | grep -q 'sibling file'; then
+    ok 'AC-22 barrelNames=["mod.rs"] fires with the Rust-specific remedy'
+  else
+    bad 'AC-22 mod.rs must be caught with a Rust remedy, not the knip/index.ts text' "$out"
+  fi
+  rm -rf "$SC"
+fi
+
 # ------------------------------------------------------ the check-count guard
 # Workspace support is DISPATCH, not a new check. If this number moves, either a
 # check was added (update the docs and validate-templates.sh) or dispatch grew a
