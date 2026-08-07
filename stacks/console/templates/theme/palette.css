@@ -1,17 +1,16 @@
-/* Band seam — CodaSignal "Signal" design language.
+/* Palette — the half of the design language that SWAPS. CodaSignal "Signal".
  *
- * FOR TAILWIND SCAFFOLDS (the @tailwindcss/vite plugin is installed). If you
- * scaffolded without Tailwind, use globals.css instead. Rationale for every
- * value: the kit's DESIGN.md.
+ * Copy to src/ui/theme/palette.css. It is imported by src/ui/globals.css, never
+ * by a component. Rationale for every value: the kit's DESIGN.md.
  *
- * Copy to src/ui/globals.css and import it exactly once, from the app entry:
- * src/main.tsx in the console stack, the base layout in the marketing stack.
- * No reset here — Preflight covers it.
+ * This file owns the two bands and the four signal temperatures. Its counterpart
+ * theme/scale.css owns everything that never swaps — size, shape, type, motion.
+ * That split is DESIGN.md §2's own table, made into two files.
  *
- * The --tone-* values mirror src/ui/theme/colors.ts: `colors` (dark band) on
- * :root, `colorsLight` (light band) on .band-light. Keep the two in lockstep —
- * the token file is the source of truth and this is its CSS projection. A light
- * band is <section class="band band-light">; nothing else changes.
+ * There is no TypeScript colour token file on the web stacks. CSS is the source
+ * of truth, the utilities are generated from it, and the signal is set in exactly
+ * one place: <html data-signal="…">. (Expo is different — React Native has no
+ * cascade, so it keeps src/ui/theme/colors.ts. Do not port that pattern here.)
  *
  * TWO RULES WHEN WRITING COMPONENTS:
  *
@@ -34,17 +33,15 @@
  *    name here would itself emit the frozen variable. Never write one out.
  */
 
-@import "tailwindcss";
-
 /* :root, .band-light and body are layered together on purpose. Tailwind puts
  * utilities in @layer utilities, and an unlayered declaration beats any layered
  * one regardless of specificity — unlayered rules here would silently override
  * bg-* / text-* on the same element. All three go in together: leaving :root
  * outside would make it unbeatable by the layered .band-light, so a band class
- * on <html> would never flip.
+ * on <html> would never flip. (body lives in globals.css, in this same layer.)
  *
  * :root and .band-light are the only places a --tone-* value is ever declared;
- * components read them, never redefine them.
+ * components read them through the utilities, never redefine them.
  */
 @layer base {
   :root {
@@ -55,8 +52,9 @@
     /* The two families the language names, self-hosted via the Fontsource
        packages imported by the app entry. Declared here (in @layer base) rather
        than @theme so they beat Tailwind's own defaults, which land in the
-       lower-priority @layer theme. src/ui/theme/typography.ts reads these
-       variable names — keep them spelled exactly like this. */
+       lower-priority @layer theme. The font-sans / font-mono utilities and the
+       type-* roles in scale.css both resolve through these names — keep them
+       spelled exactly like this. */
     --font-sans: 'Archivo Variable', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
 
@@ -114,6 +112,8 @@
     --tone-primary-hover: #2c2e24;
     --tone-on-primary: #f2f2ee;
 
+    /* Full signal measures 3.1:1 on paper — headings at 24px/600 and up only, so
+       a light band runs one step down (DESIGN.md §11). */
     --tone-accent: #2e9c6b;
     --tone-accent-lift: #43c98b;
     --tone-accent-wash: #e6f2eb;
@@ -201,63 +201,24 @@
     --tone-success: #16170f;
     --tone-focus-ring: #e6e6df;
   }
-
-  body {
-    background-color: var(--tone-background);
-    color: var(--tone-text);
-    font-family: var(--font-sans); /* declared in :root above */
-  }
-
-  ::selection {
-    background-color: var(--tone-accent);
-    color: var(--tone-on-primary);
-  }
-
-  /* The ruled backdrop. Quarter-width vertical rules run through every band; the
-     crosshairs that mark the seams are separate elements (see DESIGN.md). Rules
-     halve at phone width so they still read. */
-  .band {
-    background-color: var(--tone-background);
-    background-image: linear-gradient(90deg, var(--tone-grid) 0 1px, transparent 1px 100%);
-    background-size: 25% 100%;
-    background-position: 48px 0;
-  }
-
-  @media (max-width: 599px) {
-    .band {
-      background-size: 50% 100%;
-      background-position: 24px 0;
-    }
-  }
-
-  /* Live dots and the terminal cursor. A hard on/off, never a fade. */
-  @keyframes signal-blink {
-    0%,
-    60% {
-      opacity: 1;
-    }
-    61%,
-    100% {
-      opacity: 0.2;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    ::before,
-    ::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
 }
 
 /* Aliases the utility namespace onto the tone variables so bg-background /
  * text-accent follow the active band. `inline` is required: plain @theme would
  * freeze the utilities at the :root values and they would not flip inside
  * .band-light. Forward only — never restate a hex here.
+ *
+ * The wildcard reset below drops Tailwind's stock palette. Without it
+ * `bg-red-500`, `text-slate-400` and 300 other colours stay available, and the
+ * design language has exactly one chromatic signal (DESIGN.md §2) — a second hue
+ * is a banned pattern, not a judgement call, so the utilities for it should not
+ * exist. It sits in its own plain @theme block: a reset carries no value to
+ * forward, and `initial` is documented against @theme, not against @theme inline.
  */
+@theme {
+  --color-*: initial;
+}
+
 @theme inline {
   --color-background: var(--tone-background);
   --color-surface: var(--tone-surface);
@@ -293,4 +254,10 @@
 
   --color-disabled-fill: var(--tone-disabled-fill);
   --color-disabled-text: var(--tone-disabled-text);
+
+  /* transparent / currentColor are structural, not palette — `border-transparent`
+     and `text-current` are how you turn a colour OFF, and the wildcard above
+     removed them along with the stock ramps. */
+  --color-transparent: transparent;
+  --color-current: currentColor;
 }

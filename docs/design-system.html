@@ -19,7 +19,7 @@
         --font-sans: Archivo, Helvetica, -apple-system, BlinkMacSystemFont, sans-serif;
         --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 
-        /* palette — dark band ramp (theme/colors.ts, palette.*Dark) */
+        /* palette — dark band ramp (theme/palette.css :root; theme/colors.ts palette.*Dark on Expo) */
         --band-dark: #0e0f0d;
         --panel-dark: #1f1f1f;
         --hover-dark: #131511;
@@ -639,7 +639,8 @@
             <div class="radius-item"><div class="box" style="border-radius: 9999px"></div><p class="name">full</p><p class="use">dots, radio rings, slider knobs only</p></div>
           </div>
           <p class="body" style="margin-top: 2.25rem">
-            Spacing scale — <code class="code">theme/spacing.ts</code>, in px.
+            Spacing scale — <code class="code">theme/scale.css</code> on web,
+            <code class="code">theme/spacing.ts</code> on Expo, in px.
           </p>
           <dl class="space-bars">
             <div class="space-bar-row"><dt class="tok">xs</dt><div class="track"><div class="fill" style="width: 8%"></div></div><dd class="px">4</dd></div>

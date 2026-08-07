@@ -9,10 +9,10 @@
 # stack's `bun run check`. It parses every JSON/JSONC/YAML/TOML template, lints
 # and format-checks every TS/TSX template twice (once with a minimal config,
 # once with each stack's REAL .oxlintrc.json), strict-type-checks the
-# dependency-free templates and the HTTP client, verifies the tone tokens agree
-# across theme/colors.ts and both stylesheets, checks cross-stack template
-# references, and materializes the rust skeleton into a temp crate for
-# fmt + clippy.
+# dependency-free templates and the HTTP client, verifies the web token
+# stylesheets hold together (every --tone-* declared in both bands and aliased
+# into @theme inline), checks cross-stack template references, and materializes
+# the rust skeleton into a temp crate for fmt + clippy.
 name: CI
 
 on:
@@ -36,8 +36,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Bun runs oxlint / oxfmt / tsc over the TS templates, and evaluates
-      # theme/colors.ts to diff it against the CSS projections.
+      # Bun runs oxlint / oxfmt / tsc over the TS templates.
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:

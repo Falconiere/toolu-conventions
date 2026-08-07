@@ -21,6 +21,7 @@ committed; CI installs with `--frozen-lockfile`.
 | Forms | `@tanstack/react-form` + `zod` | **House default** (CORE). Headless form state with Zod validators — same schemas as oRPC inputs when the fields match. |
 | API client | `@orpc/client` + `@orpc/tanstack-query` | The typed client for our own API, plus its Query bindings. Query keys derive from the procedure path — no key factory to write. |
 | Validation | `zod` (v4) | Every boundary: env, any response this app parses itself, form schemas. Types come from `z.infer`. |
+| Styling | `tailwindcss` (v4) + `@tailwindcss/vite` | **The** styling system, not an option. CSS-first: the design tokens are `@theme` blocks in `src/ui/theme/*.css`, so there is no `tailwind.config.js` and no TS token file. `tailwindcss` is in `knip.json`'s `ignoreDependencies` on purpose — nothing imports it from TypeScript (`globals.css` does, and knip does not follow CSS), so without the entry knip fails the gate on a dependency the app cannot run without. |
 | Dead code / unused deps | `knip` | Gate step. Fails on an unused file, export, or dependency. |
 | Copy-paste detection | `jscpd` | Gate step, `threshold: 0` + `exitCode: 1`. |
 | Fonts | `@fontsource-variable/archivo` + `@fontsource-variable/jetbrains-mono` | The two families the design language names, self-hosted — no runtime request to Google. |
@@ -122,7 +123,6 @@ backend ones; add the rest as features demand.
 | Auth | **`better-auth`** | The house auth (CORE). The console uses the **client** half (`better-auth/react` → `createAuthClient`, `useSession`, `signIn`, `signOut`); the server half lives in the `backend-ts` service (or this project's opt-in Worker API) and owns the database. Never put an auth secret in this bundle. |
 | Database | **Turso** via `@tursodatabase/serverless` | Only if you opted into the same-project Worker API — the DB is reachable from the Worker, never from the browser. See the `backend-ts` kit for the full pattern. |
 | Dates | `date-fns` | Tree-shakeable, immutable. For formatting only, prefer the built-in `Intl.DateTimeFormat` / `Intl.NumberFormat` first. |
-| Styling (opt-in) | `tailwindcss` + `@tailwindcss/vite` | Only if the design context asks for it. The theme tokens stay the source of truth — see `globals.tailwind.css`. |
 | Icons | `lucide-react` | Tree-shakeable SVG icon set. Import only the icons you use; don't pull a whole icon font. |
 | Router devtools | `@tanstack/react-router-devtools` | Dev-only. Mount inside `__root.tsx` behind an `import.meta.env.DEV` check. |
 
@@ -144,7 +144,10 @@ Do not add these without an explicit, documented reason.
 | `yup` / `valibot` / `joi`, or hand-written type guards | The kit has one validator. A second one means two ways to describe the same shape and no single place to read it. | **`zod`** — env, response bodies, forms, storage. Types via `z.infer` (CORE rule 13). |
 | A type declared next to its schema (`interface Shift` beside `const Shift = z.object(...)`) | They drift, silently, and the compiler cannot tell you which one is right. | `type Shift = z.infer<typeof Shift>`. |
 | `moment` | Huge, mutable, deprecated. | `date-fns`, or the built-in `Intl` APIs. |
-| CSS-in-JS runtimes (`styled-components`, `emotion`) | Runtime cost for something CSS variables already solve, and they fight the band seam. | CSS Modules / plain CSS referencing `src/ui/theme/*` tokens. |
+| CSS-in-JS runtimes (`styled-components`, `emotion`) | Runtime cost for something CSS variables already solve, and they fight the band seam. Blocked by `no-restricted-imports` *and* by `guardrails` reading `package.json`. | Tailwind utilities. |
+| CSS Modules, or any second stylesheet | Two styling systems in one app means two places to look for why a thing is 12px, and a `.module.css` cannot see the band seam without restating the tokens it is supposed to read. | Utilities. If a rule genuinely cannot be a utility, add an `@utility` to `src/ui/theme/scale.css` so it stays composable and variant-aware. |
+| A `tailwind.config.js` / `tailwind.config.ts` | v4 is CSS-first: a JS config would be a second token file next to the `@theme` blocks, and the two drift silently. | `@theme` in `src/ui/theme/palette.css` (what swaps) and `scale.css` (what doesn't). |
+| A TS/JS style-token module (`theme/colors.ts`, a `styles` object) | That is the **Expo** pattern — React Native has no cascade, so native must carry its tokens in TS. On web it re-creates the split-brain the CSS seam exists to end: the TS value cannot follow `.band-light`. | The generated utilities. |
 | `react-hook-form` / Formik / Final Form | A second form stack next to the house choice. | **`@tanstack/react-form`** + Zod (CORE). |
 | `@tanstack/zod-form-adapter` / `zodValidator` | Deprecated. TanStack Form accepts Zod via Standard Schema natively. | Pass the Zod schema in `validators` directly. |
 | `react-router` (alongside TanStack Router) | Two routers is two route trees, two link components, and no type safety across the seam. | `@tanstack/react-router` — the one router. |

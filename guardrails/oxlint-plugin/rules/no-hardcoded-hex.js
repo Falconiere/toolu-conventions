@@ -23,8 +23,8 @@ export const noHardcodedHex = {
         context.report({
           node,
           message:
-            `no-hardcoded-hex: hardcoded colour "${node.value}" — use a token from ` +
-            'ui/theme/colors.ts so a palette change stays one edit',
+            `no-hardcoded-hex: hardcoded colour "${node.value}" — use a design token from ` +
+            'ui/theme/ (palette.css on web, colors.ts on Expo) so a palette change stays one edit',
         });
       },
     };

@@ -1,6 +1,7 @@
 // @ts-check
 /** Astro configuration — static output, deployed to Cloudflare Workers. */
 import { defineConfig } from 'astro/config';
+import tailwindcss from '@tailwindcss/vite';
 
 // `output: 'static'` is the default and the point of this stack: a marketing
 // site should be HTML on a CDN edge, not a running server. Only switch to
@@ -16,6 +17,12 @@ const site = process.env.SITE_URL ?? 'https://{{SITE_DOMAIN}}';
 export default defineConfig({
   site,
   output: 'static',
+  // Tailwind rides Astro's own Vite pipeline. The @astrojs/tailwind integration
+  // is the v3 path and is deprecated — v4 ships as a Vite plugin, and this stack
+  // shares its stylesheet with the console, which wires the identical plugin.
+  vite: {
+    plugins: [tailwindcss()],
+  },
   build: {
     format: 'directory',
   },

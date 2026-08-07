@@ -79,7 +79,7 @@ documented reason.
 | **`axios`** | A dependency for something the platform already does. `fetch` is in Hermes, and axios brings its own error model, its own cancellation story, and bundle weight — while still needing a wrapper to be usable. | **`src/utilities/http.ts`** — the kit's fetch client, copied from the console kit. |
 | Bare `fetch` scattered through features | Base URL, auth headers, timeouts and error shaping get re-implemented (differently) at each call site. | The one configured client from `src/api/http-client.ts`. |
 | `react-native-unistyles` | Heavy theming/breakpoint runtime + TS module augmentation for what plain styles do fine. Couples every component to it. | `StyleSheet.create` + the plain `src/ui/theme/*` token files. |
-| `nativewind` / Tailwind-in-RN | A second styling paradigm on top of `StyleSheet`; class strings dodge the theme tokens. | `StyleSheet.create` + `src/ui/theme/*`. |
+| `nativewind` / Tailwind-in-RN | A second styling paradigm on top of `StyleSheet`; class strings dodge the theme tokens. **The web stacks being TailwindCSS is not an argument for this** — they get utilities because CSS has a cascade for the band seam to ride, which is exactly what React Native lacks. Same design language, different mechanics. | `StyleSheet.create` + `src/ui/theme/*`. |
 | `@gorhom/bottom-sheet` | Large, gesture-heavy, native complexity for behavior most apps don't need. | `react-native-actions-sheet`, or a screen/route. |
 | `react-hook-form` / Formik / Final Form | A second form stack next to the house choice. | **`@tanstack/react-form`** + Zod (CORE). |
 | `@tanstack/zod-form-adapter` / `zodValidator` | Deprecated. TanStack Form accepts Zod via Standard Schema natively. | Pass the Zod schema in `validators` directly. |

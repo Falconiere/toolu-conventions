@@ -104,7 +104,7 @@ n=$(printf '%s\n' "$out" | grep -c "house(no-module-scope-database)" || true)
 
 # The exemptions are the whole reason these are rules and not greps.
 # Match the REPORTED PATH at line start — a remedy message may legitimately name
-# an exempt file (no-hardcoded-hex points you at ui/theme/colors.ts), and a
+# an exempt file (no-hardcoded-hex points you into ui/theme/), and a
 # substring search over the whole output mistakes that for a violation.
 for clean in \
   'src/utilities/http.ts' \

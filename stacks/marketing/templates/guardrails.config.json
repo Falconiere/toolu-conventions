@@ -51,12 +51,28 @@
     "joi",
     "valibot",
     "superstruct",
-    "ajv"
+    "ajv",
+    "styled-components",
+    "@emotion/react",
+    "@emotion/styled",
+    "@astrojs/tailwind"
   ],
   "requiredFiles": [
     {
       "path": "src/pages/404.astro",
       "why": "without it wrangler serves dead URLs as 200 with an empty body and search engines index them"
+    },
+    {
+      "path": "src/ui/globals.css",
+      "why": "it is the only stylesheet and the only place Tailwind is imported — without it every utility class on the site is inert text"
+    },
+    {
+      "path": "src/ui/theme/palette.css",
+      "why": "the band seam: the --tone-* values every colour utility resolves through, and the four signal temperatures"
+    },
+    {
+      "path": "src/ui/theme/scale.css",
+      "why": "the fixed half of the language — spacing, radii, breakpoints, the type-* roles, motion; without it text-*, rounded-* and ease-* fall back to Tailwind's magic-number defaults"
     }
   ],
   "secrets": {

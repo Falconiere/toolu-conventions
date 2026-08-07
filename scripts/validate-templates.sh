@@ -143,73 +143,122 @@ json.dump(cfg, open(sys.argv[1], 'w'), indent=2)
   rm -rf "$lintdir"
 done
 
-# --- The globals.css pair: both exist, and neither has the other's Tailwind
-#     wiring. Copying the wrong one silently kills every utility class or every
-#     UA default. These two files are shared: the marketing kit copies one of
-#     them too, so a break here breaks two stacks. ---
-plain=stacks/console/templates/globals.css
-twind=stacks/console/templates/globals.tailwind.css
-for f in "$plain" "$twind"; do
-  [ -f "$f" ] || bad "globals template missing: $f"
+# --- The web token stylesheets. TailwindCSS is the styling system on every web
+#     surface (CORE.md → Platform defaults), and CSS is the SOURCE of the values,
+#     not a projection of a TS file. Three files ship as one unit: globals.css
+#     imports Tailwind and then the two token sheets. The marketing kit copies all
+#     three out of the console kit, so a break here breaks two stacks. ---
+entry=stacks/console/templates/globals.css
+palette=stacks/console/templates/theme/palette.css
+scale=stacks/console/templates/theme/scale.css
+for f in "$entry" "$palette" "$scale"; do
+  [ -f "$f" ] || bad "web token stylesheet missing: $f"
 done
-if [ -f "$plain" ] && [ -f "$twind" ]; then
-  grep -q '@import "tailwindcss";' "$twind" || bad "missing @import tailwindcss: $twind"
-  grep -q '@theme inline' "$twind" || bad "missing @theme inline alias block: $twind"
-  grep -q '@import "tailwindcss";' "$plain" && bad "non-Tailwind globals must not @import tailwindcss: $plain"
-  grep -q 'box-sizing: border-box' "$plain" || bad "non-Tailwind globals must carry its own reset: $plain"
-  # A complete --color-<name> anywhere in the Tailwind file — comments included —
-  # makes Tailwind re-emit it frozen at :root, defeating @theme inline. Only the
-  # alias block may spell them, so check the header comment specifically.
-  if sed -n '1,/^@import/p' "$twind" | grep -q -- '--color-[a-z]'; then
-    bad "header comment spells a complete --color-* name (emits a frozen var): $twind"
-  fi
+
+# The superseded shapes must not come back. globals.tailwind.css was the opt-in
+# fork of the entry sheet; the four TS token modules were the pre-Tailwind source
+# of truth and are now a banned import on the web stacks — a file reappearing is
+# how a project ends up with two answers for what #43c98b is called.
+[ -e stacks/console/templates/globals.tailwind.css ] \
+  && bad "console ships globals.tailwind.css again — Tailwind is not an opt-in, so there is one globals.css"
+for mod in colors spacing typography motion; do
+  [ -e "stacks/console/templates/theme/$mod.ts" ] \
+    && bad "console ships theme/$mod.ts — web style tokens live in CSS (@theme); that module is the Expo pattern and .oxlintrc blocks importing it"
+done
+
+if [ -f "$entry" ] && [ -f "$palette" ] && [ -f "$scale" ]; then
+  grep -q "@import 'tailwindcss';" "$entry" \
+    || bad "entry stylesheet does not import Tailwind — every utility class in the app would be inert: $entry"
+  for token in palette scale; do
+    grep -q "@import './theme/$token.css';" "$entry" \
+      || bad "entry stylesheet does not import ./theme/$token.css — its half of the design language would never load: $entry"
+  done
+  grep -q '@theme inline' "$palette" \
+    || bad "missing @theme inline alias block — plain @theme freezes the colour utilities at the dark band: $palette"
+  grep -q -- '--color-\*: initial' "$palette" \
+    || bad "palette does not reset the stock colour namespace — bg-red-500 and 300 other hues stay available against DESIGN.md §2: $palette"
+  for reset in '--text-\*: initial' '--font-weight-\*: initial' '--radius-\*: initial' '--ease-\*: initial' '--shadow-\*: initial' '--breakpoint-\*: initial'; do
+    grep -q -- "$reset" "$scale" \
+      || bad "scale does not reset $reset — Tailwind's magic-number defaults stay reachable (text-sm, font-bold, rounded-2xl, ease-in-out): $scale"
+  done
+
+  # A complete --color-<name> ANYWHERE outside the @theme inline block — comments
+  # included, since Tailwind's theme scan reads them — makes Tailwind re-emit that
+  # variable frozen at the :root values, so the utility stops following the band.
+  # The wildcard reset is spelled --color-* and cannot match [a-z].
+  for f in "$entry" "$palette" "$scale"; do
+    if sed '/^@theme inline {/,/^}/d' "$f" | grep -q -- '--color-[a-z]'; then
+      bad "spells a complete --color-* name outside @theme inline (emits a frozen var that stops following the band): $f"
+    fi
+  done
 
   # Extract DECLARATIONS only (`--tone-x:`), never `var(--tone-x)` references —
   # otherwise deleting a declaration that is also read in the same block passes.
   tone_decls() { # file, selector-regex
     sed -n "/^ *$2 {/,/^ *}\$/p" "$1" | grep -o '^ *--tone-[a-z-]*:' | tr -d ' :' | sort -u
   }
-  for f in "$plain" "$twind"; do
-    root_keys=$(tone_decls "$f" ':root')
-    light_keys=$(tone_decls "$f" '\.band-light')
-    # Guard against the selector regex silently matching nothing — "" = "" passes.
-    [ -n "$root_keys" ] || bad "no --tone-* declarations found in :root: $f"
-    [ -n "$light_keys" ] || bad "no --tone-* declarations found in .band-light: $f"
-    [ "$root_keys" = "$light_keys" ] \
-      || bad "--tone-* keys differ between :root and .band-light: $f"
-  done
-  # The two stylesheets must ship identical tone blocks — they are one projection
-  # rendered for two scaffold paths, not two independent palettes.
-  for sel in ':root' '\.band-light'; do
-    diff <(sed -n "/^ *$sel {/,/^ *}\$/p" "$plain" | grep -o '^ *--tone-.*;' | tr -d ' ') \
-         <(sed -n "/^ *$sel {/,/^ *}\$/p" "$twind" | grep -o '^ *--tone-.*;' | tr -d ' ') \
-      >/dev/null || bad "globals.css and globals.tailwind.css disagree on $sel tone values"
-  done
-  # And both must match theme/colors.ts, the declared source of truth. camelCase
-  # SemanticColors keys map to kebab-case --tone-* names.
-  tonetmp="$(mktemp -d)"
-  bun -e '
-    const m = await import("./stacks/console/templates/theme/colors.ts");
-    const kebab = (k) => k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
-    const emit = (o) =>
-      Object.entries(o)
-        .map(([k, v]) => `--tone-${kebab(k)}:${v};`.replace(/ /g, ""))
-        .sort()
-        .join("\n");
-    console.log(emit(m.colors) + "\n@@\n" + emit(m.colorsLight));
-  ' > "$tonetmp/expected.txt" 2>/dev/null || bad "could not evaluate theme/colors.ts"
-  if [ -s "$tonetmp/expected.txt" ]; then
-    for f in "$plain" "$twind"; do
-      for sel in ':root@1' '\.band-light@2'; do
-        selector=${sel%@*}; part=${sel#*@}
-        got=$(sed -n "/^ *$selector {/,/^ *}\$/p" "$f" | grep -o '^ *--tone-.*;' | tr -d ' ' | sort -u)
-        want=$(awk -v p="$part" 'BEGIN{n=1} /^@@$/{n=2;next} n==p' "$tonetmp/expected.txt")
-        [ "$got" = "$want" ] || bad "tone values drift from theme/colors.ts ($selector): $f"
-      done
-    done
-  fi
-  rm -rf "$tonetmp"
+  root_keys=$(tone_decls "$palette" ':root')
+  light_keys=$(tone_decls "$palette" '\.band-light')
+  # Guard against the selector regex silently matching nothing — "" = "" passes.
+  [ -n "$root_keys" ] || bad "no --tone-* declarations found in :root: $palette"
+  [ -n "$light_keys" ] || bad "no --tone-* declarations found in .band-light: $palette"
+  [ "$root_keys" = "$light_keys" ] \
+    || bad "--tone-* keys differ between :root and .band-light — a token declared in one band only renders unset in the other: $palette"
+
+  # Every tone declared must be aliased into the utility namespace, and every
+  # alias must point at a tone that exists. The first gap ships a value no
+  # component can reach without hand-written CSS; the second ships a utility that
+  # resolves to nothing, which paints transparent rather than failing.
+  aliased=$(sed -n '/^@theme inline {/,/^}/p' "$palette" | grep -o 'var(--tone-[a-z-]*)' \
+    | sed 's/var(//; s/)//' | sort -u)
+  missing_alias=$(comm -23 <(printf '%s\n' "$root_keys") <(printf '%s\n' "$aliased") | tr '\n' ' ')
+  dangling_alias=$(comm -13 <(printf '%s\n' "$root_keys") <(printf '%s\n' "$aliased") | tr '\n' ' ')
+  [ -n "${missing_alias// /}" ] \
+    && bad "declared but never aliased in @theme inline (no utility can reach it): $missing_alias in $palette"
+  [ -n "${dangling_alias// /}" ] \
+    && bad "aliased in @theme inline but never declared (the utility resolves to nothing): $dangling_alias in $palette"
 fi
+
+# --- The web stylesheets ship INTO src/, so they answer to the same per-file
+#     ceiling as any other source file — and unlike .ts they are not on the
+#     skipExtensions list, so guardrails/file-size.sh really does measure them.
+#     Shipping one over the line hands a new project a template its own gate
+#     rejects on the first `bun run check`. Counted the way that check counts:
+#     code lines only, comments and blanks excluded. ---
+css_max=$(jq -r '.fileSize.max' stacks/console/templates/guardrails.config.json)
+for f in "$entry" "$palette" "$scale"; do
+  [ -f "$f" ] || continue
+  css_lines=$(awk '
+    { line = $0; sub(/^[ \t]+/, "", line)
+      if (line == "") next
+      if (line ~ /^\/\*/) { inblock = 1 }
+      if (inblock) { if (line ~ /\*\//) inblock = 0; next }
+      if (line ~ /^\*/) next
+      n++ }
+    END { print n + 0 }' "$f")
+  [ "$css_lines" -le "$css_max" ] \
+    || bad "$f is $css_lines code lines, over the $css_max ceiling its own guardrails.config.json declares — split it or move values into the other token sheet"
+done
+
+# --- Tailwind has to be WIRED, not just imported. The @import in globals.css is
+#     inert CSS without the build plugin: the app renders unstyled and no test,
+#     type-check or lint says a word. Each web stack wires it its own way — a
+#     plugin entry for the console's Vite config, a nested vite.plugins entry for
+#     Astro (NOT @astrojs/tailwind, the deprecated v3 integration). ---
+console_vite=stacks/console/templates/vite.config.ts
+astro_cfg=stacks/marketing/templates/astro.config.mjs
+for f in "$console_vite" "$astro_cfg"; do
+  [ -f "$f" ] || { bad "build config missing: $f"; continue; }
+  grep -q "from '@tailwindcss/vite'" "$f" \
+    || bad "does not import @tailwindcss/vite — globals.css would compile to inert CSS and the app would render unstyled: $f"
+  grep -q 'tailwindcss()' "$f" \
+    || bad "imports @tailwindcss/vite but never adds tailwindcss() to the plugin list: $f"
+done
+# Matched as a QUOTED module specifier on a non-comment line, not as a bare
+# mention: the config explains in a comment why this integration is not used, and
+# a substring match would fail the gate on its own rationale.
+sed 's;//.*;;' "$astro_cfg" | grep -qE "['\"]@astrojs/tailwind['\"]" \
+  && bad "marketing wires the deprecated v3 @astrojs/tailwind integration — v4 ships as the Vite plugin: $astro_cfg"
 
 # --- Strict type-check: dependency-free templates only (enumerated) ---
 depfree=(
@@ -218,11 +267,9 @@ depfree=(
   stacks/expo/templates/theme/motion.ts
   stacks/expo/templates/theme/spacing.ts
   stacks/expo/templates/theme/typography.ts
-  stacks/console/templates/theme/colors.ts
+  # The console keeps exactly one TS token module: icon path data and stroke
+  # widths are SVG attribute values, not style, so they cannot become utilities.
   stacks/console/templates/theme/icons.ts
-  stacks/console/templates/theme/motion.ts
-  stacks/console/templates/theme/spacing.ts
-  stacks/console/templates/theme/typography.ts
 )
 missing=0
 for f in "${depfree[@]}"; do [ -f "$f" ] || { bad "dep-free template missing: $f"; missing=1; }; done
@@ -254,8 +301,9 @@ fi
 #     stylesheet, and (via expo) the HTTP client out of the console kit. Those
 #     paths are prose in SETUP.md, so nothing else would catch a rename. ---
 for f in \
-  stacks/console/templates/theme/colors.ts \
-  stacks/console/templates/theme/typography.ts \
+  stacks/console/templates/theme/palette.css \
+  stacks/console/templates/theme/scale.css \
+  stacks/console/templates/theme/icons.ts \
   stacks/console/templates/globals.css \
   stacks/console/templates/utilities/http.ts
 do

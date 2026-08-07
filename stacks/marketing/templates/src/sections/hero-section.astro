@@ -3,27 +3,39 @@
 import { CONSOLE_URL } from '@/constants/env';
 ---
 
-<!-- `band` paints the ruled backdrop; add `band-light` for a light band. The
-     two classes are the whole theming surface — see docs/design-language.md. -->
-<section class="band">
-  <p class="marker">{{SECTION_MARKER}}</p>
-  <h1>
-    {{HEADLINE_LINE_ONE}}
-    <span class="signal">{{HEADLINE_LINE_TWO}}</span>
-  </h1>
-  <p>{{SUBHEAD}}</p>
-  <a href={CONSOLE_URL}>Get started</a>
+<!-- `band` paints the ruled backdrop; add `band-light` for a light band. The two
+     classes are the whole theming surface — see docs/design-language.md.
+
+     Everything else is Tailwind utilities. This file has no <style> block and no
+     stylesheet of its own, deliberately: src/ui/globals.css is the only one in
+     the project. Type is applied by role (type-display, type-marker), never by
+     picking a size — the role carries family, size, leading, weight, tracking and
+     case together, which is why a label cannot lose its uppercase by accident. -->
+<section class="band px-gutter py-section-y md:px-gutter-md xl:px-gutter-lg">
+  <div class="mx-auto max-w-page">
+    <p class="type-marker text-text-faint">{{SECTION_MARKER}}</p>
+
+    <!-- Headings break in two: line one states the fact, line two names the
+         consequence, and ONLY line two takes the signal (DESIGN.md §4). -->
+    <h1 class="type-display-lg mt-6 text-text">
+      {{HEADLINE_LINE_ONE}}
+      <span class="block text-accent">{{HEADLINE_LINE_TWO}}</span>
+    </h1>
+
+    <!-- Body never wider than 52 characters. -->
+    <p class="type-body mt-6 max-w-copy text-text-muted">{{SUBHEAD}}</p>
+
+    <!-- The primary action inverts with the band — bg-primary/text-on-primary
+         already encode that, so this button is correct in a light band too. It
+         dips opacity on hover rather than swapping its fill, and presses with a
+         1px nudge. That is the whole tactile vocabulary (DESIGN.md §6). -->
+    <a
+      href={CONSOLE_URL}
+      class="type-button mt-10 inline-flex h-field items-center rounded-xs bg-primary px-6
+             text-on-primary transition duration-(--duration-hover) ease-signal
+             hover:opacity-86 active:translate-y-px"
+    >
+      Get started
+    </a>
+  </div>
 </section>
-
-<style>
-  /* Scoped to this component by Astro. Read tokens through the --tone-*
-     variables so the section works in either band — never a literal hex. */
-  .signal {
-    color: var(--tone-accent);
-  }
-
-  .marker {
-    color: var(--tone-text-faint);
-    font-family: var(--font-mono);
-  }
-</style>

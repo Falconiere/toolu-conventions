@@ -7,5 +7,6 @@
     "vitest.config.ts"
   ],
   "project": ["src/**/*.{ts,tsx,astro}"],
-  "ignoreBinaries": ["wrangler"]
+  "ignoreBinaries": ["wrangler"],
+  "ignoreDependencies": ["tailwindcss"]
 }

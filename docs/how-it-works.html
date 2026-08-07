@@ -896,16 +896,18 @@
             <span class="line-2">it never performs.</span>
           </h2>
           <p class="body">
-            The design language ships as tokens — <code class="code">theme/motion.ts</code>,
-            <code class="code">theme/colors.ts</code> — and the rules about what
-            may move at all. One easing curve, five durations, and a tactile
-            vocabulary that ends at a 1px nudge. This page is built from the same
-            tokens, so what you are reading is what a scaffolded project gets.
+            The design language ships as tokens — <code class="code">theme/scale.css</code>
+            and <code class="code">theme/palette.css</code> on the web stacks,
+            <code class="code">theme/motion.ts</code> and <code class="code">theme/colors.ts</code>
+            on Expo — and the rules about what may move at all. One easing curve,
+            five durations, and a tactile vocabulary that ends at a 1px nudge.
+            This page is built from the same tokens, so what you are reading is
+            what a scaffolded project gets.
           </p>
 
           <figure class="viz" data-anim>
             <div class="viz-head">
-              <p class="label">theme/motion.ts</p>
+              <p class="label">theme/scale.css · theme/motion.ts</p>
               <button class="replay" type="button" data-replay>Replay</button>
             </div>
             <div class="viz-body">
@@ -915,7 +917,7 @@
                   <div class="rail" data-curve="signal" data-rail="signal"><span class="pip"></span></div>
                   <div class="rail" data-curve="linear" data-rail="linear"><span class="pip"></span></div>
                   <p>
-                    <code class="code">easing.signal = 'cubic-bezier(0.2, 0, 0, 1)'</code> on
+                    <code class="code">--ease-signal: cubic-bezier(0.2, 0, 0, 1)</code> on
                     the web, the same four numbers as <code class="code">SIGNAL_BEZIER</code>
                     on Expo — it leaves quickly and arrives calmly. Do not introduce
                     a second curve; a system with two easings has none.
