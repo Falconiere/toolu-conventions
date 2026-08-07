@@ -43,6 +43,42 @@ done
 case "$ENV_SLUG" in local | development | production) ;; *) echo "download-secrets: invalid environment '$ENV_SLUG'" >&2; exit 1 ;; esac
 case "$FORMAT" in dotenv | dotenv-export | json | yaml | csv) ;; *) echo "download-secrets: unsupported format '$FORMAT'" >&2; exit 1 ;; esac
 [[ -n "$OUTPUT_FILE" ]] || { echo "download-secrets: --output is required" >&2; exit 1; }
+[[ "$SECRET_PATH" =~ ^/([A-Za-z0-9_-][A-Za-z0-9_.-]*)(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*/?$ || "$SECRET_PATH" == "/" ]] \
+  || { echo "download-secrets: --path must be a safe absolute Infisical provider path" >&2; exit 1; }
+
+case "$OUTPUT_FILE" in
+  "$PROJECT_ROOT"/*) relative_output="${OUTPUT_FILE#"$PROJECT_ROOT"/}" ;;
+  /*) echo "download-secrets: --output must stay inside $PROJECT_ROOT" >&2; exit 1 ;;
+  *) relative_output="$OUTPUT_FILE" ;;
+esac
+case "/$relative_output/" in
+  *"//"* | *"/./"* | *"/../"*)
+    echo "download-secrets: --output must be a safe project-relative file" >&2
+    exit 1
+    ;;
+esac
+[[ -n "$relative_output" ]] \
+  || { echo "download-secrets: --output must name a file inside $PROJECT_ROOT" >&2; exit 1; }
+
+target_dir="$PROJECT_ROOT"
+relative_dir="$(dirname "$relative_output")"
+if [[ "$relative_dir" != "." ]]; then
+  IFS='/' read -r -a output_dir_parts <<<"$relative_dir"
+  for output_dir_part in "${output_dir_parts[@]}"; do
+    target_dir="$target_dir/$output_dir_part"
+    [[ ! -L "$target_dir" ]] \
+      || { echo "download-secrets: --output parent must not contain symlinks" >&2; exit 1; }
+  done
+fi
+mkdir -p "$target_dir"
+target_dir="$(cd -P "$target_dir" && pwd)"
+case "$target_dir" in
+  "$PROJECT_ROOT" | "$PROJECT_ROOT"/*) ;;
+  *) echo "download-secrets: --output resolved outside $PROJECT_ROOT" >&2; exit 1 ;;
+esac
+OUTPUT_FILE="$target_dir/$(basename "$relative_output")"
+[[ ! -L "$OUTPUT_FILE" && ! -d "$OUTPUT_FILE" ]] \
+  || { echo "download-secrets: --output must be a regular project file" >&2; exit 1; }
 command -v infisical >/dev/null 2>&1 || { echo "download-secrets: infisical CLI is required" >&2; exit 1; }
 
 [[ -f "$ENV_FILE" ]] && dotenv::fill "$ENV_FILE" \
@@ -65,8 +101,6 @@ token="$(infisical login \
   --domain="$DOMAIN" --silent --plain)"
 [[ -n "$token" ]] || { echo "download-secrets: Infisical returned an empty token" >&2; exit 1; }
 
-target_dir="$(dirname "$OUTPUT_FILE")"
-mkdir -p "$target_dir"
 export_dir="$(mktemp -d "$target_dir/.operations-secrets.XXXXXX")"
 cleanup() {
   case "$export_dir" in "$target_dir"/.operations-secrets.*) rm -rf -- "$export_dir" ;; esac
@@ -85,4 +119,6 @@ exported=""
 while IFS= read -r candidate; do exported="$candidate"; break; done < <(find "$export_dir" -type f -print)
 [[ -n "$exported" ]] || { echo "download-secrets: Infisical produced no file" >&2; exit 1; }
 chmod 600 "$exported"
+[[ ! -L "$OUTPUT_FILE" && ! -d "$OUTPUT_FILE" ]] \
+  || { echo "download-secrets: --output changed to an unsafe target" >&2; exit 1; }
 mv "$exported" "$OUTPUT_FILE"

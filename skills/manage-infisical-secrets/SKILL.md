@@ -20,8 +20,10 @@ from entering committed files, client bundles, process evaluation, or logs.
    `INFISICAL_URL`, `INFISICAL_PROJECT_ID`,
    `INFISICAL_MACHINE_IDENTITY_CLIENT_ID`, and
    `INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET` in CI secrets or ignored `.env`.
-4. Put only paths and target filenames in the manifest. Never put secret values,
-   client secrets, or machine credentials there.
+4. Put only paths and target filenames in the manifest. Require an absolute
+   provider path without dot or traversal segments, and keep every output
+   target inside the project without symlinked parent directories. Never put
+   secret values, client secrets, or machine credentials there.
 5. Verify repository configuration locally. Do not authenticate, populate an
    environment, rotate credentials, or fetch live values unless the user asks
    for that separate external operation.

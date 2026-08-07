@@ -45,9 +45,14 @@ source "$OPERATIONS_ROOT/shared/dotenv.sh"
 
 deploy_config="$(jq -c --arg env "$ENV_SLUG" '.cloudflare.deploy[$env]' "$CONFIG_FILE")"
 worker="$(jq -r '.worker' <<<"$deploy_config")"
-workdir="$(mktemp -d "${TMPDIR:-/tmp}/toolu-deploy.XXXXXX")"
+staging_root="$PROJECT_ROOT/.tooling/operations"
+[[ ! -L "$PROJECT_ROOT/.tooling" && ! -L "$staging_root" ]] \
+  || { echo "deploy: refusing a symlinked project staging directory" >&2; exit 1; }
+mkdir -p "$staging_root"
+chmod 700 "$staging_root"
+workdir="$(mktemp -d "$staging_root/deploy.XXXXXX")"
 cleanup() {
-  if [[ -d "$workdir" && ! -L "$workdir" && "$(basename "$workdir")" == toolu-deploy.* ]]; then
+  if [[ -d "$workdir" && ! -L "$workdir" && "$workdir" == "$staging_root"/deploy.* ]]; then
     rm -rf -- "$workdir"
   else
     echo "deploy: refusing to clean unexpected path $workdir" >&2

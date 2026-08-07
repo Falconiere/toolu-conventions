@@ -92,6 +92,12 @@ expect_fail "tunnel routes require health probes" "required fields" "$VALIDATOR"
 mutate_fixture '.cloudflare.deploy.development.migrateCommand = 42' "$TEST_TMP/non-string-command.json"
 expect_fail "deploy hooks must be non-empty commands" "deploy map is invalid" "$VALIDATOR" "$TEST_TMP/non-string-command.json"
 
+mutate_fixture '.services[0].command = "bun run dev; touch /tmp/injected"' "$TEST_TMP/shell-command.json"
+expect_fail "service commands reject shell control syntax" "service values" "$VALIDATOR" "$TEST_TMP/shell-command.json"
+
+mutate_fixture '.infisical.secretPath = "/team/../../other"' "$TEST_TMP/secret-path-traversal.json"
+expect_fail "Infisical provider paths reject traversal" "safe provider path" "$VALIDATOR" "$TEST_TMP/secret-path-traversal.json"
+
 DOTENV="$TEMPLATES/shared/templates/scripts/operations/shared/dotenv.sh"
 if [[ -f "$DOTENV" ]]; then
   # shellcheck source=/dev/null
@@ -282,6 +288,49 @@ if [[ -x "$INFISICAL_DOWNLOAD" ]]; then
     ok "failed secret refresh preserves existing output"
   else
     not_ok "failed secret refresh preserves existing output"
+  fi
+  outside_secret="$TEST_TMP/outside-project.env"
+  if PATH="$TEST_TMP/bin:$PATH" \
+      INFISICAL_URL="https://secrets.example.com" \
+      INFISICAL_PROJECT_ID="project" \
+      INFISICAL_MACHINE_IDENTITY_CLIENT_ID="client" \
+      INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET="secret" \
+      "$TEST_TMP/project/scripts/operations/infisical/download.sh" \
+        --env local --output "$outside_secret" >/dev/null 2>&1; then
+    not_ok "Infisical download rejects output outside the project"
+  elif [[ ! -e "$outside_secret" ]]; then
+    ok "Infisical download rejects output outside the project"
+  else
+    not_ok "Infisical download rejects output outside the project"
+  fi
+  if PATH="$TEST_TMP/bin:$PATH" \
+      INFISICAL_URL="https://secrets.example.com" \
+      INFISICAL_PROJECT_ID="project" \
+      INFISICAL_MACHINE_IDENTITY_CLIENT_ID="client" \
+      INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET="secret" \
+      "$TEST_TMP/project/scripts/operations/infisical/download.sh" \
+        --env local --path /team/../other \
+        --output "$TEST_TMP/project/path-check.env" >/dev/null 2>&1; then
+    not_ok "Infisical download rejects provider path traversal"
+  elif [[ ! -e "$TEST_TMP/project/path-check.env" ]]; then
+    ok "Infisical download rejects provider path traversal"
+  else
+    not_ok "Infisical download rejects provider path traversal"
+  fi
+  mkdir -p "$TEST_TMP/outside-secret-dir"
+  ln -s "$TEST_TMP/outside-secret-dir" "$TEST_TMP/project/linked-secret-dir"
+  if PATH="$TEST_TMP/bin:$PATH" \
+      INFISICAL_URL="https://secrets.example.com" \
+      INFISICAL_PROJECT_ID="project" \
+      INFISICAL_MACHINE_IDENTITY_CLIENT_ID="client" \
+      INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET="secret" \
+      "$TEST_TMP/project/scripts/operations/infisical/download.sh" \
+        --env local --output linked-secret-dir/secrets.env >/dev/null 2>&1; then
+    not_ok "Infisical download rejects symlinked output parents"
+  elif [[ ! -e "$TEST_TMP/outside-secret-dir/secrets.env" ]]; then
+    ok "Infisical download rejects symlinked output parents"
+  else
+    not_ok "Infisical download rejects symlinked output parents"
   fi
 else
   not_ok "Infisical downloader exists"
@@ -548,16 +597,16 @@ fi
 jq 'del(.infisical, .cloudflare)
   | del(.services[0].secretsTarget, .services[0].localHostname, .services[0].healthcheck)
   | .services[0].port = 39992
-  | .services[0].command = "shopt -q login_shell || exec sleep 30"' \
+  | .services[0].command = "sleep 30"' \
   "$FIXTURES/valid-backend.json" >"$generated/non-login-start.json"
 "$generated/scripts/operations/dev/start.sh" \
   --config "$generated/non-login-start.json" >"$TEST_TMP/non-login-start.out" 2>&1 &
 start_pid=$!
 sleep 1.5
 if kill -0 "$start_pid" 2>/dev/null; then
-  ok "local services do not run in a login shell"
+  ok "local services execute without a shell command"
 else
-  not_ok "local services do not run in a login shell"
+  not_ok "local services execute without a shell command"
 fi
 kill "$start_pid" 2>/dev/null || true
 wait "$start_pid" 2>/dev/null || true
@@ -572,7 +621,7 @@ done
 jq --argjson port "$foreign_start_port" 'del(.infisical, .cloudflare)
   | del(.services[0].secretsTarget, .services[0].localHostname, .services[0].healthcheck)
   | .services[0].port = $port
-  | .services[0].command = "exec sleep 30"' \
+  | .services[0].command = "sleep 30"' \
   "$FIXTURES/valid-backend.json" >"$generated/foreign-port-start.json"
 if "$generated/scripts/operations/dev/start.sh" \
     --config "$generated/foreign-port-start.json" >"$TEST_TMP/foreign-port-start.out" 2>&1; then
@@ -588,7 +637,7 @@ wait "$foreign_start_pid" 2>/dev/null || true
 jq 'del(.infisical, .cloudflare)
   | del(.services[0].secretsTarget, .services[0].localHostname, .services[0].healthcheck)
   | .services[0].port = 39995
-  | .services[0].command = "exec sleep 30"' \
+  | .services[0].command = "sleep 30"' \
   "$FIXTURES/valid-backend.json" >"$generated/fingerprint-start.json"
 "$generated/scripts/operations/dev/start.sh" \
   --config "$generated/fingerprint-start.json" >"$TEST_TMP/fingerprint-start.out" 2>&1 &
