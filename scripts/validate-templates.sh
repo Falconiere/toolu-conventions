@@ -83,10 +83,35 @@ while IFS= read -r -d '' f; do
 done < <(find stacks/*/templates .github shared -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 2>/dev/null)
 
 # The kit calls all five guard-rail layers mandatory in CORE.md; it has to run
-# them itself. This is the check that keeps it honest.
-for wf in .github/workflows/ci.yml .github/workflows/code-review.yml; do
+# them itself. This is the check that keeps it honest. release.yml is the
+# counterpart for cutting tags + CHANGELOG.md on merge to main.
+for wf in .github/workflows/ci.yml .github/workflows/code-review.yml .github/workflows/release.yml; do
   [ -f "$wf" ] || bad "the kit does not run its own guard rails: missing $wf"
 done
+
+# --- Release contract: semantic-release on main, CHANGELOG committed back,
+#     never published to npm (this kit has no package consumers on a registry).
+#     A missing or drifted config would cut the wrong artifact — or none — on
+#     the next merge to main, so the gate asserts the shape rather than the
+#     prose in README. ---
+[ -f .releaserc.json ] || bad "missing .releaserc.json — merges to main would not cut a release"
+[ -f package.json ] || bad "missing package.json — the release workflow has nothing to install"
+jq -e '
+  (.branches | index("main")) != null
+  and (.tagFormat == "v${version}")
+  and ([.plugins[] | if type == "string" then . else .[0] end]
+      | index("@semantic-release/changelog") and index("@semantic-release/git")
+        and index("@semantic-release/github") and index("@semantic-release/npm"))
+  and ([.plugins[] | select(type == "array" and .[0] == "@semantic-release/npm") | .[1].npmPublish]
+      | . == [false])
+' .releaserc.json >/dev/null \
+  || bad ".releaserc.json drifted: need main + v\${version} + changelog/git/github + npmPublish:false"
+jq -e '.private == true and .devDependencies["semantic-release"]' package.json >/dev/null \
+  || bad "package.json must be private and declare semantic-release (kit is not published)"
+grep -q 'semantic-release' .github/workflows/release.yml \
+  || bad "release.yml does not invoke semantic-release — the workflow would no-op"
+grep -q 'node-version:' .github/workflows/release.yml \
+  || bad "release.yml must pin Node — semantic-release 25 rejects older runtimes"
 
 # --- TOML ---
 while IFS= read -r -d '' f; do
