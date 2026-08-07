@@ -6,6 +6,8 @@ TOOLU_OPERATIONS_DOTENV_SOURCED=1
 
 dotenv::__parse_line() {
   local line="${1%$'\r'}"
+  # This safe bootstrap parser is deliberately single-line and preserves
+  # backslashes literally; the provider examples document that boundary.
   [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && return 1
   [[ "$line" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]] || return 1
   DOTENV_KEY="${BASH_REMATCH[1]}"

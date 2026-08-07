@@ -29,6 +29,8 @@ source "$OPERATIONS_ROOT/shared/dotenv.sh"
 : "${CLOUDFLARE_ACCOUNT_ID:?missing CLOUDFLARE_ACCOUNT_ID in the environment or .env}"
 
 api() {
+  # -K - reads curl configuration from stdin. The token is never a path or argv
+  # value; replacing this with --header would expose it in process listings.
   curl -sS -K - "$@" <<EOF
 header = "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
 EOF
@@ -106,8 +108,58 @@ fi
 if [[ "$MODE" == "run" ]]; then
   [[ $drift -eq 0 ]] || { echo "tunnel: refusing to run with drift; apply it explicitly first" >&2; exit 1; }
   command -v cloudflared >/dev/null 2>&1 || { echo "tunnel: cloudflared is required" >&2; exit 1; }
+  command -v mkfifo >/dev/null 2>&1 || { echo "tunnel: mkfifo is required" >&2; exit 1; }
   token="$(api "$API/accounts/$CLOUDFLARE_ACCOUNT_ID/cfd_tunnel/$tunnel_id/token" | result '.result')"
-  exec cloudflared tunnel --no-autoupdate run --token-file <(printf '%s' "$token")
+  token_dir="$(mktemp -d "${TMPDIR:-/tmp}/toolu-tunnel-token.XXXXXX")"
+  chmod 700 "$token_dir"
+  token_pipe="$token_dir/token"
+  mkfifo -m 600 "$token_pipe"
+  connector_pid=""
+  writer_pid=""
+
+  # Invoked through signal/EXIT traps below.
+  # shellcheck disable=SC2317
+  tunnel_runtime_cleanup() {
+    local status="${1:-1}" pid
+    trap - EXIT INT TERM
+    for pid in "$writer_pid" "$connector_pid"; do
+      [[ -n "$pid" ]] || continue
+      kill "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+    done
+    if [[ -n "$token_dir" && ! -L "$token_dir" \
+      && "$(basename "$token_dir")" == toolu-tunnel-token.* ]]; then
+      [[ -p "$token_pipe" ]] && rm -f -- "$token_pipe"
+      rmdir "$token_dir" 2>/dev/null || true
+    fi
+    exit "$status"
+  }
+  trap 'tunnel_runtime_cleanup 130' INT
+  trap 'tunnel_runtime_cleanup 143' TERM
+  trap 'tunnel_runtime_cleanup $?' EXIT
+
+  cloudflared tunnel --no-autoupdate run --token-file "$token_pipe" &
+  connector_pid=$!
+  printf '%s' "$token" >"$token_pipe" &
+  writer_pid=$!
+  pipe_consumed=0
+  for _ in $(seq 1 100); do
+    if ! kill -0 "$writer_pid" 2>/dev/null; then pipe_consumed=1; break; fi
+    kill -0 "$connector_pid" 2>/dev/null \
+      || { echo "tunnel: cloudflared exited before reading its token" >&2; exit 1; }
+    sleep 0.1
+  done
+  [[ $pipe_consumed -eq 1 ]] || { echo "tunnel: cloudflared did not read its token" >&2; exit 1; }
+  wait "$writer_pid"
+  writer_pid=""
+  rm -f -- "$token_pipe"
+  rmdir "$token_dir"
+  token_dir=""
+  wait "$connector_pid"
+  connector_status=$?
+  connector_pid=""
+  trap - EXIT INT TERM
+  exit "$connector_status"
 else
   echo "tunnel: configuration is in sync"
 fi

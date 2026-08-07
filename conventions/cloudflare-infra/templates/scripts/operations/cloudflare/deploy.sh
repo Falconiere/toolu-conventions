@@ -83,6 +83,8 @@ fi
 run_configured() {
   local key="$1" label="$2" command
   command="$(jq -r --arg key "$key" '.[$key] // empty' <<<"$deploy_config")"
+  # The manifest is reviewed repository code, not request data. Shell syntax is
+  # intentional so projects can compose package scripts and migration checks.
   [[ -z "$command" ]] || { echo "→ $label"; (cd "$PROJECT_ROOT" && bash -c "$command"); }
 }
 
