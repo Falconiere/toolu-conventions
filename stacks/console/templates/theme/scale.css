@@ -7,12 +7,15 @@
  * accent and nothing here (DESIGN.md §2). Its counterpart theme/palette.css owns
  * the half that does swap.
  *
- * Four namespaces are RESET to `initial` before being redefined. That is the
- * enforcement, not tidiness: with Tailwind's defaults left in place `text-sm`,
- * `font-bold`, `rounded-2xl`, `shadow-lg` and `ease-in-out` all still compile,
- * and every one of them is a magic number or an outright banned value
- * (DESIGN.md §12 bans weight 700; §6 allows exactly one easing curve). Deleting
- * the namespace is what makes the ban structural instead of advisory.
+ * Six namespaces are RESET to `initial` before the house values go back in —
+ * `--radius-*`, `--shadow-*`, `--breakpoint-*`, `--text-*`, `--font-weight-*`
+ * and `--ease-*`. That is the enforcement, not tidiness: with Tailwind's
+ * defaults left in place `text-sm`, `font-bold`, `rounded-2xl`, `shadow-lg` and
+ * `ease-in-out` all still compile, and every one of them is a magic number or an
+ * outright banned value (DESIGN.md §12 bans weight 700; §6 allows exactly one
+ * easing curve). Deleting the namespace is what makes the ban structural instead
+ * of advisory. `--text-*` is the one reset that gets nothing back: type is
+ * applied by role, never by picking a size (see Type below).
  *
  * The 4px spacing grid is NOT reset — p-3 / gap-6 / size-11 are the house
  * spacing scale, since spacing steps carry no meaning beyond their size. Only
@@ -121,8 +124,8 @@
 }
 
 /* Type roles. One class carries family, size, leading, weight, tracking, case
- * and numerals together, because those are not independent choices: the four
- * mono tracking steps encode WHAT the text is (DESIGN.md §4), and a label that
+ * and numerals together, because those are not independent choices: the mono
+ * tracking steps encode WHAT the text is (DESIGN.md §4), and a label that
  * gets the size but loses the uppercase is a silently wrong label. Compose with
  * an ink utility: <p class="type-label text-text-faint">.
  *
