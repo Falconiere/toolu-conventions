@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Infisical Secrets"
+  short_description: "Configure safe Infisical secret delivery"
+  default_prompt: "Use $manage-infisical-secrets to configure or maintain server-side secret delivery with Infisical."

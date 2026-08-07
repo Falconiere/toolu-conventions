@@ -52,7 +52,7 @@ The agent will:
    never installs.
    Neither `jq` nor ast-grep is optional where it applies: the guard-rail gate exits `3`
    rather than silently passing when one is missing.
-2. **Ask intake** — stack · project name · staging? · optional integrations · design context.
+2. **Ask intake** — stack · project name · operations modules · environments · optional integrations · design context.
 3. **Dispatch** to `stacks/<stack>/SETUP.md` and scaffold end to end.
 4. **Run the gate** and only then hand back a human checklist (Cloudflare login, Turso
    database, repo secrets, branch protection — things only a human can do).
@@ -119,6 +119,21 @@ One answer per job, so no project re-litigates them:
 | Structure gate | oxlint house plugin + [`agent-guardrails`](#agent-guardrails) |
 
 These are **not** intake questions. See [`CORE.md` → Platform defaults](./CORE.md).
+
+## Opt-in operations conventions
+
+After choosing a stack, a project may add any compatible operations module.
+They share one validated `operations.config.json`; local dev stays independent
+and activates provider adapters only when those providers are selected.
+
+| Module | Adds |
+| --- | --- |
+| [`cloudflare-infra`](./conventions/cloudflare-infra/) | Development/production deploy ordering, Worker secret sync, and explicit tunnel ingress/DNS planning |
+| [`infisical-secrets`](./conventions/infisical-secrets/) | Machine-identity secret delivery to server-runtime targets with atomic local output |
+| [`local-dev`](./conventions/local-dev/) | Manifest-driven service commands, fixed ports, health probes, and ownership-safe cleanup |
+
+Each module also ships a project-copyable skill under [`skills/`](./skills/).
+Provider account mutations remain human or CI actions.
 
 ## Guard rails
 
@@ -220,6 +235,8 @@ Adding a convention usually means adding a check here too.
 | [`lint/`](./lint/) | The shared oxlint/oxfmt core, copied byte-identically into every TS stack's `templates/`. Not distributed on its own |
 | [`shared/`](./shared/) | Template files identical across stacks — the agent-hook `settings.json`, the folder-README |
 | [`stacks/`](./stacks/) | The five stack kits — per-stack docs, `guardrails.config.json`, and what genuinely varies |
+| [`conventions/`](./conventions/) | Opt-in Cloudflare, Infisical, and local-dev operations modules with one shared manifest |
+| [`skills/`](./skills/) | Project-copyable agent skills for maintaining the selected operations modules |
 | [`docs/`](./docs/) | The human-readable guide (GitHub Pages) + design docs under `docs/toolu/` |
 | [`scripts/`](./scripts/) | Dev-only kit maintenance (`validate-templates.sh`). Not part of the distributed kit |
 

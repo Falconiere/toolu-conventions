@@ -1,0 +1,8 @@
+{
+  "infisical": {
+    "secretPath": "/"
+  },
+  "serviceFields": {
+    "secretsTarget": ".dev.vars"
+  }
+}

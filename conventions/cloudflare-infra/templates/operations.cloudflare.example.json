@@ -1,0 +1,19 @@
+{
+  "cloudflare": {
+    "zone": "example.com",
+    "tunnelName": "example-local",
+    "deploy": {
+      "development": {
+        "worker": "example-api-dev",
+        "command": "bun run deploy:development"
+      },
+      "production": {
+        "worker": "example-api",
+        "command": "bun run deploy"
+      }
+    }
+  },
+  "serviceFields": {
+    "localHostname": "local-api.example.com"
+  }
+}

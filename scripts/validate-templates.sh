@@ -25,6 +25,12 @@ while IFS= read -r -d '' f; do
   jq empty "$f" >/dev/null 2>&1 || bad "json parse: $f"
 done < <(find stacks/*/templates shared -type f -name '*.json' -print0)
 
+# Operations modules are distributed templates too. Keep their manifest/schema
+# and product-facing skill metadata inside the same parse gate as stack files.
+while IFS= read -r -d '' f; do
+  jq empty "$f" >/dev/null 2>&1 || bad "json parse: $f"
+done < <(find conventions -type f -name '*.json' -print0 2>/dev/null)
+
 # The kit's guardrails/ ships to every project too (schema.json, the ast-grep
 # pattern rules), and until the per-stack copies were consolidated away it was
 # parse-checked only THROUGH them. __tests__/ is excluded: its fixtures are
@@ -74,13 +80,16 @@ while i < n:
         i += 1
 json.loads("".join(out))
 PY
-done < <(find stacks/*/templates shared -type f -name '*.jsonc' -print0)
+done < <(find stacks/*/templates shared conventions -type f -name '*.jsonc' -print0)
 
 # --- YAML (templates, plus this repo's OWN workflows — a kit whose CI file
 #     does not parse cannot enforce anything) ---
 while IFS= read -r -d '' f; do
   ruby -ryaml -e "YAML.load_file(ARGV[0])" "$f" >/dev/null 2>&1 || bad "yaml parse: $f"
 done < <(find stacks/*/templates .github shared -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 2>/dev/null)
+while IFS= read -r -d '' f; do
+  ruby -ryaml -e "YAML.load_file(ARGV[0])" "$f" >/dev/null 2>&1 || bad "yaml parse: $f"
+done < <(find conventions skills/manage-* -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 2>/dev/null)
 
 # The kit calls all five guard-rail layers mandatory in CORE.md; it has to run
 # them itself. This is the check that keeps it honest. release.yml is the
@@ -757,6 +766,25 @@ gr_stale=$(grep -rl "$old_gate" stacks/ scripts/ shared/ CORE.md README.md .gith
 [ -n "$gr_stale" ] && bad "guardrails: '$old_gate' still referenced in $gr_stale" 
 
 # The kit runs the guard rails on itself.
+bash conventions/__tests__/run.sh >/dev/null 2>&1 \
+  || bad "operations: the convention fixture suite is red — run: bash conventions/__tests__/run.sh"
+
+while IFS= read -r -d '' f; do
+  bash -n "$f" || bad "shell syntax: $f"
+done < <(find conventions -type f -name '*.sh' -print0 2>/dev/null)
+
+for skill in skills/manage-*; do
+  [ -f "$skill/SKILL.md" ] || { bad "skill: missing $skill/SKILL.md"; continue; }
+  [ -f "$skill/agents/openai.yaml" ] || bad "skill: missing $skill/agents/openai.yaml"
+  if grep -R -Eq 'TODO|\[TODO' "$skill"; then
+    bad "skill: placeholders remain in $skill"
+  fi
+  name=$(sed -n '2s/^name: *//p' "$skill/SKILL.md")
+  description=$(sed -n '3s/^description: *//p' "$skill/SKILL.md")
+  [ "$name" = "$(basename "$skill")" ] || bad "skill: frontmatter name does not match $skill"
+  case "$description" in 'Use when '* | '"Use when '*) : ;; *) bad "skill: description must begin with Use when in $skill" ;; esac
+done
+
 bash guardrails/__tests__/run-fixtures.sh >/dev/null 2>&1 \
   || bad "guardrails: the fixture suite is red — run: bash guardrails/__tests__/run-fixtures.sh"
 bash guardrails/__tests__/run-plugin.sh >/dev/null 2>&1 \

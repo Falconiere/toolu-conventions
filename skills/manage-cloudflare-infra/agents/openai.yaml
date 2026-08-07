@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Cloudflare Infra"
+  short_description: "Configure safe Cloudflare Worker operations"
+  default_prompt: "Use $manage-cloudflare-infra to configure or maintain Cloudflare Workers, deployments, and tunnels in this project."
