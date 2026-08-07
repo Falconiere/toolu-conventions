@@ -241,8 +241,8 @@ Specs, plans, and decision records live in [`docs/toolu/`](./docs/toolu/).
 
 Merges to `main` cut a release automatically via [`.github/workflows/release.yml`](./.github/workflows/release.yml)
 ([semantic-release](https://semantic-release.gitbook.io/)). Version bumps follow Conventional
-Commits (`feat` → minor, `fix` → patch, `BREAKING CHANGE` / `type!:` → major). Commits that
-are only `docs` / `chore` / `ci` / `refactor` / `test` do not publish a release.
+Commits (`feat` → minor, `fix` / `perf` → patch, `BREAKING CHANGE` / `type!:` → major). Other
+types (`docs`, `chore`, `ci`, `refactor`, `test`, `style`, `build`) do not publish a release.
 
 Each release:
 
