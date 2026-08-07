@@ -110,6 +110,21 @@ jobs:
             fail — that has been reported and refuted repeatedly, and the copy
             block has been executed end to end to confirm it.
 
+            A RENAME OF A FORK IS NOT A RENAME OF THE ENTRY FILE. This diff
+            renames stacks/console/templates/globals.tailwind.css ->
+            stacks/console/templates/theme/palette.css, and git scores it R077,
+            which is what makes it look like the entry stylesheet moved. It did
+            not. stacks/console/templates/globals.css is MODIFIED in this same
+            diff and still ships; it opens with `@import 'tailwindcss'` and then
+            imports ./theme/palette.css and ./theme/scale.css.
+            globals.tailwind.css was an opt-in FORK of the entry sheet, deleted
+            because Tailwind is no longer opt-in. Do not report that globals.css
+            is missing, renamed, or no longer imports Tailwind, and do not report
+            that a config or SETUP.md step naming src/ui/globals.css will fail —
+            that has been reported and refuted on seven separate threads.
+            scripts/validate-templates.sh asserts both halves: globals.css must
+            exist and globals.tailwind.css must not come back.
+
             A defect here is therefore: a template that contradicts its own
             stack's gate (its .oxlintrc.json, scripts/guardrails/run.sh, or
             package.json scripts); a SETUP.md step that would fail if followed
