@@ -52,14 +52,17 @@ jobs:
       - name: Install release toolchain
         run: bun install --frozen-lockfile
 
+      # Invoke via node + the local bin path — not bunx (semantic-release 25
+      # reads process.version and rejects Bun's reported runtime) and not
+      # `npx --no-install` (resolution of bun-installed bins is flaky).
       - name: Release (dry-run on PRs)
         if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx --no-install semantic-release --dry-run
+        run: node node_modules/semantic-release/bin/semantic-release.js --dry-run
 
       - name: Release
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx --no-install semantic-release
+        run: node node_modules/semantic-release/bin/semantic-release.js

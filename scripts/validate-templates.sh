@@ -106,10 +106,13 @@ jq -e '
       | . == [false])
 ' .releaserc.json >/dev/null \
   || bad ".releaserc.json drifted: need main + v\${version} + changelog/git/github + npmPublish:false"
-jq -e '.private == true and .devDependencies["semantic-release"]' package.json >/dev/null \
-  || bad "package.json must be private and declare semantic-release (kit is not published)"
-grep -q 'semantic-release' .github/workflows/release.yml \
-  || bad "release.yml does not invoke semantic-release — the workflow would no-op"
+jq -e '
+  .private == true
+  and (.devDependencies["semantic-release"] | type == "string" and test("^[0-9]+\\."))
+' package.json >/dev/null \
+  || bad "package.json must be private and pin semantic-release to an exact major.minor.patch"
+grep -q 'node_modules/semantic-release/bin/semantic-release.js' .github/workflows/release.yml \
+  || bad "release.yml must invoke the local semantic-release bin via node (not bunx/npx)"
 grep -q 'node-version:' .github/workflows/release.yml \
   || bad "release.yml must pin Node — semantic-release 25 rejects older runtimes"
 
