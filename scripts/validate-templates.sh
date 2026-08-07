@@ -115,6 +115,11 @@ grep -q 'node_modules/semantic-release/bin/semantic-release.js' .github/workflow
   || bad "release.yml must invoke the local semantic-release bin via node (not bunx/npx)"
 grep -q 'node-version:' .github/workflows/release.yml \
   || bad "release.yml must pin Node — semantic-release 25 rejects older runtimes"
+grep -q 'actions/create-github-app-token@' .github/workflows/release.yml \
+  || bad "release.yml must mint an App token — GITHUB_TOKEN cannot push through protect-main"
+grep -q 'HOMEBREW_APP_ID' .github/workflows/release.yml \
+  && grep -q 'HOMEBREW_APP_PRIVATE_KEY' .github/workflows/release.yml \
+  || bad "release.yml must use HOMEBREW_APP_ID + HOMEBREW_APP_PRIVATE_KEY (all-app-release)"
 
 # --- TOML ---
 while IFS= read -r -d '' f; do
