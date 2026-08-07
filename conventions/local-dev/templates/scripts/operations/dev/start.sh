@@ -43,19 +43,48 @@ if jq -e 'has("infisical")' "$CONFIG_FILE" >/dev/null; then
   done < <(jq -r '.services[] | select(.secretsTarget != null) | [.name,.secretsTarget] | @tsv' "$CONFIG_FILE")
 fi
 
+service_names=()
+service_pids=()
+cd "$PROJECT_ROOT"
 while IFS=$'\t' read -r name command; do
+  # validate-config rejects quoting and shell syntax, so this split is the
+  # complete command contract rather than a partial shell parser.
   command_argv=()
   read -r -a command_argv <<<"$command"
-  (cd "$PROJECT_ROOT" && exec "${command_argv[@]}") &
+  "${command_argv[@]}" &
   pid=$!
-  printf '%s|%s\n' "$pid" "$(dev_ports::fingerprint "$pid")" >>"$state_file"
+  fingerprint=""
+  for _ in $(seq 1 20); do
+    fingerprint="$(dev_ports::fingerprint "$pid")"
+    [[ -n "$fingerprint" ]] && break
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.05
+  done
+  if [[ -z "$fingerprint" ]]; then
+    wait "$pid" 2>/dev/null || true
+    echo "dev: $name exited before its process identity could be recorded" >&2
+    exit 1
+  fi
+  printf '%s|%s\n' "$pid" "$fingerprint" >>"$state_file"
+  service_names+=("$name")
+  service_pids+=("$pid")
   echo "dev: started $name (pid $pid)"
 done < <(jq -r '.services[] | [.name,.command] | @tsv' "$CONFIG_FILE")
 
 while IFS=$'\t' read -r name healthcheck; do
   [[ -n "$healthcheck" ]] || continue
+  service_pid=""
+  for service_index in "${!service_names[@]}"; do
+    if [[ "${service_names[$service_index]}" == "$name" ]]; then
+      service_pid="${service_pids[$service_index]}"
+      break
+    fi
+  done
+  [[ -n "$service_pid" ]] || { echo "dev: no owned process was recorded for $name" >&2; exit 1; }
   ready=0
   for _ in $(seq 1 120); do
+    dev_ports::is_owned "$service_pid" "$state_file" \
+      || { echo "dev: $name exited before it became ready" >&2; exit 1; }
     if curl -fsS --max-time 1 "$healthcheck" >/dev/null 2>&1; then ready=1; break; fi
     sleep 0.25
   done

@@ -95,6 +95,9 @@ expect_fail "deploy hooks must be non-empty commands" "deploy map is invalid" "$
 mutate_fixture '.services[0].command = "bun run dev; touch /tmp/injected"' "$TEST_TMP/shell-command.json"
 expect_fail "service commands reject shell control syntax" "service values" "$VALIDATOR" "$TEST_TMP/shell-command.json"
 
+mutate_fixture '.services[0].command = "bun run \"dev server\""' "$TEST_TMP/quoted-command.json"
+expect_fail "service commands reject quoted arguments" "service values" "$VALIDATOR" "$TEST_TMP/quoted-command.json"
+
 mutate_fixture '.infisical.secretPath = "/team/../../other"' "$TEST_TMP/secret-path-traversal.json"
 expect_fail "Infisical provider paths reject traversal" "safe provider path" "$VALIDATOR" "$TEST_TMP/secret-path-traversal.json"
 
@@ -249,10 +252,15 @@ case "$1" in
     done
     [[ -n "$output" ]]
     if [[ "$format" == "json" ]]; then
-      printf '%s\n' '{"APP_SECRET":"safe"}' >"${output}.json"
+      printf '%s\n' '{"APP_SECRET":"safe"}' >"$output"
     else
-      printf 'APP_SECRET=safe\n' >"${output}.env"
+      printf 'APP_SECRET=safe\n' >"$output"
     fi
+    if [[ -n "${INFISICAL_FAKE_REQUIRE_PRIVATE:-}" ]]; then
+      mode="$(stat -c '%a' "$output" 2>/dev/null || stat -f '%Lp' "$output")"
+      [[ "$mode" == "600" ]]
+    fi
+    [[ -z "${INFISICAL_FAKE_EXTRA:-}" ]] || printf 'decoy\n' >"${output}.extra"
     ;;
   *) exit 4 ;;
 esac
@@ -261,18 +269,38 @@ chmod +x "$TEST_TMP/bin/infisical"
 
 if [[ -x "$INFISICAL_DOWNLOAD" ]]; then
   cp "$INFISICAL_DOWNLOAD" "$TEST_TMP/project/scripts/operations/infisical/download.sh"
-  PATH="$TEST_TMP/bin:$PATH" \
-    INFISICAL_URL="https://secrets.example.com" \
-    INFISICAL_PROJECT_ID="project" \
-    INFISICAL_MACHINE_IDENTITY_CLIENT_ID="client" \
-    INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET="secret" \
-    "$TEST_TMP/project/scripts/operations/infisical/download.sh" \
-      --env local --path / --output "$TEST_TMP/project/.dev.vars" >/dev/null
-  mode="$(stat -c '%a' "$TEST_TMP/project/.dev.vars" 2>/dev/null || stat -f '%Lp' "$TEST_TMP/project/.dev.vars")"
-  if [[ "$(<"$TEST_TMP/project/.dev.vars")" == "APP_SECRET=safe" && "$mode" == "600" ]]; then
+  if PATH="$TEST_TMP/bin:$PATH" \
+      INFISICAL_FAKE_REQUIRE_PRIVATE=1 \
+      INFISICAL_URL="https://secrets.example.com" \
+      INFISICAL_PROJECT_ID="project" \
+      INFISICAL_MACHINE_IDENTITY_CLIENT_ID="client" \
+      INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET="secret" \
+      "$TEST_TMP/project/scripts/operations/infisical/download.sh" \
+        --env local --path / --output "$TEST_TMP/project/.dev.vars" >/dev/null; then
+    mode="$(stat -c '%a' "$TEST_TMP/project/.dev.vars" 2>/dev/null || stat -f '%Lp' "$TEST_TMP/project/.dev.vars")"
+  else
+    mode=""
+  fi
+  if [[ -f "$TEST_TMP/project/.dev.vars" \
+      && "$(<"$TEST_TMP/project/.dev.vars")" == "APP_SECRET=safe" \
+      && "$mode" == "600" ]]; then
     ok "Infisical download atomically writes a private target"
   else
     not_ok "Infisical download atomically writes a private target"
+  fi
+  if PATH="$TEST_TMP/bin:$PATH" \
+      INFISICAL_FAKE_EXTRA=1 \
+      INFISICAL_URL="https://secrets.example.com" \
+      INFISICAL_PROJECT_ID="project" \
+      INFISICAL_MACHINE_IDENTITY_CLIENT_ID="client" \
+      INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET="secret" \
+      "$TEST_TMP/project/scripts/operations/infisical/download.sh" \
+        --env local --output "$TEST_TMP/project/ambiguous.dev.vars" >/dev/null 2>&1; then
+    not_ok "Infisical download rejects ambiguous export output"
+  elif [[ ! -e "$TEST_TMP/project/ambiguous.dev.vars" ]]; then
+    ok "Infisical download rejects ambiguous export output"
+  else
+    not_ok "Infisical download rejects ambiguous export output"
   fi
   printf '%s\n' 'EXISTING=keep' >"$TEST_TMP/project/existing.dev.vars"
   if PATH="$TEST_TMP/bin:$PATH" \
@@ -610,6 +638,27 @@ else
 fi
 kill "$start_pid" 2>/dev/null || true
 wait "$start_pid" 2>/dev/null || true
+
+jq 'del(.infisical, .cloudflare)
+  | del(.services[0].secretsTarget, .services[0].localHostname)
+  | .services[0].port = 39993
+  | .services[0].healthcheck = "http://127.0.0.1:9/health"
+  | .services[0].command = "false"' \
+  "$FIXTURES/valid-backend.json" >"$generated/early-exit-start.json"
+"$generated/scripts/operations/dev/start.sh" \
+  --config "$generated/early-exit-start.json" >"$TEST_TMP/early-exit-start.out" 2>&1 &
+early_exit_supervisor_pid=$!
+for _ in $(seq 1 20); do
+  kill -0 "$early_exit_supervisor_pid" 2>/dev/null || break
+  sleep 0.1
+done
+if ! kill -0 "$early_exit_supervisor_pid" 2>/dev/null; then
+  ok "local supervisor fails fast when a service exits before readiness"
+else
+  not_ok "local supervisor fails fast when a service exits before readiness"
+fi
+kill "$early_exit_supervisor_pid" 2>/dev/null || true
+wait "$early_exit_supervisor_pid" 2>/dev/null || true
 
 foreign_start_port=39994
 python3 -m http.server "$foreign_start_port" --bind 127.0.0.1 >"$TEST_TMP/foreign-start.log" 2>&1 &

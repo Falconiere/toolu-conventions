@@ -101,23 +101,31 @@ token="$(infisical login \
   --domain="$DOMAIN" --silent --plain)"
 [[ -n "$token" ]] || { echo "download-secrets: Infisical returned an empty token" >&2; exit 1; }
 
+umask 077
 export_dir="$(mktemp -d "$target_dir/.operations-secrets.XXXXXX")"
+chmod 700 "$export_dir"
 cleanup() {
   case "$export_dir" in "$target_dir"/.operations-secrets.*) rm -rf -- "$export_dir" ;; esac
 }
 trap cleanup EXIT
 
+exported="$export_dir/secrets"
 INFISICAL_TOKEN="$token" INFISICAL_DISABLE_UPDATE_CHECK=true infisical export \
   --domain="$DOMAIN" \
   --projectId="$INFISICAL_PROJECT_ID" \
   --env="$ENV_SLUG" \
   --path="$SECRET_PATH" \
   --format="$FORMAT" \
-  --output-file="$export_dir/secrets"
+  --output-file="$exported"
 
-exported=""
-while IFS= read -r candidate; do exported="$candidate"; break; done < <(find "$export_dir" -type f -print)
-[[ -n "$exported" ]] || { echo "download-secrets: Infisical produced no file" >&2; exit 1; }
+exported_count=0
+unexpected_export=""
+while IFS= read -r candidate; do
+  exported_count=$((exported_count + 1))
+  [[ "$candidate" == "$exported" ]] || unexpected_export="$candidate"
+done < <(find "$export_dir" -type f -print)
+[[ $exported_count -eq 1 && -f "$exported" && ! -L "$exported" && -z "$unexpected_export" ]] \
+  || { echo "download-secrets: expected exactly one export at the requested staging file" >&2; exit 1; }
 chmod 600 "$exported"
 [[ ! -L "$OUTPUT_FILE" && ! -d "$OUTPUT_FILE" ]] \
   || { echo "download-secrets: --output changed to an unsafe target" >&2; exit 1; }
