@@ -250,6 +250,12 @@ Each release:
 - prepends notes to [`CHANGELOG.md`](./CHANGELOG.md) and commits it back (`[skip ci]`)
 - does **not** publish to npm — this kit is not a registry package
 
+Pushing the changelog commit through `protect-main` needs the
+[`all-app-release`](https://github.com/apps/all-app-release) GitHub App (secrets
+`HOMEBREW_APP_ID` / `HOMEBREW_APP_PRIVATE_KEY`, same publish App as the other
+Falconiere repos). The App must be installed on this repo with **Contents: write**
+and listed as a bypass actor on the `protect-main` ruleset.
+
 The blockquotes below are the pre-automation history. New entries live in `CHANGELOG.md` and
 the GitHub Releases page.
 

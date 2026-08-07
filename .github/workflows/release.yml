@@ -5,8 +5,15 @@
 # exits 0 with nothing published. The kit itself is not an npm package, so
 # nothing is published to a registry.
 #
-# PRs get a dry-run so a broken .releaserc / missing plugin fails the gate
-# before merge rather than on the first release attempt.
+# Pushes to main authenticate as the `all-app-release` GitHub App (secrets
+# HOMEBREW_APP_ID / HOMEBREW_APP_PRIVATE_KEY — same publish App as
+# Falconiere/git-better and Falconiere/comemory). The default GITHUB_TOKEN
+# cannot push through the protect-main ruleset (require PR); the App can,
+# once it is a bypass actor on that ruleset and installed on this repo with
+# Contents: write.
+#
+# PRs dry-run with GITHUB_TOKEN (no push) and separately verify the App can
+# mint a token so a missing install/secret fails before merge.
 #
 # semantic-release 25 requires Node ^22.14 || >=24.10 — Bun installs the
 # toolchain, Node runs it (the version check reads process.version).
@@ -34,10 +41,42 @@ jobs:
       issues: write # comment on released issues
       pull-requests: write # comment on released PRs
     steps:
+      # Same App + secret names as git-better/comemory release-plz. No
+      # owner/repositories inputs → token is scoped to this repository.
+      - name: Mint release token
+        id: app-token
+        if: github.event_name == 'push'
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.HOMEBREW_APP_ID }}
+          private-key: ${{ secrets.HOMEBREW_APP_PRIVATE_KEY }}
+
+      # On PRs, prove the App is installed and the secrets resolve — without
+      # using the token for the dry-run (dry-run never pushes). Also print
+      # the numeric App id so protect-main can list it as a bypass actor.
+      - name: Verify publish App token
+        id: verify-app
+        if: github.event_name == 'pull_request'
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.HOMEBREW_APP_ID }}
+          private-key: ${{ secrets.HOMEBREW_APP_PRIVATE_KEY }}
+
+      - name: Report App id for ruleset bypass
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ steps.verify-app.outputs.token }}
+        run: |
+          app_id="$(gh api "repos/${GITHUB_REPOSITORY}/installation" --jq .app_id)"
+          echo "all-app-release app_id=${app_id}"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # App token on push so @semantic-release/git can push to main;
+          # GITHUB_TOKEN is enough for PR dry-runs.
+          token: ${{ steps.app-token.outputs.token || github.token }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -53,16 +92,15 @@ jobs:
         run: bun install --frozen-lockfile
 
       # Invoke via node + the local bin path — not bunx (semantic-release 25
-      # reads process.version and rejects Bun's reported runtime) and not
-      # `npx --no-install` (resolution of bun-installed bins is flaky).
+      # reads process.version and rejects Bun's reported runtime).
       - name: Release (dry-run on PRs)
         if: github.event_name == 'pull_request'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node node_modules/semantic-release/bin/semantic-release.js --dry-run
 
       - name: Release
         if: github.event_name == 'push'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: node node_modules/semantic-release/bin/semantic-release.js
