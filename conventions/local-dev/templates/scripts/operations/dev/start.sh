@@ -16,18 +16,24 @@ done
 source "$OPERATIONS_ROOT/dev/ports.sh"
 state_dir="$PROJECT_ROOT/.tooling/operations"
 state_file="$state_dir/dev.pids"
+tunnel_state_file="$state_dir/dev-tunnel.pids"
 mkdir -p "$state_dir"
 
+dev_ports::stop_owned "$tunnel_state_file"
 dev_ports::stop_owned "$state_file"
 while IFS= read -r port; do
   dev_ports::assert_available "$port" "$state_file" || exit 1
 done < <(jq -r '.services[].port' "$CONFIG_FILE")
 : >"$state_file"
+: >"$tunnel_state_file"
 
 cleanup() {
   trap - INT TERM EXIT
+  dev_ports::stop_owned "$tunnel_state_file"
   dev_ports::stop_owned "$state_file"
   [[ "$state_file" == "$PROJECT_ROOT/.tooling/operations/dev.pids" ]] && rm -f -- "$state_file"
+  [[ "$tunnel_state_file" == "$PROJECT_ROOT/.tooling/operations/dev-tunnel.pids" ]] \
+    && rm -f -- "$tunnel_state_file"
 }
 trap cleanup INT TERM EXIT
 
@@ -97,7 +103,19 @@ if jq -e 'has("cloudflare")' "$CONFIG_FILE" >/dev/null; then
   elif "$OPERATIONS_ROOT/cloudflare/tunnel.sh" --config "$CONFIG_FILE" --check; then
     "$OPERATIONS_ROOT/cloudflare/tunnel.sh" --config "$CONFIG_FILE" --run &
     tunnel_pid=$!
-    printf '%s|%s\n' "$tunnel_pid" "$(dev_ports::fingerprint "$tunnel_pid")" >>"$state_file"
+    tunnel_fingerprint=""
+    for _ in $(seq 1 20); do
+      tunnel_fingerprint="$(dev_ports::fingerprint "$tunnel_pid")"
+      [[ -n "$tunnel_fingerprint" ]] && break
+      kill -0 "$tunnel_pid" 2>/dev/null || break
+      sleep 0.05
+    done
+    if [[ -n "$tunnel_fingerprint" ]]; then
+      printf '%s|%s\n' "$tunnel_pid" "$tunnel_fingerprint" >>"$tunnel_state_file"
+    else
+      wait "$tunnel_pid" 2>/dev/null || true
+      echo "dev: Cloudflare tunnel exited during startup; local services remain active" >&2
+    fi
   else
     echo "dev: Cloudflare tunnel unavailable; local services remain active" >&2
   fi
@@ -112,5 +130,14 @@ while :; do
     dev_ports::is_owned "$pid" "$state_file" \
       || { echo "dev: pid $pid exited or its process fingerprint changed; stopping the stack" >&2; exit 1; }
   done <"$state_file"
+  if [[ -s "$tunnel_state_file" ]]; then
+    IFS= read -r tunnel_record <"$tunnel_state_file"
+    tunnel_pid="${tunnel_record%%|*}"
+    if ! dev_ports::is_owned "$tunnel_pid" "$tunnel_state_file"; then
+      wait "$tunnel_pid" 2>/dev/null || true
+      : >"$tunnel_state_file"
+      echo "dev: Cloudflare tunnel stopped; local services remain active" >&2
+    fi
+  fi
   sleep 1
 done

@@ -622,6 +622,50 @@ else
   if [[ -n "$connector_pid" ]]; then kill "$connector_pid" 2>/dev/null || true; fi
 fi
 
+mkdir -p "$TEST_TMP/exit-bin"
+cat >"$TEST_TMP/exit-bin/curl" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+case "$*" in
+  *'/token'*) printf '%s\n' '{"success":true,"result":"connector-token"}' ;;
+  *'/configurations'*) printf '%s\n' '{"success":true,"result":{"config":{"ingress":[{"service":"http_status:404"}]}}}' ;;
+  *'/zones'*) printf '%s\n' '{"success":true,"result":[{"id":"zone-id"}]}' ;;
+  *'/cfd_tunnel'*) printf '%s\n' '{"success":true,"result":[{"id":"tunnel-id"}]}' ;;
+  *) exit 9 ;;
+esac
+EOF
+cat >"$TEST_TMP/exit-bin/cloudflared" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+token_file=""
+while [[ $# -gt 0 ]]; do
+  if [[ "$1" == "--token-file" ]]; then token_file="${2:?}"; shift 2; else shift; fi
+done
+[[ "$(<"$token_file")" == "connector-token" ]]
+: >"${CLOUDFLARED_EXIT_MARKER:?}"
+EOF
+chmod +x "$TEST_TMP/exit-bin/curl" "$TEST_TMP/exit-bin/cloudflared"
+jq 'del(.infisical)
+  | del(.services[0].secretsTarget, .services[0].localHostname, .services[0].healthcheck)
+  | .services[0].port = 39996
+  | .services[0].command = "sleep 30"' \
+  "$FIXTURES/valid-backend.json" >"$generated/optional-tunnel-start.json"
+PATH="$TEST_TMP/exit-bin:$PATH" \
+    CLOUDFLARE_API_TOKEN=test CLOUDFLARE_ACCOUNT_ID=test \
+    CLOUDFLARED_EXIT_MARKER="$TEST_TMP/cloudflared-exited" \
+    "$generated/scripts/operations/dev/start.sh" \
+      --config "$generated/optional-tunnel-start.json" >"$TEST_TMP/optional-tunnel-start.out" 2>&1 &
+optional_tunnel_supervisor_pid=$!
+for _ in $(seq 1 30); do [[ -f "$TEST_TMP/cloudflared-exited" ]] && break; sleep 0.1; done
+sleep 1.5
+if [[ -f "$TEST_TMP/cloudflared-exited" ]] && kill -0 "$optional_tunnel_supervisor_pid" 2>/dev/null; then
+  ok "optional tunnel exit does not stop local services"
+else
+  not_ok "optional tunnel exit does not stop local services"
+fi
+kill "$optional_tunnel_supervisor_pid" 2>/dev/null || true
+wait "$optional_tunnel_supervisor_pid" 2>/dev/null || true
+
 jq 'del(.infisical, .cloudflare)
   | del(.services[0].secretsTarget, .services[0].localHostname, .services[0].healthcheck)
   | .services[0].port = 39992
