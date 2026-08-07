@@ -17,7 +17,10 @@ module into client-only, Expo, or static marketing output.
 4. Use `templates/operations.infisical.example.json` as the exact shape to
    merge into `operations.config.json`: merge its `infisical` object at the
    root and its `serviceFields` into each server service, then discard the
-   example-only `serviceFields` wrapper. Add every target to `.gitignore`.
+   example-only `serviceFields` wrapper. Infisical paths must be absolute and
+   contain no dot or traversal segments. Secret output targets must stay inside
+   the project and must not traverse symlinked parent directories. Add every
+   target to `.gitignore`.
 5. Copy `skills/manage-infisical-secrets/` from the kit to
    `.agents/skills/manage-infisical-secrets/` unchanged.
 

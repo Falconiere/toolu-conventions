@@ -29,7 +29,7 @@ jq -e '
     ((keys - ["name", "runtime", "command", "port", "healthcheck", "secretsTarget", "localHostname"]) | length == 0) and
     (.name | type == "string" and test("^[a-z][a-z0-9-]*$")) and
     (.runtime | IN("client", "static", "server")) and
-    (.command | type == "string" and length > 0) and
+    (.command | type == "string" and test("^[A-Za-z0-9_./:@%+=,-]+( [A-Za-z0-9_./:@%+=,-]+)*$")) and
     (.port | type == "number" and floor == . and . >= 1 and . <= 65535) and
     (.healthcheck == null or (.healthcheck | type == "string" and test("^https?://"))) and
     (.secretsTarget == null or (.secretsTarget | type == "string" and length > 0)) and
@@ -78,7 +78,7 @@ if jq -e 'has("infisical")' "$CONFIG_FILE" >/dev/null; then
     ((.stack | IN("backend-ts", "rust", "workspace")) or (.stack == "console" and .runtime == "mixed")) and
     (.runtime | IN("server", "mixed")) and
     (.infisical | (keys - ["secretPath"] | length == 0)) and
-    (.infisical.secretPath | type == "string" and length > 0) and
+    (.infisical.secretPath | type == "string" and length > 0 and test("^(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*/?$")) and
     any(.services[]; .secretsTarget != null) and
     all(.services[] | select(.secretsTarget != null);
       .runtime == "server" and
@@ -86,5 +86,5 @@ if jq -e 'has("infisical")' "$CONFIG_FILE" >/dev/null; then
       (.secretsTarget | test("(^|/)\\.\\.(/|$)") | not) and
       (.secretsTarget | test("(^|/)(dist|build|public|assets|src)(/|$)"; "i") | not)
     )
-  ' "$CONFIG_FILE" >/dev/null || fail "Infisical requires server services and safe relative secret targets"
+  ' "$CONFIG_FILE" >/dev/null || fail "Infisical requires a safe provider path, server services, and safe relative secret targets"
 fi

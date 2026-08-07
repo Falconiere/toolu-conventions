@@ -44,7 +44,9 @@ if jq -e 'has("infisical")' "$CONFIG_FILE" >/dev/null; then
 fi
 
 while IFS=$'\t' read -r name command; do
-  (cd "$PROJECT_ROOT" && exec bash -c "$command") &
+  command_argv=()
+  read -r -a command_argv <<<"$command"
+  (cd "$PROJECT_ROOT" && exec "${command_argv[@]}") &
   pid=$!
   printf '%s|%s\n' "$pid" "$(dev_ports::fingerprint "$pid")" >>"$state_file"
   echo "dev: started $name (pid $pid)"

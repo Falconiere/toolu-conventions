@@ -15,9 +15,10 @@ the supervisor owns only processes it can identify as its own.
 2. Add each service with a unique kebab-case name, `client`/`static`/`server`
    runtime, command, port, and optional HTTP health probe. Add `secretsTarget`
    or `localHostname` only when its provider module is selected.
-   Treat `command` as reviewed repository-owned shell code: `start.sh` runs it
-   through `bash -c` to support package scripts and composition. Never build a
-   manifest command from request, environment, or other untrusted data.
+   Write `command` as a whitespace-separated executable and arguments. The
+   supervisor executes it directly and rejects shell operators, expansion,
+   quoting, and redirection. Put complex composition in a reviewed
+   repository-owned package script or executable.
 3. Validate before starting anything. Fix duplicate ports/hostnames and missing
    tools; never work around them by choosing an undeclared port.
 4. Preserve process ownership records as PID plus process-start fingerprint.
