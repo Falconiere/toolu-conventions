@@ -11,6 +11,9 @@ application topology and no mandatory provider.
    make each `.sh` executable.
 3. Add every local service with a unique name, runtime classification, command,
    and fixed port. Add an HTTP health probe wherever the service exposes one.
+   Commands are reviewed repository-owned shell code and run through `bash -c`
+   so package scripts and shell composition work. Never interpolate request,
+   environment, or other untrusted data into the manifest command string.
 4. Add `.tooling/operations/` to `.gitignore`.
 5. Copy `skills/manage-local-dev/` from the kit to
    `.agents/skills/manage-local-dev/` unchanged.
