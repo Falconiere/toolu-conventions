@@ -1,0 +1,16 @@
+{
+  "$schema": "./scripts/operations/schema.json",
+  "version": 1,
+  "stack": "backend-ts",
+  "runtime": "server",
+  "environments": ["local", "development", "production"],
+  "services": [
+    {
+      "name": "api",
+      "runtime": "server",
+      "command": "bun run dev",
+      "port": 8787,
+      "healthcheck": "http://127.0.0.1:8787/health"
+    }
+  ]
+}

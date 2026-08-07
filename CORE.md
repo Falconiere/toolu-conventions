@@ -101,6 +101,20 @@ in the project's `CLAUDE.md` is not optional.
 | Web app | **React + Vite + TanStack Router** (`console`) | The authenticated product. Client-rendered SPA. |
 | Public site | **Astro** (`marketing`) | Static, multi-page, crawlable. A different stack because content and app want opposite defaults. |
 
+## Opt-in operations modules
+
+Projects may compose the modules under `conventions/` after choosing a stack:
+Cloudflare infrastructure, Infisical server secrets, and manifest-driven local
+development. They share a committed `operations.config.json` whose environments
+are exactly `local`, `development`, and `production`. `local-dev` does not imply
+either provider; it activates an adapter only when that compatible provider is
+also selected.
+
+Skills may install and validate repository-side artifacts, but they never make
+live provider changes. Tunnel reconciliation is check/plan by default and
+requires an explicit human-run `--apply`. Infisical targets are server-only;
+client, static, and mobile bundles may not receive secret exports.
+
 ## Quality gates & guardrails
 
 Five layers. A project is only correct when all five are green, and **none of

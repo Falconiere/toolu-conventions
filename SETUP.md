@@ -56,10 +56,23 @@ language.
 
 2. **Project name** — kebab-case; used for the directory, package/crate name,
    the Cloudflare Worker name, and bundle/app identifiers where applicable.
-3. **Staging environment?** — ask for every stack except `rust`. Default: no
-   (DEV + PRODUCTION only). On the Workers stacks, staging is one more
-   `wrangler` environment, not another codebase.
-4. **Optional integrations** — offer the menu for the chosen stack; each is
+3. **Operations modules** — each is opt-in:
+
+   | Module | Compatible projects | What it adds |
+   | --- | --- | --- |
+   | `cloudflare-infra` | console · marketing · backend-ts · compatible workspaces | environment deploys, Worker secret sync, tunnel ingress/DNS planning |
+   | `infisical-secrets` | backend-ts · Rust services · workspaces · console with a same-project Worker API | machine-identity secret delivery to server-runtime targets |
+   | `local-dev` | every stack and workspace | manifest-driven services, ports, probes, cleanup, and optional provider adapters |
+
+   `local-dev` is independent. It uses the Cloudflare and Infisical adapters
+   only when those modules are also selected; never select a provider solely
+   because local dev was selected.
+
+4. **Environments** — when either provider module is selected, the contract is
+   exactly `local` · `development` · `production`; do not offer staging. With
+   no provider module, retain the existing question for every non-Rust stack:
+   **staging environment?** Default no (development + production only).
+5. **Optional integrations** — offer the menu for the chosen stack; each is
    opt-in:
 
    | Stack | Integration options (option → what it wires) |
@@ -80,7 +93,7 @@ language.
    steps (**knip** and **jscpd** are not optional). See CORE.md → "Platform
    defaults".
 
-5. **Design context** — `console`, `marketing`, and `expo` only: free-text
+6. **Design context** — `console`, `marketing`, and `expo` only: free-text
    brand/look description (colors, tone, reference apps). The theme tokens
    already ship the house language ([`DESIGN.md`](./DESIGN.md)); ask whether to
    **keep it as-is** (default), pick a different **signal temperature** (Jade ·
@@ -103,6 +116,12 @@ language.
 
 Open `stacks/<stack>/SETUP.md` and execute it end to end with the intake
 answers.
+
+If any operations modules were selected, next open
+[`conventions/SETUP.md`](./conventions/SETUP.md), install the shared contract,
+and execute each selected module's `SETUP.md`. The module flow supersedes a
+stack's staging instructions only for that scaffold; projects with no selected
+provider module retain the stack's existing environment behavior.
 
 **If the answer to *separate database package?* was yes**, the backend-ts kit
 hands off to `stacks/database-ts/SETUP.md` partway through, and the project

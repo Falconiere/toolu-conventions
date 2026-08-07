@@ -1,0 +1,411 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+VALIDATOR="$ROOT_DIR/conventions/shared/templates/scripts/operations/validate-config.sh"
+FIXTURES="$ROOT_DIR/conventions/__tests__/fixtures"
+TEMPLATES="$ROOT_DIR/conventions"
+TEST_TMP="$(mktemp -d "${TMPDIR:-/tmp}/toolu-operations-tests.XXXXXX")"
+passed=0
+failed=0
+
+cleanup() {
+  if [[ -d "$TEST_TMP" && ! -L "$TEST_TMP" && "$(basename "$TEST_TMP")" == toolu-operations-tests.* ]]; then
+    rm -rf -- "$TEST_TMP"
+  else
+    echo "refusing to clean unexpected test path: $TEST_TMP" >&2
+  fi
+}
+trap cleanup EXIT
+
+ok() {
+  passed=$((passed + 1))
+  printf '  ok    %s\n' "$1"
+}
+
+not_ok() {
+  failed=$((failed + 1))
+  printf '  FAIL  %s\n' "$1"
+}
+
+expect_ok() {
+  local label="$1" file="$2"
+  if "$VALIDATOR" "$file" >"$TEST_TMP/out" 2>&1; then
+    ok "$label"
+  else
+    not_ok "$label"
+    sed 's/^/        /' "$TEST_TMP/out"
+  fi
+}
+
+expect_fail() {
+  local label="$1" expected="$2"
+  shift 2
+  if "$@" >"$TEST_TMP/out" 2>&1; then
+    not_ok "$label (unexpected success)"
+  elif grep -Fq "$expected" "$TEST_TMP/out"; then
+    ok "$label"
+  else
+    not_ok "$label (missing: $expected)"
+    sed 's/^/        /' "$TEST_TMP/out"
+  fi
+}
+
+mutate_fixture() {
+  local jq_filter="$1" output="$2"
+  jq "$jq_filter" "$FIXTURES/valid-backend.json" >"$output"
+}
+
+printf 'operations conventions\n'
+expect_ok "valid backend manifest" "$FIXTURES/valid-backend.json"
+
+mutate_fixture '.environments = ["local", "staging", "production"]' "$TEST_TMP/staging.json"
+expect_fail "staging is not an environment" "required fields" "$VALIDATOR" "$TEST_TMP/staging.json"
+
+mutate_fixture '.services += [.services[0] | .name = "other"]' "$TEST_TMP/duplicate-port.json"
+expect_fail "duplicate ports fail" "duplicate service" "$VALIDATOR" "$TEST_TMP/duplicate-port.json"
+
+mutate_fixture '.stack = "expo"' "$TEST_TMP/cloudflare-expo.json"
+expect_fail "Cloudflare rejects Expo" "Cloudflare is incompatible" "$VALIDATOR" "$TEST_TMP/cloudflare-expo.json"
+
+mutate_fixture '.services[0].secretsTarget = "src/config.ts"' "$TEST_TMP/client-secret.json"
+expect_fail "Infisical rejects client targets" "safe relative secret target" "$VALIDATOR" "$TEST_TMP/client-secret.json"
+
+mutate_fixture '.runtime = "mixed" | .services[0].runtime = "client" | .services[0].secretsTarget = ".env.local"' "$TEST_TMP/client-runtime-secret.json"
+expect_fail "Infisical targets only server services" "server services" "$VALIDATOR" "$TEST_TMP/client-runtime-secret.json"
+
+mutate_fixture 'del(.infisical)' "$TEST_TMP/orphan-secret-target.json"
+expect_fail "secret targets require the Infisical module" "require their provider module" "$VALIDATOR" "$TEST_TMP/orphan-secret-target.json"
+
+mutate_fixture 'del(.cloudflare)' "$TEST_TMP/orphan-hostname.json"
+expect_fail "local hostnames require the Cloudflare module" "require their provider module" "$VALIDATOR" "$TEST_TMP/orphan-hostname.json"
+
+mutate_fixture 'del(.services[0].healthcheck)' "$TEST_TMP/tunnel-without-health.json"
+expect_fail "tunnel routes require health probes" "required fields" "$VALIDATOR" "$TEST_TMP/tunnel-without-health.json"
+
+mutate_fixture '.cloudflare.deploy.development.migrateCommand = 42' "$TEST_TMP/non-string-command.json"
+expect_fail "deploy hooks must be non-empty commands" "deploy map is invalid" "$VALIDATOR" "$TEST_TMP/non-string-command.json"
+
+DOTENV="$TEMPLATES/shared/templates/scripts/operations/shared/dotenv.sh"
+if [[ -f "$DOTENV" ]]; then
+  # shellcheck source=/dev/null
+  source "$DOTENV"
+  dotenv_injected="$TEST_TMP/dotenv-injected"
+  # The literal substitution is the injection probe.
+  # shellcheck disable=SC2016
+  printf 'SAFE=$(touch %s)\n%s\n' "$dotenv_injected" 'QUOTED="hello world"' >"$TEST_TMP/.env"
+  unset SAFE QUOTED
+  dotenv::load "$TEST_TMP/.env"
+  if [[ "$SAFE" == "\$(touch $dotenv_injected)" && "$QUOTED" == "hello world" && ! -e "$dotenv_injected" ]]; then
+    ok "dotenv values are data, not shell"
+  else
+    not_ok "dotenv values are data, not shell"
+  fi
+else
+  not_ok "dotenv helper exists"
+fi
+
+JSON_ENV="$TEMPLATES/shared/templates/scripts/operations/shared/json-env.sh"
+if [[ -f "$JSON_ENV" ]]; then
+  # shellcheck source=/dev/null
+  source "$JSON_ENV"
+  unset JSON_PAYLOAD
+  json_injected="$TEST_TMP/json-injected"
+  jq -nc --arg value "\$(touch $json_injected)" '{JSON_PAYLOAD:$value}' >"$TEST_TMP/env.json"
+  json_env::load "$TEST_TMP/env.json"
+  if [[ "$JSON_PAYLOAD" == "\$(touch $json_injected)" && ! -e "$json_injected" ]]; then
+    ok "JSON secret values are exported without shell evaluation"
+  else
+    not_ok "JSON secret values are exported without shell evaluation"
+  fi
+else
+  not_ok "JSON environment helper exists"
+fi
+
+FILTER="$TEMPLATES/cloudflare-infra/templates/scripts/operations/cloudflare/filter-secrets.sh"
+if [[ -x "$FILTER" ]]; then
+  printf '%s' '{"APP_SECRET":"yes","CLOUDFLARE_API_TOKEN":"no","INFISICAL_URL":"no"}' \
+    | "$FILTER" >"$TEST_TMP/filtered.json"
+  if jq -e '. == {"APP_SECRET":"yes"}' "$TEST_TMP/filtered.json" >/dev/null; then
+    ok "runtime secret filter drops bootstrap credentials"
+  else
+    not_ok "runtime secret filter drops bootstrap credentials"
+  fi
+else
+  not_ok "runtime secret filter exists"
+fi
+
+TUNNEL_PLAN="$TEMPLATES/cloudflare-infra/templates/scripts/operations/cloudflare/tunnel-plan.sh"
+if [[ -x "$TUNNEL_PLAN" ]]; then
+  printf '%s' '{"ingress":[]}' \
+    | OPERATIONS_ROOT="$TEMPLATES/shared/templates/scripts/operations" \
+      "$TUNNEL_PLAN" "$FIXTURES/valid-backend.json" >"$TEST_TMP/tunnel-plan.json"
+  if jq -e '.ingress == [{"hostname":"local-api.example.com","service":"http://localhost:8787"},{"service":"http_status:404"}]' "$TEST_TMP/tunnel-plan.json" >/dev/null; then
+    ok "tunnel plan comes from the manifest"
+  else
+    not_ok "tunnel plan comes from the manifest"
+  fi
+  if OPERATIONS_ROOT="$TEMPLATES/shared/templates/scripts/operations" \
+      "$TUNNEL_PLAN" "$FIXTURES/valid-backend.json" \
+      <"$TEST_TMP/tunnel-plan.json" >"$TEST_TMP/no-tunnel-plan" \
+    && [[ ! -s "$TEST_TMP/no-tunnel-plan" ]]; then
+    ok "matching tunnel ingress produces no write plan"
+  else
+    not_ok "matching tunnel ingress produces no write plan"
+  fi
+else
+  not_ok "tunnel planner exists"
+fi
+
+PORTS="$TEMPLATES/local-dev/templates/scripts/operations/dev/ports.sh"
+if [[ -f "$PORTS" ]]; then
+  # shellcheck source=/dev/null
+  source "$PORTS"
+  sleep 30 &
+  owned_pid=$!
+  owned_fingerprint="$(dev_ports::fingerprint "$owned_pid")"
+  printf '%s|%s\n' "$owned_pid" "$owned_fingerprint" >"$TEST_TMP/owned.pids"
+  if dev_ports::is_owned "$owned_pid" "$TEST_TMP/owned.pids" && ! dev_ports::is_owned "$$" "$TEST_TMP/owned.pids"; then
+    ok "process ownership comes from the state file"
+  else
+    not_ok "process ownership comes from the state file"
+  fi
+  printf '%s|not-the-process-start-time\n' "$owned_pid" >"$TEST_TMP/reused.pids"
+  if dev_ports::is_owned "$owned_pid" "$TEST_TMP/reused.pids"; then
+    not_ok "reused PIDs are not treated as owned"
+  else
+    ok "reused PIDs are not treated as owned"
+  fi
+  kill "$owned_pid" 2>/dev/null || true
+  wait "$owned_pid" 2>/dev/null || true
+
+  foreign_port=39991
+  python3 -m http.server "$foreign_port" --bind 127.0.0.1 >"$TEST_TMP/http.log" 2>&1 &
+  foreign_pid=$!
+  for _ in $(seq 1 20); do
+    [[ -n "$(dev_ports::listeners "$foreign_port")" ]] && break
+    sleep 0.1
+  done
+  : >"$TEST_TMP/empty.pids"
+  if dev_ports::assert_available "$foreign_port" "$TEST_TMP/empty.pids" >/dev/null 2>&1; then
+    not_ok "foreign port owners are refused"
+  elif kill -0 "$foreign_pid" 2>/dev/null; then
+    ok "foreign port owners are refused without a signal"
+  else
+    not_ok "foreign port owners are refused without a signal"
+  fi
+  kill "$foreign_pid" 2>/dev/null || true
+  wait "$foreign_pid" 2>/dev/null || true
+else
+  not_ok "port ownership helper exists"
+fi
+
+INFISICAL_DOWNLOAD="$TEMPLATES/infisical-secrets/templates/scripts/operations/infisical/download.sh"
+mkdir -p "$TEST_TMP/bin" "$TEST_TMP/project/scripts/operations/shared" "$TEST_TMP/project/scripts/operations/infisical"
+cp "$DOTENV" "$TEST_TMP/project/scripts/operations/shared/dotenv.sh"
+cat >"$TEST_TMP/bin/infisical" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+case "$1" in
+  login) printf 'test-token' ;;
+  export)
+    [[ -z "${INFISICAL_FAKE_FAIL:-}" ]] || exit 7
+    output=""
+    for arg in "$@"; do
+      case "$arg" in --output-file=*) output="${arg#*=}" ;; esac
+    done
+    [[ -n "$output" ]]
+    printf 'APP_SECRET=safe\n' >"${output}.env"
+    ;;
+  *) exit 4 ;;
+esac
+EOF
+chmod +x "$TEST_TMP/bin/infisical"
+
+if [[ -x "$INFISICAL_DOWNLOAD" ]]; then
+  cp "$INFISICAL_DOWNLOAD" "$TEST_TMP/project/scripts/operations/infisical/download.sh"
+  PATH="$TEST_TMP/bin:$PATH" \
+    INFISICAL_URL="https://secrets.example.com" \
+    INFISICAL_PROJECT_ID="project" \
+    INFISICAL_MACHINE_IDENTITY_CLIENT_ID="client" \
+    INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET="secret" \
+    "$TEST_TMP/project/scripts/operations/infisical/download.sh" \
+      --env local --path / --output "$TEST_TMP/project/.dev.vars" >/dev/null
+  mode="$(stat -c '%a' "$TEST_TMP/project/.dev.vars" 2>/dev/null || stat -f '%Lp' "$TEST_TMP/project/.dev.vars")"
+  if [[ "$(<"$TEST_TMP/project/.dev.vars")" == "APP_SECRET=safe" && "$mode" == "600" ]]; then
+    ok "Infisical download atomically writes a private target"
+  else
+    not_ok "Infisical download atomically writes a private target"
+  fi
+  printf '%s\n' 'EXISTING=keep' >"$TEST_TMP/project/existing.dev.vars"
+  if PATH="$TEST_TMP/bin:$PATH" \
+      INFISICAL_FAKE_FAIL=1 \
+      INFISICAL_URL="https://secrets.example.com" \
+      INFISICAL_PROJECT_ID="project" \
+      INFISICAL_MACHINE_IDENTITY_CLIENT_ID="client" \
+      INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET="secret" \
+      "$TEST_TMP/project/scripts/operations/infisical/download.sh" \
+        --env local --output "$TEST_TMP/project/existing.dev.vars" >/dev/null 2>&1; then
+    not_ok "failed secret refresh returns nonzero"
+  elif [[ "$(<"$TEST_TMP/project/existing.dev.vars")" == "EXISTING=keep" ]]; then
+    ok "failed secret refresh preserves existing output"
+  else
+    not_ok "failed secret refresh preserves existing output"
+  fi
+else
+  not_ok "Infisical downloader exists"
+fi
+
+# These are literal source-code assertions.
+# shellcheck disable=SC2016
+if grep -Fq 'INFISICAL_TOKEN="$token"' "$INFISICAL_DOWNLOAD" \
+  && ! grep -Fq -- '--token="$token"' "$INFISICAL_DOWNLOAD"; then
+  ok "Infisical access tokens stay out of process arguments"
+else
+  not_ok "Infisical access tokens stay out of process arguments"
+fi
+
+if ! grep -Fq -- '--recursive' "$INFISICAL_DOWNLOAD" \
+  && ! jq -e '.infisical | has("recursive")' "$TEMPLATES/infisical-secrets/templates/operations.infisical.example.json" >/dev/null; then
+  ok "secret delivery does not print recursive secret listings"
+else
+  not_ok "secret delivery does not print recursive secret listings"
+fi
+
+DEPLOY_PLAN="$TEMPLATES/cloudflare-infra/templates/scripts/operations/cloudflare/deploy-plan.sh"
+if [[ -x "$DEPLOY_PLAN" ]]; then
+  OPERATIONS_ROOT="$TEMPLATES/shared/templates/scripts/operations" \
+    "$DEPLOY_PLAN" "$FIXTURES/valid-backend.json" development >"$TEST_TMP/deploy-plan"
+  expected_plan="$(printf '%s\n' \
+    'download-secrets development' \
+    'validate-secrets' \
+    'sync-worker-secrets example-dev' \
+    'deploy bun run deploy:development')"
+  if [[ "$(<"$TEST_TMP/deploy-plan")" == "$expected_plan" ]]; then
+    ok "deploy plan preserves secret-sync-before-code order"
+  else
+    not_ok "deploy plan preserves secret-sync-before-code order"
+    sed 's/^/        /' "$TEST_TMP/deploy-plan"
+  fi
+  jq 'del(.infisical) | del(.services[].secretsTarget)' "$FIXTURES/valid-backend.json" >"$TEST_TMP/cloudflare-only.json"
+  OPERATIONS_ROOT="$TEMPLATES/shared/templates/scripts/operations" \
+    "$DEPLOY_PLAN" "$TEST_TMP/cloudflare-only.json" production >"$TEST_TMP/cloudflare-only-plan"
+  if [[ "$(<"$TEST_TMP/cloudflare-only-plan")" == "deploy bun run deploy" ]]; then
+    ok "Cloudflare-only deploy omits Infisical secret steps"
+  else
+    not_ok "Cloudflare-only deploy omits Infisical secret steps"
+  fi
+else
+  not_ok "Cloudflare deploy planner exists"
+fi
+
+required_templates=(
+  "$TEMPLATES/shared/templates/operations.config.json"
+  "$TEMPLATES/cloudflare-infra/templates/operations.cloudflare.example.json"
+  "$TEMPLATES/cloudflare-infra/templates/.env.operations.example"
+  "$TEMPLATES/cloudflare-infra/templates/wrangler.operations.example.jsonc"
+  "$TEMPLATES/infisical-secrets/templates/operations.infisical.example.json"
+  "$TEMPLATES/shared/templates/scripts/operations/shared/json-env.sh"
+  "$TEMPLATES/cloudflare-infra/templates/scripts/operations/cloudflare/deploy.sh"
+  "$TEMPLATES/cloudflare-infra/templates/scripts/operations/cloudflare/install-cli.sh"
+  "$TEMPLATES/cloudflare-infra/templates/scripts/operations/cloudflare/tunnel.sh"
+  "$TEMPLATES/cloudflare-infra/templates/.github/workflows/deploy-development.yml"
+  "$TEMPLATES/cloudflare-infra/templates/.github/workflows/deploy-production.yml"
+  "$TEMPLATES/infisical-secrets/templates/.env.operations.example"
+  "$TEMPLATES/infisical-secrets/templates/scripts/operations/infisical/install-cli.sh"
+  "$TEMPLATES/local-dev/templates/scripts/operations/dev/preflight.sh"
+  "$TEMPLATES/local-dev/templates/scripts/operations/dev/start.sh"
+)
+missing_templates=()
+for required_template in "${required_templates[@]}"; do
+  [[ -f "$required_template" ]] || missing_templates+=("${required_template#"$ROOT_DIR/"}")
+done
+if [[ ${#missing_templates[@]} -eq 0 ]]; then
+  ok "all module runtime templates exist"
+else
+  not_ok "all module runtime templates exist (${missing_templates[*]})"
+fi
+
+CF_INSTALL="$TEMPLATES/cloudflare-infra/templates/scripts/operations/cloudflare/install-cli.sh"
+INFISICAL_INSTALL="$TEMPLATES/infisical-secrets/templates/scripts/operations/infisical/install-cli.sh"
+if [[ -x "$CF_INSTALL" && "$($CF_INSTALL --print-pin)" == "cloudflared 2026.7.3" ]]; then
+  ok "Cloudflare CLI bootstrap exposes its version pin"
+else
+  not_ok "Cloudflare CLI bootstrap exposes its version pin"
+fi
+
+TUNNEL_RUN="$TEMPLATES/cloudflare-infra/templates/scripts/operations/cloudflare/tunnel.sh"
+if grep -Fq -- '--data-urlencode "is_deleted=false"' "$TUNNEL_RUN" \
+  && grep -Fq 'cloudflared tunnel --no-autoupdate run' "$TUNNEL_RUN"; then
+  ok "tunnel runtime ignores deleted tunnels and preserves its CLI pin"
+else
+  not_ok "tunnel runtime ignores deleted tunnels and preserves its CLI pin"
+fi
+if [[ -x "$INFISICAL_INSTALL" && "$($INFISICAL_INSTALL --print-pin)" == "infisical 0.43.116" ]]; then
+  ok "Infisical CLI bootstrap exposes its version pin"
+else
+  not_ok "Infisical CLI bootstrap exposes its version pin"
+fi
+
+if jq -e 'has("cloudflare") or has("infisical")' "$TEMPLATES/shared/templates/operations.config.json" >/dev/null; then
+  not_ok "shared manifest does not select provider modules"
+else
+  ok "shared manifest does not select provider modules"
+fi
+
+if grep -Fq 'CLOUDFLARE_API_TOKEN=' "$TEMPLATES/cloudflare-infra/templates/.env.operations.example" \
+  && ! grep -Fq 'CLOUDFLARE_' "$TEMPLATES/infisical-secrets/templates/.env.operations.example"; then
+  ok "provider credential examples stay module-owned"
+else
+  not_ok "provider credential examples stay module-owned"
+fi
+
+workflow_installers=0
+for workflow in "$TEMPLATES/cloudflare-infra/templates/.github/workflows/"deploy-*.yml; do
+  grep -Fq 'scripts/operations/infisical/install-cli.sh' "$workflow" || workflow_installers=1
+done
+if [[ $workflow_installers -eq 0 ]]; then
+  ok "deploy workflows explicitly install the optional Infisical CLI"
+else
+  not_ok "deploy workflows explicitly install the optional Infisical CLI"
+fi
+
+for module in cloudflare-infra infisical-secrets local-dev; do
+  if [[ -f "$TEMPLATES/$module/SETUP.md" ]] && grep -Fq "skills/manage-" "$TEMPLATES/$module/SETUP.md"; then
+    ok "$module setup copies its project skill"
+  else
+    not_ok "$module setup copies its project skill"
+  fi
+done
+
+if grep -Fq "Operations modules" "$ROOT_DIR/SETUP.md" \
+  && grep -Fq "conventions/SETUP.md" "$ROOT_DIR/SETUP.md"; then
+  ok "root intake routes operations modules"
+else
+  not_ok "root intake routes operations modules"
+fi
+
+if grep -Fq "conventions/__tests__/run.sh" "$ROOT_DIR/scripts/validate-templates.sh" \
+  && grep -Fq "skills/manage-" "$ROOT_DIR/scripts/validate-templates.sh"; then
+  ok "kit validation includes operations modules and skills"
+else
+  not_ok "kit validation includes operations modules and skills"
+fi
+
+generated="$TEST_TMP/generated"
+mkdir -p "$generated/scripts"
+cp -R "$TEMPLATES/shared/templates/scripts/operations" "$generated/scripts/operations"
+cp -R "$TEMPLATES/cloudflare-infra/templates/scripts/operations/cloudflare" "$generated/scripts/operations/cloudflare"
+cp -R "$TEMPLATES/infisical-secrets/templates/scripts/operations/infisical" "$generated/scripts/operations/infisical"
+cp -R "$TEMPLATES/local-dev/templates/scripts/operations/dev" "$generated/scripts/operations/dev"
+cp "$FIXTURES/valid-backend.json" "$generated/operations.config.json"
+if "$generated/scripts/operations/validate-config.sh" "$generated/operations.config.json" \
+  && "$generated/scripts/operations/cloudflare/deploy.sh" --config "$generated/operations.config.json" --env development --plan >/dev/null \
+  && "$generated/scripts/operations/dev/preflight.sh" --config "$generated/operations.config.json" --check-config >/dev/null; then
+  ok "materialized modules validate without provider credentials"
+else
+  not_ok "materialized modules validate without provider credentials"
+fi
+
+printf '\n%s passed, %s failed\n' "$passed" "$failed"
+[[ "$failed" -eq 0 ]]

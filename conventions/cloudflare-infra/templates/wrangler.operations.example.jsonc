@@ -1,0 +1,22 @@
+{
+  // Merge these environment keys into the stack's existing wrangler.jsonc.
+  // The top level is local-only; deployed Workers always use --env.
+  "name": "<project-name>-local",
+  "vars": {
+    "APP_ENV": "local"
+  },
+  "env": {
+    "development": {
+      "name": "<project-name>-dev",
+      "vars": {
+        "APP_ENV": "development"
+      }
+    },
+    "production": {
+      "name": "<project-name>",
+      "vars": {
+        "APP_ENV": "production"
+      }
+    }
+  }
+}

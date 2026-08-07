@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Local Dev"
+  short_description: "Configure manifest-driven local dev stacks"
+  default_prompt: "Use $manage-local-dev to configure or maintain the manifest-driven local development stack."
