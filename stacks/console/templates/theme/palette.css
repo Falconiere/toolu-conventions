@@ -5,7 +5,7 @@
  *
  * This file owns the two bands and the four signal temperatures. Its counterpart
  * theme/scale.css owns everything that never swaps — size, shape, type, motion.
- * That split is DESIGN.md §2's own table, made into two files.
+ * That split is the platform table at the top of DESIGN.md, made into two files.
  *
  * There is no TypeScript colour token file on the web stacks. CSS is the source
  * of truth, the utilities are generated from it, and the signal is set in exactly
