@@ -24,7 +24,7 @@ bun run deploy       # build + wrangler deploy
 | `src/pages/` | Routes — one file per URL. Thin: pick a layout, list sections. |
 | `src/layouts/` | Page shells (`<html>`, `<head>`, meta, canonical URL). |
 | `src/sections/` | Composed page sections — hero, pricing, faq. One per file. |
-| `src/ui/` | Design-system primitives, `globals.css`, and `theme/` tokens. |
+| `src/ui/` | Design-system primitives, `globals.css` (the one stylesheet), and the `theme/` token CSS. |
 | `src/content/` | Content collections (markdown), typed by `src/content.config.ts`. |
 | `src/utilities/` | Shared pure helpers. |
 | `src/constants/` | `env.ts` (Zod-validated env) + enums. |

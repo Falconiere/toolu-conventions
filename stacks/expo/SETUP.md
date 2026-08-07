@@ -309,7 +309,11 @@ Then:
    `templates/theme/icons.ts` → `src/ui/theme/icons.ts`.
    They ship pre-filled with the house design language
    ([`../../DESIGN.md`](../../DESIGN.md)) — real values, not placeholders. Phase 7
-   only changes them if the intake asked for a different brand.
+   only changes them if the intake asked for a different brand. These files are
+   **this stack's copy**, not a shared one: the web stacks carry the same design
+   language as Tailwind `@theme` blocks, because CSS has a cascade for the band
+   seam to ride and React Native does not. Same numbers, different mechanics —
+   never import across, and never bring `nativewind` in to close the gap.
 2. Copy `$KIT/DESIGN.md` ([view](../../DESIGN.md)) → `docs/design-language.md`
    (`mkdir -p docs` first) **verbatim**. The kit is not on disk once this project
    is scaffolded, so without this copy the design rules — which the token files

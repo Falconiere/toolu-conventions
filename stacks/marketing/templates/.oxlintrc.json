@@ -63,6 +63,19 @@
           },
           {
             "group": [
+              "@/ui/theme/colors",
+              "@/ui/theme/spacing",
+              "@/ui/theme/typography",
+              "@/ui/theme/motion",
+              "**/ui/theme/colors",
+              "**/ui/theme/spacing",
+              "**/ui/theme/typography",
+              "**/ui/theme/motion"
+            ],
+            "message": "Web style tokens live in CSS - use ui/theme/palette.css or scale.css (a TS colour cannot follow .band-light)"
+          },
+          {
+            "group": [
               "axios",
               "axios/*"
             ],

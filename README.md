@@ -191,7 +191,10 @@ That one script is the whole gate, so it's worth knowing what it covers:
   config, once with each stack's *real* `.oxlintrc.json`, at project-relative paths so the
   config's `overrides` match as they will in a scaffold;
 - the dependency-free templates and `http.ts` **strict-type-check**;
-- the `--tone-*` values **agree** across `theme/colors.ts` and both stylesheets;
+- the web **token stylesheets** are coherent — `globals.css` imports Tailwind and both token
+  files, `:root` and `.band-light` declare the same `--tone-*` keys, and no `--color-*` name
+  is spelled outside the `@theme inline` block (naming one re-emits it frozen, so it stops
+  following the band);
 - cross-stack and kit-level template references **resolve** — `marketing` and `expo`
   deliberately copy from `console`, and every stack copies from `guardrails/` and
   [`shared/`](./shared/); those paths are prose in `SETUP.md`, so nothing else catches a rename;

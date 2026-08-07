@@ -97,6 +97,7 @@ in the project's `CLAUDE.md` is not optional.
 | Dead code + unused deps | **knip** | Part of the gate. An unused export or a dependency nobody imports fails the build, which is what keeps "lean" true over time instead of aspirational. |
 | Copy-paste detection | **jscpd** | Part of the gate, at `threshold: 0` with `exitCode: 1`. Duplication is the failure mode the size ceilings push you toward if nothing is watching. |
 | Package manager | **bun** | Install and scripts. Note it is *not* the runtime for the Workers stacks. |
+| Styling | **TailwindCSS** on every web surface | Console and marketing both. Not an opt-in and not a per-project question: utilities only, one `src/ui/globals.css`, tokens as `@theme` blocks in `src/ui/theme/*.css`. No CSS Modules, no CSS-in-JS, no Astro scoped `<style>`, no `style` object, and no `tailwind.config.js` (v4 is CSS-first). **Expo is the exception, not a precedent:** React Native has no cascade, so native keeps `StyleSheet.create` + the TS token files — that pattern never comes back to web. |
 | Web app | **React + Vite + TanStack Router** (`console`) | The authenticated product. Client-rendered SPA. |
 | Public site | **Astro** (`marketing`) | Static, multi-page, crawlable. A different stack because content and app want opposite defaults. |
 

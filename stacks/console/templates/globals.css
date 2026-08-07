@@ -1,252 +1,73 @@
-/* Band seam + baseline reset — CodaSignal "Signal" design language.
- *
- * FOR NON-TAILWIND SCAFFOLDS. If you scaffolded with Tailwind, use
- * globals.tailwind.css instead — this file has no @import and would drop every
- * utility class. Rationale for every value: the kit's DESIGN.md.
+/* The one global stylesheet — CodaSignal "Signal" design language.
  *
  * Copy to src/ui/globals.css and import it exactly once, from the app entry:
- * src/main.tsx in the console stack, the base layout in the marketing stack.
+ * src/main.tsx in the console stack, the base layout in the marketing stack. The
+ * two token files it pulls in ship beside it (copy all three).
  *
- * The --tone-* values mirror src/ui/theme/colors.ts: `colors` (dark band) on
- * :root, `colorsLight` (light band) on .band-light. Keep the two in lockstep —
- * the token file is the source of truth and this is its CSS projection. A light
- * band is <section class="band band-light">; nothing else changes.
- */
-
-/* Reset. Tailwind's Preflight covers this on the other path. */
-*,
-::before,
-::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-/* Pairs with the `padding: 0` above — without it markers paint at negative x and
-   silently disappear. Preflight does the same on the Tailwind path. */
-ol,
-ul,
-menu {
-  list-style: none;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-/* `font: inherit` also pins 16px, which suppresses iOS focus-zoom on inputs. */
-button,
-input,
-select,
-optgroup,
-textarea {
-  font: inherit;
-  color: inherit;
-}
-
-/* The single owner of the palette. :root and .band-light are the only places a
- * --tone-* value is ever declared; components read them, never redefine them.
- */
-:root {
-  /* The dark band is the default, so tell the UA — otherwise scrollbars,
-     <select> popups, date pickers, and autofill render light over #0e0f0d. */
-  color-scheme: dark;
-
-  /* The two families the language names, self-hosted via the Fontsource
-     packages imported by the app entry. src/ui/theme/typography.ts reads these
-     variable names — keep them spelled exactly like this. */
-  --font-sans: 'Archivo Variable', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
-
-  --tone-background: #0e0f0d;
-  --tone-surface: #1f1f1f;
-  --tone-surface-inset: #0e0f0d;
-  --tone-surface-hover: #131511;
-
-  --tone-text: #f2f2ef;
-  --tone-text-muted: #8a8d86;
-  --tone-text-soft: #6c6f68;
-  --tone-text-faint: #52554e;
-  --tone-text-inverse: #0e0f0d;
-
-  --tone-primary: #f2f2ef;
-  --tone-primary-hover: #d0d1ce;
-  --tone-on-primary: #0e0f0d;
-
-  --tone-accent: #43c98b;
-  --tone-accent-lift: #7be0b0;
-  --tone-accent-wash: #12241c;
-
-  --tone-success: #43c98b;
-  --tone-warning: #c99a3a;
-  --tone-danger: #c9553a;
-  --tone-on-danger: #0e0f0d;
-  --tone-idle: #52554e;
-
-  --tone-border: #23251f;
-  --tone-border-inner: #1e201c;
-  --tone-border-strong: #33362e;
-  --tone-grid: #191b17;
-  --tone-seam: #262922;
-  --tone-focus-ring: #12241c;
-
-  --tone-disabled-fill: #1a1c18;
-  --tone-disabled-text: #3e4139;
-}
-
-.band-light {
-  color-scheme: light;
-
-  --tone-background: #f2f2ee;
-  --tone-surface: #ffffff;
-  --tone-surface-inset: #f2f2ee;
-  --tone-surface-hover: #f7f7f3;
-
-  --tone-text: #16170f;
-  --tone-text-muted: #55574f;
-  --tone-text-soft: #8c8e85;
-  --tone-text-faint: #b3b5ab;
-  --tone-text-inverse: #f2f2ee;
-
-  --tone-primary: #16170f;
-  --tone-primary-hover: #2c2e24;
-  --tone-on-primary: #f2f2ee;
-
-  --tone-accent: #2e9c6b;
-  --tone-accent-lift: #43c98b;
-  --tone-accent-wash: #e6f2eb;
-
-  --tone-success: #2e9c6b;
-  --tone-warning: #c99a3a;
-  --tone-danger: #c9553a;
-  --tone-on-danger: #f2f2ee;
-  --tone-idle: #b3b5ab;
-
-  --tone-border: #e3e3dc;
-  --tone-border-inner: #ecece5;
-  --tone-border-strong: #b3b5ab;
-  --tone-grid: #e6e6df;
-  --tone-seam: #dcdcd4;
-  --tone-focus-ring: #e6f2eb;
-
-  --tone-disabled-fill: #f7f7f3;
-  --tone-disabled-text: #b3b5ab;
-
-  /* Re-apply, or the element keeps the dark band it inherited from body and only
-     its descendants' var() lookups flip — ink text on a near-black background.
-     Custom properties declared here are usable in this same block. */
-  background-color: var(--tone-background);
-  color: var(--tone-text);
-}
-
-/* Signal temperature. A theme swaps the four signal steps and NOTHING else, so
- * these blocks may only ever touch --tone-accent* and --tone-success. Set the
- * attribute on <html> once per product: <html data-signal="blueprint">. Jade is
- * the default and is already in the blocks above.
+ * No reset here — Tailwind's Preflight covers it.
  *
- * Each light-band override lists BOTH the descendant and the same-element form.
- * `.band-light` may sit on <html> next to data-signal, and the descendant
- * selector alone would not match there — the dark-band block below would win on
- * source order and paint the dark-band signal onto paper (chalk measures 1.0:1).
+ * THIS IS THE ONLY HAND-WRITTEN STYLESHEET IN THE PROJECT. Components are styled
+ * with utilities, full stop: no CSS Modules, no Astro scoped <style> block, no
+ * inline style object, no styled-components. What lives here is what a utility
+ * cannot express — the band backdrop's ruled gradient and the reduced-motion
+ * escape hatch — plus the token files' values. Anything else you are tempted to
+ * add belongs in an @utility inside theme/scale.css, where it becomes a class
+ * every component can compose and a variant can modify.
+ *
+ * Read theme/palette.css's header before writing a component: the two rules it
+ * documents (never `dark:`, never name a --color-… directly) are the two ways to
+ * silently break the band seam.
  */
-[data-signal='blueprint'] {
-  --tone-accent: #45b4cc;
-  --tone-accent-lift: #7ed6e6;
-  --tone-accent-wash: #0f2229;
-  --tone-success: #45b4cc;
-  --tone-focus-ring: #0f2229;
-}
 
-[data-signal='blueprint'] .band-light,
-[data-signal='blueprint'].band-light {
-  --tone-accent: #2c8aa0;
-  --tone-accent-lift: #45b4cc;
-  --tone-accent-wash: #e3eff3;
-  --tone-success: #2c8aa0;
-  --tone-focus-ring: #e3eff3;
-}
+@import 'tailwindcss';
+@import './theme/palette.css'; /* what swaps: the two bands, four signals */
+@import './theme/scale.css'; /* what never swaps: size, shape, type, motion */
 
-[data-signal='ion'] {
-  --tone-accent: #9a8cf0;
-  --tone-accent-lift: #c0b6ff;
-  --tone-accent-wash: #17142b;
-  --tone-success: #9a8cf0;
-  --tone-focus-ring: #17142b;
-}
+/* @layer base, because an unlayered declaration beats every layered utility
+ * regardless of specificity — these rules would otherwise override the bg-* and
+ * text-* utilities set on the same element. */
+@layer base {
+  body {
+    background-color: var(--tone-background);
+    color: var(--tone-text);
+    font-family: var(--font-sans); /* both declared in theme/palette.css */
+  }
 
-[data-signal='ion'] .band-light,
-[data-signal='ion'].band-light {
-  --tone-accent: #6c5dd0;
-  --tone-accent-lift: #9a8cf0;
-  --tone-accent-wash: #ebe8fa;
-  --tone-success: #6c5dd0;
-  --tone-focus-ring: #ebe8fa;
-}
+  ::selection {
+    background-color: var(--tone-accent);
+    color: var(--tone-on-primary);
+  }
 
-[data-signal='chalk'] {
-  --tone-accent: #f2f2ef;
-  --tone-accent-lift: #ffffff;
-  --tone-accent-wash: #1f211c;
-  --tone-success: #f2f2ef;
-  --tone-focus-ring: #1f211c;
-}
-
-[data-signal='chalk'] .band-light,
-[data-signal='chalk'].band-light {
-  --tone-accent: #16170f;
-  --tone-accent-lift: #f2f2ef;
-  --tone-accent-wash: #e6e6df;
-  --tone-success: #16170f;
-  --tone-focus-ring: #e6e6df;
-}
-
-body {
-  background-color: var(--tone-background);
-  color: var(--tone-text);
-  font-family: var(--font-sans); /* declared in :root above */
-}
-
-::selection {
-  background-color: var(--tone-accent);
-  color: var(--tone-on-primary);
-}
-
-/* The ruled backdrop. Quarter-width vertical rules run through every band; the
-   crosshairs that mark the seams are separate elements (see DESIGN.md). Rules
-   halve at phone width so they still read. */
-.band {
-  background-color: var(--tone-background);
-  background-image: linear-gradient(90deg, var(--tone-grid) 0 1px, transparent 1px 100%);
-  background-size: 25% 100%;
-  background-position: 48px 0;
-}
-
-@media (max-width: 599px) {
+  /* The ruled backdrop. Quarter-width vertical rules run through every band; the
+     crosshairs that mark the seams are separate elements (see DESIGN.md §1).
+     Rules halve at phone width so they still read. A light band is
+     <section class="band band-light"> — those two classes are the whole theming
+     surface. */
   .band {
-    background-size: 50% 100%;
-    background-position: 24px 0;
+    background-color: var(--tone-background);
+    background-image: linear-gradient(90deg, var(--tone-grid) 0 1px, transparent 1px 100%);
+    background-size: 25% 100%;
+    background-position: 48px 0;
   }
-}
 
-/* Live dots and the terminal cursor. A hard on/off, never a fade. */
-@keyframes signal-blink {
-  0%,
-  60% {
-    opacity: 1;
+  @media (max-width: 599px) {
+    .band {
+      background-size: 50% 100%;
+      background-position: 24px 0;
+    }
   }
-  61%,
-  100% {
-    opacity: 0.2;
-  }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  ::before,
-  ::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  /* Blanket flatten, not a per-component opt-in: the language's motion budget is
+     small enough that nothing here needs to survive the preference. The live dot
+     goes static at full opacity, the progress bar jumps to its real value, and
+     disclosure opens without a transition. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

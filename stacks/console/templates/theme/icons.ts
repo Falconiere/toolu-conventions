@@ -195,3 +195,18 @@ export const glyphs = {
 } as const;
 
 export type GlyphName = keyof typeof glyphs;
+
+/**
+ * Stroke width scales with icon SIZE, never with colour. These are SVG attribute
+ * values rather than CSS, which is why they live here and not in the token
+ * stylesheets: `strokeWidth` takes a number, and a utility class cannot supply
+ * one. The 24 box with its 20 live area is plain geometry — `size-6` on the
+ * wrapper, drawn inside `viewBox="0 0 24 24"`.
+ */
+export const iconStroke = {
+  16: 1,
+  20: 1.25,
+  24: 1.5,
+} as const;
+
+export type IconSize = keyof typeof iconStroke;

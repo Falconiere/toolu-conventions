@@ -26,8 +26,8 @@ that holds the thing), and thin route files.
 │   │   ├── index.tsx         # `/` — points at a feature screen
 │   │   └── shifts.$id.tsx    # `/shifts/:id` — flat-file route naming
 │   ├── ui/                   # Design system — primitives + theme + globals.css. README.md
-│   │   ├── globals.css       # The one global stylesheet (band seam); imported by main.tsx
-│   │   └── theme/            # colors.ts · spacing.ts · typography.ts · motion.ts · icons.ts
+│   │   ├── globals.css       # The ONE stylesheet: imports Tailwind + the tokens; imported by main.tsx
+│   │   └── theme/            # palette.css (what swaps) · scale.css (what doesn't) · icons.ts
 │   ├── features/             # One folder per feature. README.md
 │   │   └── <feature>/
 │   │       ├── screens/      # <name>-screen.tsx (rendered by src/app/ routes)
@@ -49,7 +49,7 @@ that holds the thing), and thin route files.
 ├── public/                   # static assets copied to the site root verbatim
 ├── docs/                     # design-language.md — house UI rules, read before UI work
 ├── scripts/                  # guardrails/run.sh — folder-tree half of the gate
-├── vite.config.ts            # Vite + TanStack Router plugin + Vitest (ONE config, see below)
+├── vite.config.ts            # Vite + TanStack Router + Tailwind + Vitest (ONE config, see below)
 ├── wrangler.jsonc            # Cloudflare Workers deploy config (static assets)
 ├── tsconfig.json             # strict + `@/*` path alias
 ├── vitest.setup.ts
@@ -80,7 +80,7 @@ paths like `../../../ui`.
 
 | Alias | Resolves to | Example import |
 | --- | --- | --- |
-| `@/*` | `src/*` | `import { colors } from '@/ui/theme/colors'` |
+| `@/*` | `src/*` | `import { icons } from '@/ui/theme/icons'` |
 | `@/ui/*` | `src/ui/*` | `import { Button } from '@/ui/button'` |
 | `@/features/*` | `src/features/*` | `import { HomeScreen } from '@/features/home/screens/home-screen'` |
 | `@/api/*` | `src/api/*` | `import { fetchShifts } from '@/api/clients/shifts'` |
@@ -156,9 +156,19 @@ blocked-patterns list.
    _Enforced by:_ `typescript/no-explicit-any`, `no-console`, `no-debugger`, and
    `max-lines` (`skipBlankLines` + `skipComments`, off for tests).
 10. **Flat until it grows.** Keep a component/util as a single file until it passes
-    ~300 lines or sprouts sub-parts, then promote it to a folder
-    (`button/` with `button.tsx` + `button.module.css`).
+    ~300 lines or sprouts sub-parts, then promote it to a folder (`button/` with
+    `button.tsx` + `use-button-state.ts`). A component folder never gains a
+    stylesheet — see rule 11.
     _Enforced by:_ `max-lines` forces the split; folder shape by review.
+11. **Tailwind is the styling system.** Every component is styled with utility
+    classes. `src/ui/globals.css` is the only stylesheet in the project: no CSS
+    Modules, no `styled-components`/`emotion`, no inline `style` object. Values
+    live in `src/ui/theme/palette.css` and `scale.css` and reach components only
+    as generated utilities.
+    _Enforced by:_ `no-restricted-imports` (`*.module.css`, the CSS-in-JS
+    runtimes, the deleted TS token modules) + `guardrails` (the three CSS files
+    are `requiredFiles`; the CSS-in-JS packages are `bannedDeps`) + review for a
+    stray `style={{…}}`.
 
 ## Style baseline (UI defaults)
 
@@ -166,15 +176,23 @@ Default UI manners for every screen and primitive. They aren't all
 lint-enforceable, so they live here as the agreed baseline — deviate only when
 the design explicitly calls for it, and say so in a comment.
 
-1. **Tokens, not literals.** Colors, spacing, radii, and type come from
-   `src/ui/theme/*` — no hardcoded hex, no magic numbers. Prefer CSS Modules or
-   plain CSS that references the token values over inline `style` objects.
-2. **Compose the primitives.** Build screens from the `src/ui/*` primitives so
+1. **Utilities, and the tokens are the utilities.** There is no TypeScript token
+   file on this stack — colour, space, radius, type and motion live in
+   `src/ui/theme/*.css` and are consumed as `bg-surface`, `rounded-xl`,
+   `type-label`, `ease-signal`. The token files reset Tailwind's own defaults to
+   `initial`, so `text-sm`, `font-bold`, `rounded-2xl`, `shadow-lg`,
+   `ease-in-out` and the stock colour ramps **do not exist** — a magic number is
+   a build-time nonexistent class, not a review note.
+2. **Type is applied by role, never by size.** One `type-*` class carries family,
+   size, leading, weight, tracking, case and numerals together (`type-display`,
+   `type-body`, `type-label`, `type-meta`, …), because those are not independent
+   choices: the mono tracking steps encode *what the text is* (DESIGN.md §4).
+3. **Compose the primitives.** Build screens from the `src/ui/*` primitives so
    typography, color, and interactive states stay consistent.
-3. **Accessible by default.** Semantic HTML first; interactive elements are
+4. **Accessible by default.** Semantic HTML first; interactive elements are
    real `<button>` / `<a>` with labels; images carry `alt`; forms have labels.
    The `jsx-a11y` plugin flags the common misses.
-4. **Navigate with `<Link>`.** Use TanStack Router's `<Link to="…">` for internal
+5. **Navigate with `<Link>`.** Use TanStack Router's `<Link to="…">` for internal
    navigation — it is type-checked against the route tree, so a renamed route
    becomes a compile error instead of a 404. A raw `<a href>` is for external
    links only.

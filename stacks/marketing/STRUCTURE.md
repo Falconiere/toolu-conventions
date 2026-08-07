@@ -23,8 +23,8 @@ below — it never relaxes a CORE rule.
 │   │   └── base-layout.astro
 │   ├── sections/             # Composed page sections — hero, pricing, faq. README.md
 │   ├── ui/                   # Design system — primitives + theme + globals.css. README.md
-│   │   ├── globals.css       # The one global stylesheet; imported by base-layout
-│   │   └── theme/            # colors.ts · spacing.ts · typography.ts · motion.ts · icons.ts
+│   │   ├── globals.css       # The ONE stylesheet: imports Tailwind + the tokens; imported by base-layout
+│   │   └── theme/            # palette.css (what swaps) · scale.css (what doesn't) · icons.ts
 │   ├── content/              # Content collections (markdown + assets). README.md
 │   ├── content.config.ts     # defineCollection() — the collection schemas
 │   ├── utilities/            # Shared pure helpers. README.md
@@ -33,7 +33,7 @@ below — it never relaxes a CORE rule.
 ├── public/                   # served verbatim at the site root (favicon, robots.txt, og image)
 ├── docs/                     # design-language.md — house UI rules, read before UI work
 ├── scripts/                  # guardrails/run.sh — folder-tree half of the gate
-├── astro.config.mjs          # Astro config (static output, site URL)
+├── astro.config.mjs          # Astro config (static output, site URL, Tailwind via vite.plugins)
 ├── wrangler.jsonc            # Cloudflare Workers deploy config (static assets)
 ├── tsconfig.json             # astro/tsconfigs/strictest + `@/*` path alias
 ├── vitest.config.ts          # getViteConfig() — reuses the Astro config
@@ -75,7 +75,8 @@ truth — the test config *derives* from the build config rather than replacing 
    SSR is a deliberate, documented decision for a specific page, not a default.
    _Enforced by:_ review + the `astro.config.mjs` comment.
 2. **Pages are thin.** A file in `src/pages/` picks a layout and lists sections.
-   No markup of its own beyond composition, no data munging, no styles.
+   No markup of its own beyond composition, no data munging, no styling — a page
+   carries no utility classes either; the sections own their own layout.
    _Enforced by:_ review.
 3. **Sections own the markup.** One section per file in `src/sections/`, named
    after what it is (`pricing-section.astro`). A page is a readable list of them.
@@ -91,11 +92,27 @@ truth — the test config *derives* from the build config rather than replacing 
 6. **Every page sets `title` + `description`,** and the layout emits a canonical
    URL. These are the site's product surface, not decoration.
    _Enforced by:_ `Props` on `base-layout.astro` (both are required) + review.
-7. **Tokens, not literals.** Colors, spacing, radii, and type come from
-   `src/ui/theme/*`, read through the `--tone-*` custom properties so a section
-   works in either band. A hex literal in a component is a bug.
-   _Enforced by:_ review.
-8. **Named exports, no barrels, kebab-case filenames, co-located real-data
+7. **TailwindCSS, and nothing else.** Every section is styled with utility
+   classes. `src/ui/globals.css` is the only stylesheet on the site: **no Astro
+   scoped `<style>` block**, no CSS Modules, no CSS-in-JS, no `style` attribute.
+   Values live in `src/ui/theme/palette.css` and `scale.css` and reach a section
+   only as generated utilities, which resolve through `--tone-*` and therefore
+   work in either band. A hex literal in a section is a bug; so is a `<style>`
+   block, because the moment one exists there are two places to look for why a
+   thing is 12px.
+   _Enforced by:_ `guardrails` (the three CSS files are `requiredFiles`; the
+   CSS-in-JS packages and `@astrojs/tailwind` are `bannedDeps`) +
+   `no-restricted-imports` (`*.module.css`) + review for a `<style>` block,
+   which is the one part oxlint cannot see — it does not read an `.astro`
+   template body.
+8. **Type is applied by role, never by size.** One `type-*` class carries family,
+   size, leading, weight, tracking, case and numerals together (`type-display`,
+   `type-body`, `type-marker`, …). The token stylesheets reset Tailwind's stock
+   scales to `initial`, so `text-sm`, `font-bold`, `rounded-2xl` and the stock
+   colour ramps do not exist here — a magic number is a class that was never
+   generated, not a review note.
+   _Enforced by:_ the `@theme` resets in `src/ui/theme/scale.css`.
+9. **Named exports, no barrels, kebab-case filenames, co-located real-data
    tests, no `any`, no `console.log`, `max-lines: 300`** — the CORE rules.
    _Enforced by:_ oxlint + `guardrails`. oxlint **does** read `.astro`
    frontmatter, so the import and TypeScript rules apply there too — the entry

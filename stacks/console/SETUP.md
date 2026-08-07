@@ -97,8 +97,8 @@ Collect all of these up front; use the noted defaults.
 **Design context** (optional — feeds the theme tokens + `CLAUDE.md`):
 - Who are the **target users** and in what context? What **jobs** are they doing?
 - **Brand personality / tone**, any **palette** direction, reference sites.
-- Does the design call for **Tailwind CSS**? (default: no — CSS Modules +
-  theme tokens. Only add Tailwind if the design context asks for it.)
+(Styling is **not** an intake question: every web surface in this kit is
+TailwindCSS. See [`LIBRARIES.md`](./LIBRARIES.md).)
 
 Echo back a short summary of the chosen options before scaffolding.
 
@@ -135,6 +135,10 @@ bun add -d @tanstack/router-plugin
 
 # Data + validation + forms: server state, typed API client, forms, one validator
 bun add @tanstack/react-query @tanstack/react-form @orpc/client @orpc/tanstack-query zod
+
+# Styling. Tailwind is the styling system for every web surface in this kit —
+# not an opt-in. v4 is CSS-first, so there is no config file to install.
+bun add tailwindcss @tailwindcss/vite
 
 # Self-hosted fonts named by the design language
 bun add @fontsource-variable/archivo @fontsource-variable/jetbrains-mono
@@ -231,10 +235,13 @@ mkdir -p src/app src/ui/theme src/features/home/screens src/api/clients \
 
 Then:
 
-1. Copy `templates/theme/{colors,spacing,typography,motion,icons}.ts` →
-   `src/ui/theme/`. They ship pre-filled with the house design language
+1. Copy `templates/theme/{palette,scale}.css` and `templates/theme/icons.ts` →
+   `src/ui/theme/`, and `templates/globals.css` → `src/ui/globals.css`. They ship
+   pre-filled with the house design language
    ([`../../DESIGN.md`](../../DESIGN.md)) — real values, not placeholders. Phase 7
-   only changes them if the intake asked for a different brand.
+   only changes them if the intake asked for a different brand. The three CSS
+   files are one unit: `globals.css` imports Tailwind and then the other two, so
+   copying a subset gives you an app whose utility classes silently do nothing.
 2. Copy `templates/utilities/http.ts` → `src/utilities/http.ts`. This is how the
    app calls **anything that is not our own API** (there is no axios in this
    kit); our API goes through oRPC in Phase 6a. Read its header comment before
@@ -411,75 +418,57 @@ a default.
 
 ## Phase 7 — Design pass
 
-Read [`../../DESIGN.md`](../../DESIGN.md) — the house design language. The theme
-tokens copied in Phase 3 already implement it, so the app starts on-language.
+Read [`../../DESIGN.md`](../../DESIGN.md) — the house design language. The token
+stylesheets copied in Phase 3 already implement it, so the app starts
+on-language.
 
 **7.1 Fonts are already bound.** `src/main.tsx` imports
 `@fontsource-variable/archivo` and `@fontsource-variable/jetbrains-mono`, and
-`globals.css` (7.3) declares `--font-sans` / `--font-mono` from them — the exact
-variable names `theme/typography.ts` reads. The fonts are self-hosted from
-`node_modules`; there is no runtime request to Google Fonts. `data-signal` on
-`<html>` in `index.html` picks the signal temperature for the whole product;
-omit the attribute for Jade.
+`theme/palette.css` declares `--font-sans` / `--font-mono` from them — the exact
+variable names the `type-*` roles in `theme/scale.css` read. The fonts are
+self-hosted from `node_modules`; there is no runtime request to Google Fonts.
+`data-signal` on `<html>` in `index.html` picks the signal temperature for the
+whole product; omit the attribute for Jade.
 
 **7.2 Apply the intake design context.**
 
 1. If Phase 0 named one of the four house signal temperatures (Jade, Blueprint,
-   Ion, Chalk), set `data-signal` on `<html>` in `index.html` **and** change
-   `defaultSignal` in `src/ui/theme/colors.ts` to the same name. That pair is the
-   whole theming surface — nothing else in either file moves. Setting only
-   `data-signal` leaves `colors.accent` in TS on Jade while the page renders the
-   other temperature.
+   Ion, Chalk), set `data-signal` on `<html>` in `index.html`. That single
+   attribute is the whole theming surface — the four temperatures already ship in
+   `theme/palette.css`, and nothing else moves. (There is no second place to set
+   it on this stack: colour lives only in CSS, so it cannot disagree with itself.)
 2. If Phase 0 described a **different** brand, replace the values in
-   `src/ui/theme/{colors,typography}.ts` — but keep the *structure*: alternating
-   bands (`colors` + `colorsLight`), one signal with four steps, fixed status
-   colours, the mono meta layer, hairline depth. The signal never fills a button;
-   no gradients, no glassmorphism, no generic cyan-on-dark.
+   `src/ui/theme/palette.css` (and the `type-*` roles in `scale.css` if the type
+   changes) — but keep the *structure*: alternating bands (`:root` +
+   `.band-light`), one signal with four steps, fixed status colours, the mono meta
+   layer, hairline depth. The signal never fills a button; no gradients, no
+   glassmorphism, no generic cyan-on-dark.
 3. If it did neither, keep the house tokens as shipped and say so in the design
    notes.
 4. Record the direction (audience, jobs, tone, palette, and any deviation from
    `DESIGN.md`) in the `## Design notes` section of `CLAUDE.md` so future agents
    inherit the "why".
-5. If the design called for **Tailwind**, install it now
-   (`bun add tailwindcss @tailwindcss/vite`) and add `tailwindcss()` to the
-   `vite.config.ts` plugin list. The token files stay the single source of truth
-   — never duplicate hex literals into a Tailwind config. 7.3 is the one place
-   the mapping happens.
 
-Do **not** build UI primitives yet — 7.3 introduces the seam they have to read.
-Building them here against `colors` / `colorsLight` directly produces exactly the
-single-band components 7.3 exists to prevent.
+**7.3 Understand the seam before writing a component.** The page alternates dark
+and light bands, so a value pinned at build time can only ever render one band.
+The seam is a set of `--tone-*` custom properties: `:root` carries the dark band
+(the default), a `.band-light` class overrides them, and the `@theme inline` block
+aliases the utility namespace onto them so `bg-surface` / `text-accent` follow
+whichever band they land in. A light band is `<section className="band
+band-light">` — `band` paints the ruled backdrop, `band-light` flips the tokens.
 
-**7.3 Wire the band seam in `src/ui/globals.css`.** The page alternates dark and
-light bands, so a primitive that imports one color map directly can only ever
-render one band. The seam is a set of `--tone-*` custom properties: `:root`
-carries `colors` (the dark band, the default), a `.band-light` class overrides
-them with `colorsLight`, and everything downstream reads the variables. A light
-band is then `<section className="band band-light">` — `band` paints the ruled
-backdrop, `band-light` flips the tokens.
+Read the header comment of `src/ui/theme/palette.css` before writing UI. It
+documents the two ways to break the seam silently: the `dark:` variant (it keys
+off the OS, not the band) and naming a `--color-…` variable directly (under
+`@theme inline` that re-emits it frozen at the dark-band values). Both compile,
+both look right in one band and wrong in the other.
 
-That stylesheet ships as a template — copy the one matching your scaffold:
-
-| Scaffolded with | Copy |
-| --- | --- |
-| no Tailwind (the Phase 1 default) | `templates/globals.css` |
-| Tailwind (`@tailwindcss/vite`) | `templates/globals.tailwind.css` |
-
-Both go to `src/ui/globals.css`, which `src/main.tsx` already imports. They are
-not interchangeable. The Tailwind file keeps `@import "tailwindcss";`, drops the
-reset (Preflight covers it), wraps its rules in `@layer base`, and adds a
-forward-only `@theme inline` alias block; the plain file does none of that and
-carries its own reset. Copying the wrong one silently breaks either every utility
-class or every UA default.
-
-Both files carry the full token set inline and document the rules that come with
-the seam — read the header comment of the one you copy before writing components
-against it. Keep the values in lockstep with `src/ui/theme/colors.ts`: the token
-file is the source of truth, the stylesheet is its CSS projection.
-
-**7.4 Build the `src/ui/*` primitives** the screens need, composed from the
-tokens and reading the `--tone-*` variables (never importing `colors` or
-`colorsLight` directly — that pins a component to one band). Include the
+**7.4 Build the `src/ui/*` primitives** the screens need, composed from utilities
+(`bg-surface`, `rounded-xl`, `type-label`, `ease-signal`) — never a `style`
+object, a `.module.css`, or a hex literal, all three of which pin a component to
+one band. `theme/scale.css` resets Tailwind's stock scales, so if a class like
+`text-sm` or `font-bold` appears to do nothing, that is the gate working as
+designed: pick the `type-*` role instead. Include the
 patterns the language leans on — section marker, fact rail, index row, status
 dot, stat band — where the screens use them, plus one `<Icon>` wrapper over
 `theme/icons.ts` that owns the stroke width, square caps and mitred joins so no

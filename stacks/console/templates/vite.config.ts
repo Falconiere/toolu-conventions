@@ -1,6 +1,7 @@
 /** Vite config — build, dev server, and Vitest, in one file. */
 import react from '@vitejs/plugin-react';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
+import tailwindcss from '@tailwindcss/vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
@@ -22,6 +23,11 @@ export default defineConfig({
       generatedRouteTree: './src/route-tree.gen.ts',
     }),
     react(),
+    // Tailwind is the styling system, not an option: src/ui/globals.css is the
+    // one stylesheet and every component is utilities. Without this plugin the
+    // @import, the @theme blocks and the @utility roles all pass through as
+    // inert CSS and the app renders unstyled — nothing else reports it.
+    tailwindcss(),
     tsconfigPaths(),
   ],
   test: {

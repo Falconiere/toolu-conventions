@@ -1,0 +1,263 @@
+/* Scale — the half of the design language that NEVER swaps. CodaSignal "Signal".
+ *
+ * Copy to src/ui/theme/scale.css. It is imported by src/ui/globals.css, never by
+ * a component. Rationale for every value: the kit's DESIGN.md.
+ *
+ * Size, shape, type, motion and depth are fixed: a signal temperature changes the
+ * accent and nothing here (DESIGN.md §2). Its counterpart theme/palette.css owns
+ * the half that does swap.
+ *
+ * Four namespaces are RESET to `initial` before being redefined. That is the
+ * enforcement, not tidiness: with Tailwind's defaults left in place `text-sm`,
+ * `font-bold`, `rounded-2xl`, `shadow-lg` and `ease-in-out` all still compile,
+ * and every one of them is a magic number or an outright banned value
+ * (DESIGN.md §12 bans weight 700; §6 allows exactly one easing curve). Deleting
+ * the namespace is what makes the ban structural instead of advisory.
+ *
+ * The 4px spacing grid is NOT reset — p-3 / gap-6 / size-11 are the house
+ * spacing scale, since spacing steps carry no meaning beyond their size. Only
+ * values the grid cannot express, or that the language names, get a token below.
+ */
+
+@theme {
+  /* --- Space ------------------------------------------------------------ */
+  /* Page rhythm. Named because DESIGN.md §5 names them: the gutter has three
+     steps and changes at xl and sm only, and a band closes wider than it opens. */
+  --spacing-gutter: 24px; /* < 600 */
+  --spacing-gutter-md: 40px; /* 600 – 1400, the default gutter */
+  --spacing-gutter-lg: 48px; /* >= 1400 */
+  --spacing-section-y: 84px; /* top padding inside a band, below its header rule */
+  --spacing-section-y-sm: 56px; /* the same at <= 860 */
+  --spacing-section-bottom: 100px;
+  --spacing-header-y: 16px; /* padding on the band header rule */
+
+  /* Control geometry, off the 4px grid on purpose. An icon alone is legal only
+     inside a control-box; a status dot is 7px at every size. */
+  --spacing-field: 42px; /* marketing field height */
+  --spacing-field-app: 34px; /* in-app field — denser, still inside a 44px hit area */
+  --spacing-control-box: 30px;
+  --spacing-status-dot: 7px;
+  --spacing-focus-ring: 3px; /* ring width OUTSIDE the 1px signal border */
+  --spacing-progress: 5px;
+  --spacing-meter: 3px;
+  --spacing-toggle-w: 42px;
+  --spacing-toggle-h: 22px;
+  /* The hit-area floor, and the shortest an app list row may be drawn: a 36px
+     row is legal only while its hit area still reaches `touch`. */
+  --spacing-touch: 44px;
+  --spacing-row: 36px;
+
+  /* Content caps. Bands are full-bleed; what is INSIDE them is not. `copy` is
+     DESIGN.md §4's "body never wider than 52 characters" as a class, so the rule
+     survives contact with a component that would otherwise reach for a number. */
+  --container-page: 1360px;
+  --container-copy: 52ch;
+
+  /* --- Shape ------------------------------------------------------------ */
+  /* Radius encodes what a thing IS, not how big it is. No pill buttons, no soft
+     blobs — `rounded-full` (a static utility) is for dots, radio rings and
+     slider knobs only. */
+  --radius-*: initial;
+  --radius-xs: 3px; /* buttons, tags, pagination chips, tooltips */
+  --radius-sm: 4px; /* fields, swatches, banners, key caps */
+  --radius-md: 6px; /* insets — code blocks, terminals, toasts, small tiles */
+  --radius-lg: 10px; /* cards in a three-up row */
+  --radius-xl: 12px; /* panels */
+  --radius-xxl: 14px; /* feature panels — the product-shot device */
+
+  /* Depth is a hairline. A panel on a LIGHT band adds exactly one of these; on a
+     dark band it drops the shadow and keeps its border. Never on hover. */
+  --shadow-*: initial;
+  --shadow-card: 0 18px 44px rgb(20 22 15 / 0.07);
+  --shadow-panel: 0 24px 60px rgb(20 22 15 / 0.09);
+  --shadow-panel-lg: 0 28px 70px rgb(20 22 15 / 0.1); /* hero panel, once per page */
+
+  /* --- Breakpoints ------------------------------------------------------ */
+  /* DESIGN.md §5 reads these downward ("at md the bands go single column"); the
+     utilities are min-width, so write mobile-first and let each step add back.
+     lg is a column-count step, not a gutter step. */
+  --breakpoint-*: initial;
+  --breakpoint-sm: 600px; /* narrowest gutter, buttons full width, rules halve */
+  --breakpoint-md: 860px; /* bands go multi-column, index rows regain the spec */
+  --breakpoint-lg: 1120px; /* two-up card rows become three-up */
+  --breakpoint-xl: 1400px; /* full system: max content, widest gutter */
+
+  /* --- Type ------------------------------------------------------------- */
+  /* Display is 600, titles are 500, 700 is banned — size carries emphasis. The
+     font-size namespace is reset with nothing put back: type is applied by role
+     through the type-* utilities below, never by picking a size. */
+  --text-*: initial;
+  --font-weight-*: initial;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* --- Motion ----------------------------------------------------------- */
+  /* Motion measures; it never performs. One curve, and a stepped one for the
+     blink — a live dot is a hard on/off, not a fade. */
+  --ease-*: initial;
+  --ease-signal: cubic-bezier(0.2, 0, 0, 1);
+  --ease-blink: steps(1, end);
+
+  /* Durations have no utility namespace in Tailwind, so they are read by name:
+     `transition duration-(--duration-hover) ease-signal`. */
+  --duration-hover: 140ms; /* colour and border only — never size, never shadow */
+  --duration-disclosure: 220ms;
+  --duration-progress: 800ms; /* a bar moving to a new REAL value */
+  --duration-toast: 4000ms;
+
+  --animate-signal-blink: signal-blink 1800ms var(--ease-blink) infinite;
+
+  @keyframes signal-blink {
+    0%,
+    60% {
+      opacity: 1;
+    }
+    61%,
+    100% {
+      opacity: 0.2;
+    }
+  }
+}
+
+/* Type roles. One class carries family, size, leading, weight, tracking, case
+ * and numerals together, because those are not independent choices: the four
+ * mono tracking steps encode WHAT the text is (DESIGN.md §4), and a label that
+ * gets the size but loses the uppercase is a silently wrong label. Compose with
+ * an ink utility: <p class="type-label text-text-faint">.
+ *
+ * Prose never below 13px and a mono label never below 9px (§11) — the roles
+ * below are already the floor, so reaching past them is how you break it.
+ */
+
+/* Display — headings break in two lines and only the SECOND takes the signal. */
+@utility type-display-lg {
+  font-family: var(--font-sans);
+  font-size: clamp(2.5rem, 4.8vw, 4.25rem); /* 40 → 68 */
+  line-height: 1.03;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.038em;
+}
+
+@utility type-display {
+  font-family: var(--font-sans);
+  font-size: clamp(1.875rem, 3.6vw, 3.125rem); /* 30 → 50 */
+  line-height: 1.04;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.035em;
+}
+
+/* Figures. Every claim gets a number beside it, so numbers are a type role. */
+@utility type-stat-lg {
+  font-family: var(--font-sans);
+  font-size: clamp(2.75rem, 5vw, 4.125rem); /* 44 → 66 */
+  line-height: 0.9;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+
+@utility type-stat {
+  font-family: var(--font-sans);
+  font-size: clamp(2rem, 3vw, 2.5rem); /* 32 → 40 */
+  line-height: 1;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Titles. No quotation marks on a quote, no photo beside it. */
+@utility type-quote {
+  font-family: var(--font-sans);
+  font-size: 1.625rem; /* 26 */
+  line-height: 1.4;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: -0.024em;
+}
+
+@utility type-subhead {
+  font-family: var(--font-sans);
+  font-size: 1.3125rem; /* 21 — card titles, row titles */
+  line-height: 1.3;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: -0.022em;
+}
+
+/* Prose. The workhorse — never wider than 52 characters, never a serif. */
+@utility type-body {
+  font-family: var(--font-sans);
+  font-size: 0.9375rem; /* 15 */
+  line-height: 1.7;
+  font-weight: var(--font-weight-regular);
+}
+
+@utility type-body-sm {
+  font-family: var(--font-sans);
+  font-size: 0.875rem; /* 14 — captions under a panel, row sub-copy */
+  line-height: 1.6;
+  font-weight: var(--font-weight-regular);
+}
+
+/* Mono meta layer. Labels, data, tags, code — never prose. */
+@utility type-marker {
+  font-family: var(--font-mono);
+  font-size: 0.59375rem; /* 9.5 — `— §04 · speed`, once per section */
+  line-height: 1.5;
+  font-weight: var(--font-weight-regular);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+@utility type-label {
+  font-family: var(--font-mono);
+  font-size: 0.59375rem; /* 9.5 — panel and field labels */
+  line-height: 1.5;
+  font-weight: var(--font-weight-regular);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+@utility type-tag {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem; /* 9 — the floor. Nothing mono goes below it. */
+  line-height: 1.5;
+  font-weight: var(--font-weight-regular);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+@utility type-data {
+  font-family: var(--font-mono);
+  font-size: 0.65625rem; /* 10.5 — `FROM $40K · 6–12 WEEKS` */
+  line-height: 1.5;
+  font-weight: var(--font-weight-regular);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+@utility type-meta {
+  font-family: var(--font-mono);
+  font-size: 0.625rem; /* 10 — rail lines `├─ … ─┤`. The one mono role not caps. */
+  line-height: 1.6;
+  font-weight: var(--font-weight-regular);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+@utility type-code {
+  font-family: var(--font-mono);
+  font-size: 0.75rem; /* 12 */
+  line-height: 1.75;
+  font-weight: var(--font-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+@utility type-button {
+  font-family: var(--font-mono);
+  font-size: 0.59375rem; /* 9.5 */
+  line-height: 1.2;
+  font-weight: var(--font-weight-regular);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}

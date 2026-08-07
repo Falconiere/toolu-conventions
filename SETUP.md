@@ -86,9 +86,13 @@ language.
    **keep it as-is** (default), pick a different **signal temperature** (Jade ·
    Blueprint · Ion · Chalk — a one-line change, nothing else moves), or override
    the brand outright. If overridden, feed the description into the token
-   templates (`colors.ts`/`typography.ts` values) keeping their structure, and
-   record the direction — and the deviation — in the generated `CLAUDE.md`
-   design-notes section.
+   templates keeping their structure (web: `theme/palette.css` + `scale.css`;
+   expo: `colors.ts`/`typography.ts`), and record the direction — and the
+   deviation — in the generated `CLAUDE.md` design-notes section.
+
+   > Styling itself is **not** an intake question. Every web surface in this kit
+   > is TailwindCSS; expo is `StyleSheet.create` + TS tokens because React Native
+   > has no cascade. See CORE.md → "Platform defaults".
 
    > If this project is the sibling of one you already built (a `marketing` site
    > next to a `console`, say), **copy that project's tokens rather than
@@ -111,8 +115,9 @@ their real filenames (only `CLAUDE.md.template` is suffixed — rename it to
 `CLAUDE.md` when copying). Placeholder style is per-stack — each stack's
 SETUP.md documents its own substitution convention; follow it as written.
 
-Two stacks deliberately reach across the kit: `marketing` copies its theme
-tokens and `globals.css` from `stacks/console/templates/`, and `expo` copies
+Two stacks deliberately reach across the kit: `marketing` copies its token
+stylesheets (`theme/palette.css`, `theme/scale.css`, `theme/icons.ts`) and
+`globals.css` from `stacks/console/templates/`, and `expo` copies
 `utilities/http.ts` and `src/api/orpc.ts` from there too. The same pattern holds
 one level up, for the pieces every stack shares rather than each keeping its own
 copy: the guard-rail module comes from `guardrails/` at the kit root (its

@@ -1,8 +1,9 @@
 # CLAUDE.md — {{APP_NAME}}
 
 {{ONE_LINE_DESCRIPTION}} Astro marketing site. Static output · TypeScript
-(strictest) · bun · Vitest · oxlint + oxfmt + `astro check` · deployed to
-Cloudflare Workers. Read this file first — it is the map and the rulebook.
+(strictest) · TailwindCSS · bun · Vitest · oxlint + oxfmt + `astro check` ·
+deployed to Cloudflare Workers. Read this file first — it is the map and the
+rulebook.
 
 ## What this repo is (and is not)
 
@@ -17,7 +18,7 @@ user, it does not belong here.
 src/pages/         ROUTES — one file per URL. Thin: pick a layout, list sections
 src/layouts/       Page shells (<html>, <head>, meta, canonical)
 src/sections/      Composed page sections — hero, pricing, faq. One per file
-src/ui/            Design-system primitives, globals.css, theme/ tokens
+src/ui/            Design-system primitives + globals.css (the ONE stylesheet) + theme/ (palette.css · scale.css · icons.ts)
 src/content/       Content collections (markdown)
 src/content.config.ts  defineCollection() schemas
 src/utilities/     Shared pure helpers
@@ -25,7 +26,7 @@ src/constants/     env.ts (Zod-validated), enums
 src/types/         Cross-cutting types
 public/            Served verbatim at the site root (favicon, robots.txt, og image)
 docs/              design-language.md — the house UI rules; read before UI work
-astro.config.mjs   Astro config (static output, site URL)
+astro.config.mjs   Astro config (static output, site URL, Tailwind via vite.plugins)
 wrangler.jsonc     Cloudflare Workers deploy config
 ```
 
@@ -74,6 +75,14 @@ adding files, and add a line when you add something notable.
   `BaseLayout`, because they are product surface, not decoration.
 - **Deleting `src/pages/404.astro`** → the structure check fails; `wrangler.jsonc`
   serves it as a real 404 and a soft-200 gets dead URLs indexed.
+- **A `<style>` block in a `.astro` file**, a `*.module.css`, a `style` attribute,
+  or `styled-components`/`emotion` → Tailwind utilities. `astro check` and oxlint
+  both stop at the frontmatter, so this one is on you and the reviewer.
+- **`@astrojs/tailwind`** → the deprecated v3 integration; Tailwind is wired as a
+  Vite plugin in `astro.config.mjs`. Blocked as a `bannedDep`.
+- **`dark:` variants and direct `--color-…` references** → the band is
+  class-driven, not OS-driven, and `@theme inline` names emit no variable. Use the
+  plain utility (`bg-background`) and let it flip. See `src/ui/theme/palette.css`.
 - **Mock-data tests** → tests must exercise real inputs and real integration paths.
 - Files over 300 lines (tests exempt) → split.
 
@@ -91,8 +100,12 @@ adding files, and add a line when you add something notable.
   recorded in Design notes below.
 - **Ship no JavaScript you don't need**: Astro sends zero by default. Every
   `client:*` directive is a deliberate choice with a comment.
-- **Styling**: Astro's scoped `<style>` blocks reading `--tone-*` variables, or
-  theme tokens from `src/ui/theme/*`. No second styling system.
+- **Styling**: **TailwindCSS utilities, always.** `src/ui/globals.css` is the only
+  stylesheet on the site — **no Astro scoped `<style>` block**, no CSS Modules, no
+  CSS-in-JS, no `style` attribute. The values behind the utilities live in
+  `src/ui/theme/palette.css` (what swaps per band) and `scale.css` (what never
+  swaps). Type is applied by role — `type-display`, `type-body`, `type-marker` —
+  never by picking a size.
 - **Validation**: `zod` at every boundary — env, anything the build fetches,
   content-collection schemas — and the TypeScript type comes from `z.infer`,
   never declared alongside the schema. Inside `src/content.config.ts` use
@@ -124,7 +137,7 @@ or say plainly that it is broken; do not disable a check to get green.
 ## Design notes
 
 <!-- The setup design-context answers are recorded here: audience, tone, palette
-direction. The theme token files (src/ui/theme/*) hold the concrete values. -->
+direction. The token stylesheets (src/ui/theme/*.css) hold the concrete values. -->
 
 > **Before any UI work, read [`docs/design-language.md`](./docs/design-language.md)** —
 > the full house language (bands, signal, type, motion, glyphs, contrast gate,
@@ -143,11 +156,15 @@ list number, Archivo at 600/500 with tight negative tracking for everything
 readable, and JetBrains Mono for every label/tag/data/glyph line. Depth is a
 hairline. No serif, no italic, no second hue, no gradients, no icon library.
 
-**Hard rules:** no hardcoded hex or magic numbers in components — tokens only.
-The signal never fills a button. Focus is always visible. Motion flattens under
-`prefers-reduced-motion: reduce`. The band is a CSS-variable seam: `:root`
-carries the dark band, `.band-light` overrides it, and components read the
-variables — never import a colour map directly.
+**Hard rules:** no hardcoded hex or magic numbers in sections — utilities only.
+The token stylesheets reset Tailwind's stock scales to `initial`, so `text-sm`,
+`font-bold`, `rounded-2xl`, `shadow-lg`, `ease-in-out` and the stock colour ramps
+do not exist here; that is the ban being structural, not a class that failed to
+load. The signal never fills a button. Focus is always visible. Motion flattens
+under `prefers-reduced-motion: reduce`. The band is a CSS-variable seam: `:root`
+carries the dark band, `.band-light` overrides it, and the utilities resolve
+through `var(--tone-*)` — so a section follows whichever band it lands in, as
+long as it never hardcodes a value.
 
 - **Deviations from the house language:** <none | what-and-why>
 

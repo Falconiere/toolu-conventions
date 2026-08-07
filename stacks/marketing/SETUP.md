@@ -87,7 +87,9 @@ git --version
 **Design context** (optional — feeds the theme tokens + `CLAUDE.md`):
 - Audience, tone, palette direction, reference sites.
 - Signal temperature: Jade (default) · Blueprint · Ion · Chalk.
-- Does the design call for **Tailwind CSS**? (default: no.)
+
+(Styling is **not** an intake question: every web surface in this kit is
+TailwindCSS. See [`LIBRARIES.md`](./LIBRARIES.md).)
 
 Echo back a short summary before scaffolding.
 
@@ -125,6 +127,11 @@ rm -rf src/pages/index.astro src/components src/assets public/favicon.svg
 # (https://github.com/withastro/roadmap/discussions/1321).
 bun add -d @astrojs/check 'typescript@^6'
 bunx astro add sitemap --yes
+
+# Styling. Tailwind is the styling system for every web surface in this kit —
+# not an opt-in. Use the Vite plugin, NOT `astro add tailwind`: that installs the
+# deprecated v3 integration (@astrojs/tailwind), which guardrails then rejects.
+bun add tailwindcss @tailwindcss/vite
 
 # Self-hosted fonts named by the design language
 bun add @fontsource-variable/archivo @fontsource-variable/jetbrains-mono
@@ -212,15 +219,17 @@ mkdir -p src/pages src/layouts src/sections src/ui/theme src/utilities \
 
 Then:
 
-1. Copy the theme tokens from the console kit —
-   `$KIT/stacks/console/templates/theme/{colors,spacing,typography,motion,icons}.ts` →
+1. Copy the token stylesheets and the icon set from the console kit —
+   `$KIT/stacks/console/templates/theme/{palette.css,scale.css,icons.ts}` →
    `src/ui/theme/`. **The console and the marketing site share one token set on
    purpose**: they are the same product, and a visitor who signs up should not
    feel a seam. Copy, don't fork.
-2. Copy the band-seam stylesheet from the console kit —
-   `$KIT/stacks/console/templates/globals.css` (or `globals.tailwind.css` if the design
-   called for Tailwind) → `src/ui/globals.css`. Read its header comment before
-   writing any component.
+2. Copy the entry stylesheet from the console kit —
+   `$KIT/stacks/console/templates/globals.css` → `src/ui/globals.css`. It imports
+   Tailwind and then the two files from step 1, so all three travel together —
+   copying a subset gives you a site whose utility classes silently do nothing.
+   Read the header comment of `palette.css` before writing any component: it
+   documents the two ways to break the band seam without breaking the build.
 3. Copy `$KIT/DESIGN.md` ([view](../../DESIGN.md)) → `docs/design-language.md`
    **verbatim**. The kit is not on disk once this site is scaffolded, so without
    this copy the design rules never reach the agents who build here.
@@ -242,8 +251,9 @@ Then:
 7. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the specifics.
 
 **Conventions reminder while you build:** pages compose sections and hold no
-markup of their own; one section per file; tokens through `--tone-*`, never a
-literal hex; no `client:*` directive without a reason in a comment.
+markup of their own; one section per file; Tailwind utilities only — no `<style>`
+block, no literal hex, type applied by `type-*` role; no `client:*` directive
+without a reason in a comment.
 
 ---
 
