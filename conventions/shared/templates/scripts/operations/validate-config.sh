@@ -46,11 +46,14 @@ duplicates="$(jq -r '
 ' "$CONFIG_FILE")"
 [[ -z "$duplicates" ]] || fail "duplicate service name, port, or hostname: $duplicates"
 
-jq -e '
-  (has("infisical") or all(.services[]; .secretsTarget == null)) and
-  (has("cloudflare") or all(.services[]; .localHostname == null))
-' "$CONFIG_FILE" >/dev/null \
-  || fail "secretsTarget and localHostname require their provider module"
+if ! jq -e 'has("infisical")' "$CONFIG_FILE" >/dev/null; then
+  orphan_secrets="$(jq -r '[.services[] | select(.secretsTarget != null) | .name] | join(", ")' "$CONFIG_FILE")"
+  [[ -z "$orphan_secrets" ]] || fail "$orphan_secrets requires Infisical before secretsTarget can be set"
+fi
+if ! jq -e 'has("cloudflare")' "$CONFIG_FILE" >/dev/null; then
+  orphan_hosts="$(jq -r '[.services[] | select(.localHostname != null) | .name] | join(", ")' "$CONFIG_FILE")"
+  [[ -z "$orphan_hosts" ]] || fail "$orphan_hosts requires Cloudflare before localHostname can be set"
+fi
 
 if jq -e 'has("cloudflare")' "$CONFIG_FILE" >/dev/null; then
   jq -e '

@@ -61,6 +61,7 @@ if jq -e 'has("infisical")' "$CONFIG_FILE" >/dev/null; then
     --format json --output "$workdir/runtime.json"
   "$OPERATIONS_ROOT/cloudflare/filter-secrets.sh" \
     <"$workdir/runtime.json" >"$workdir/worker-secrets.json"
+  chmod 600 "$workdir/worker-secrets.json"
   jq -e 'type == "object" and length > 0' "$workdir/worker-secrets.json" >/dev/null \
     || { echo "deploy: no Worker runtime secrets resolved" >&2; exit 1; }
   # shellcheck source=/dev/null
@@ -82,7 +83,7 @@ fi
 run_configured() {
   local key="$1" label="$2" command
   command="$(jq -r --arg key "$key" '.[$key] // empty' <<<"$deploy_config")"
-  [[ -z "$command" ]] || { echo "→ $label"; (cd "$PROJECT_ROOT" && bash -lc "$command"); }
+  [[ -z "$command" ]] || { echo "→ $label"; (cd "$PROJECT_ROOT" && bash -c "$command"); }
 }
 
 run_configured migrateCommand "Migrating '$ENV_SLUG'"
@@ -91,4 +92,4 @@ if [[ -f "$workdir/worker-secrets.json" ]]; then
   bunx wrangler secret bulk "$workdir/worker-secrets.json" --name "$worker"
 fi
 deploy_command="$(jq -r '.command' <<<"$deploy_config")"
-(cd "$PROJECT_ROOT" && bash -lc "$deploy_command")
+(cd "$PROJECT_ROOT" && bash -c "$deploy_command")
