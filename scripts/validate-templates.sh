@@ -254,10 +254,12 @@ for f in "$console_vite" "$astro_cfg"; do
   grep -q 'tailwindcss()' "$f" \
     || bad "imports @tailwindcss/vite but never adds tailwindcss() to the plugin list: $f"
 done
-# Matched as a QUOTED module specifier on a non-comment line, not as a bare
-# mention: the config explains in a comment why this integration is not used, and
-# a substring match would fail the gate on its own rationale.
-sed 's;//.*;;' "$astro_cfg" | grep -qE "['\"]@astrojs/tailwind['\"]" \
+# Matched as a QUOTED module specifier, not as a bare mention: the config explains
+# in a comment why this integration is not used, and a substring match would fail
+# the gate on its own rationale. Only COMMENT-ONLY lines are dropped — stripping
+# from any `//` would also truncate `'https://…'` in the site URL two lines up,
+# which is a live string, not a comment.
+sed 's;^[[:space:]]*//.*;;' "$astro_cfg" | grep -qE "['\"]@astrojs/tailwind['\"]" \
   && bad "marketing wires the deprecated v3 @astrojs/tailwind integration — v4 ships as the Vite plugin: $astro_cfg"
 
 # --- Strict type-check: dependency-free templates only (enumerated) ---
