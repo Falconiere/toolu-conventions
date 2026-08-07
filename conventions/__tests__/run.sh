@@ -75,10 +75,16 @@ mutate_fixture '.runtime = "mixed" | .services[0].runtime = "client" | .services
 expect_fail "Infisical targets only server services" "server services" "$VALIDATOR" "$TEST_TMP/client-runtime-secret.json"
 
 mutate_fixture 'del(.infisical)' "$TEST_TMP/orphan-secret-target.json"
-expect_fail "secret targets require the Infisical module" "require their provider module" "$VALIDATOR" "$TEST_TMP/orphan-secret-target.json"
+expect_fail "secret target errors name the service" "api requires Infisical" "$VALIDATOR" "$TEST_TMP/orphan-secret-target.json"
 
 mutate_fixture 'del(.cloudflare)' "$TEST_TMP/orphan-hostname.json"
-expect_fail "local hostnames require the Cloudflare module" "require their provider module" "$VALIDATOR" "$TEST_TMP/orphan-hostname.json"
+expect_fail "local hostname errors name the service" "api requires Cloudflare" "$VALIDATOR" "$TEST_TMP/orphan-hostname.json"
+
+mutate_fixture '.services[0].secretsTarget = "foo/../bar"' "$TEST_TMP/traversal-secret.json"
+expect_fail "nested traversal secret targets are rejected" "safe relative secret" "$VALIDATOR" "$TEST_TMP/traversal-secret.json"
+
+mutate_fixture '.services[0].secretsTarget = "SRC/runtime.env"' "$TEST_TMP/case-secret.json"
+expect_fail "client source targets are rejected case-insensitively" "safe relative secret" "$VALIDATOR" "$TEST_TMP/case-secret.json"
 
 mutate_fixture 'del(.services[0].healthcheck)' "$TEST_TMP/tunnel-without-health.json"
 expect_fail "tunnel routes require health probes" "required fields" "$VALIDATOR" "$TEST_TMP/tunnel-without-health.json"
@@ -101,6 +107,18 @@ if [[ -f "$DOTENV" ]]; then
   else
     not_ok "dotenv values are data, not shell"
   fi
+  printf '%s\n' 'TOOLU_FILL_PRESET=from-file' >"$TEST_TMP/fill.env"
+  unset TOOLU_FILL_PRESET
+  # Read indirectly by dotenv::fill and the child-process export assertion.
+  # shellcheck disable=SC2034
+  TOOLU_FILL_PRESET="from-environment"
+  dotenv::fill "$TEST_TMP/fill.env" TOOLU_FILL_PRESET
+  if [[ "$(bash -c 'printf %s "${TOOLU_FILL_PRESET:-}"')" == "from-environment" ]]; then
+    ok "dotenv fill exports an existing shell value"
+  else
+    not_ok "dotenv fill exports an existing shell value"
+  fi
+  unset TOOLU_FILL_PRESET
 else
   not_ok "dotenv helper exists"
 fi
@@ -117,6 +135,11 @@ if [[ -f "$JSON_ENV" ]]; then
     ok "JSON secret values are exported without shell evaluation"
   else
     not_ok "JSON secret values are exported without shell evaluation"
+  fi
+  if printf '%s' 'YQ$=' | json_env::__decode >/dev/null 2>&1; then
+    not_ok "JSON secret decoding rejects malformed base64"
+  else
+    ok "JSON secret decoding rejects malformed base64"
   fi
 else
   not_ok "JSON environment helper exists"
@@ -211,11 +234,19 @@ case "$1" in
   export)
     [[ -z "${INFISICAL_FAKE_FAIL:-}" ]] || exit 7
     output=""
+    format="dotenv"
     for arg in "$@"; do
-      case "$arg" in --output-file=*) output="${arg#*=}" ;; esac
+      case "$arg" in
+        --output-file=*) output="${arg#*=}" ;;
+        --format=*) format="${arg#*=}" ;;
+      esac
     done
     [[ -n "$output" ]]
-    printf 'APP_SECRET=safe\n' >"${output}.env"
+    if [[ "$format" == "json" ]]; then
+      printf '%s\n' '{"APP_SECRET":"safe"}' >"${output}.json"
+    else
+      printf 'APP_SECRET=safe\n' >"${output}.env"
+    fi
     ;;
   *) exit 4 ;;
 esac
@@ -254,6 +285,22 @@ if [[ -x "$INFISICAL_DOWNLOAD" ]]; then
   fi
 else
   not_ok "Infisical downloader exists"
+fi
+
+INSTALL_RELEASE="$TEMPLATES/shared/templates/scripts/operations/shared/install-release.sh"
+if [[ -f "$INSTALL_RELEASE" ]]; then
+  # shellcheck source=/dev/null
+  source "$INSTALL_RELEASE"
+  unexpected_stage="$TEST_TMP/nested/toolu-cli.fake"
+  mkdir -p "$unexpected_stage"
+  operations_install::cleanup "$unexpected_stage" >"$TEST_TMP/cleanup.out" 2>&1
+  if [[ -d "$unexpected_stage" ]]; then
+    ok "CLI cleanup refuses a lookalike outside the staging root"
+  else
+    not_ok "CLI cleanup refuses a lookalike outside the staging root"
+  fi
+else
+  not_ok "release installation helper exists"
 fi
 
 # These are literal source-code assertions.
@@ -405,6 +452,78 @@ if "$generated/scripts/operations/validate-config.sh" "$generated/operations.con
   ok "materialized modules validate without provider credentials"
 else
   not_ok "materialized modules validate without provider credentials"
+fi
+
+jq 'del(.infisical) | del(.services[].secretsTarget)
+  | .cloudflare.deploy.development.checkCommand = "if shopt -q login_shell; then exit 27; fi"
+  | .cloudflare.deploy.development.command = "true"' \
+  "$FIXTURES/valid-backend.json" >"$generated/non-login-deploy.json"
+if CLOUDFLARE_API_TOKEN=test CLOUDFLARE_ACCOUNT_ID=test \
+    "$generated/scripts/operations/cloudflare/deploy.sh" \
+      --config "$generated/non-login-deploy.json" --env development >/dev/null 2>&1; then
+  ok "configured deploy commands do not run in a login shell"
+else
+  not_ok "configured deploy commands do not run in a login shell"
+fi
+
+cat >"$TEST_TMP/bin/bunx" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "$1 $2 $3" == "wrangler secret bulk" ]]
+mode="$(stat -c '%a' "$4" 2>/dev/null || stat -f '%Lp' "$4")"
+[[ "$mode" == "600" ]]
+printf 'checked\n' >"${BUNX_SECRET_MODE_MARKER:?}"
+EOF
+chmod +x "$TEST_TMP/bin/bunx"
+jq '.cloudflare.deploy.development.command = "true"' \
+  "$FIXTURES/valid-backend.json" >"$generated/private-secret-deploy.json"
+if umask 022 && PATH="$TEST_TMP/bin:$PATH" \
+    BUNX_SECRET_MODE_MARKER="$TEST_TMP/bunx-secret-mode" \
+    INFISICAL_URL="https://secrets.example.com" INFISICAL_PROJECT_ID="project" \
+    INFISICAL_MACHINE_IDENTITY_CLIENT_ID="client" \
+    INFISICAL_MACHINE_IDENTITY_CLIENT_SECRET="secret" \
+    CLOUDFLARE_API_TOKEN=test CLOUDFLARE_ACCOUNT_ID=test \
+    "$generated/scripts/operations/cloudflare/deploy.sh" \
+      --config "$generated/private-secret-deploy.json" --env development >/dev/null 2>&1 \
+    && [[ -f "$TEST_TMP/bunx-secret-mode" ]]; then
+  ok "Worker secret bulk receives a mode-600 file"
+else
+  not_ok "Worker secret bulk receives a mode-600 file"
+fi
+
+cat >"$TEST_TMP/bin/curl" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+case "$*" in
+  *'/token'*) printf '%s\n' '{"success":true,"result":"connector-token"}' ;;
+  *'/configurations'*) printf '%s\n' '{"success":true,"result":{"config":{"ingress":[{"hostname":"local-api.example.com","service":"http://localhost:8787"},{"service":"http_status:404"}]}}}' ;;
+  *'/dns_records'*) printf '%s\n' '{"success":true,"result":[{"id":"dns-id","type":"CNAME","content":"tunnel-id.cfargotunnel.com","proxied":true}]}' ;;
+  *'/zones'*) printf '%s\n' '{"success":true,"result":[{"id":"zone-id"}]}' ;;
+  *'/cfd_tunnel'*) printf '%s\n' '{"success":true,"result":[{"id":"tunnel-id"}]}' ;;
+  *) exit 9 ;;
+esac
+EOF
+cat >"$TEST_TMP/bin/cloudflared" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ -z "${TUNNEL_TOKEN:-}" ]]
+token_file=""
+while [[ $# -gt 0 ]]; do
+  if [[ "$1" == "--token-file" ]]; then token_file="${2:?}"; shift 2; else shift; fi
+done
+[[ -n "$token_file" && "$(<"$token_file")" == "connector-token" ]]
+printf '%s\n' "$$" >"${CLOUDFLARED_RUN_MARKER:?}"
+EOF
+chmod +x "$TEST_TMP/bin/curl" "$TEST_TMP/bin/cloudflared"
+PATH="$TEST_TMP/bin:$PATH" CLOUDFLARE_API_TOKEN=test CLOUDFLARE_ACCOUNT_ID=test \
+    CLOUDFLARED_RUN_MARKER="$TEST_TMP/cloudflared-ran" \
+    "$generated/scripts/operations/cloudflare/tunnel.sh" \
+      --config "$generated/operations.config.json" --run >/dev/null 2>&1 &
+tunnel_script_pid=$!
+if wait "$tunnel_script_pid" && [[ "$(<"$TEST_TMP/cloudflared-ran")" == "$tunnel_script_pid" ]]; then
+  ok "tunnel connector securely replaces its supervisor process"
+else
+  not_ok "tunnel connector securely replaces its supervisor process"
 fi
 
 printf '\n%s passed, %s failed\n' "$passed" "$failed"

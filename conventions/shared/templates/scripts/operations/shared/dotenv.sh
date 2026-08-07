@@ -32,7 +32,10 @@ dotenv::__apply() {
       done
       [[ $wanted -eq 1 ]] || continue
     fi
-    [[ "$mode" == "fill" && -n "${!key:-}" ]] && continue
+    if [[ "$mode" == "fill" && -n "${!key:-}" ]]; then
+      export "${key?}"
+      continue
+    fi
     printf -v "$key" '%s' "$value"
     export "${key?}"
   done <"$file"

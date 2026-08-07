@@ -107,7 +107,7 @@ if [[ "$MODE" == "run" ]]; then
   [[ $drift -eq 0 ]] || { echo "tunnel: refusing to run with drift; apply it explicitly first" >&2; exit 1; }
   command -v cloudflared >/dev/null 2>&1 || { echo "tunnel: cloudflared is required" >&2; exit 1; }
   token="$(api "$API/accounts/$CLOUDFLARE_ACCOUNT_ID/cfd_tunnel/$tunnel_id/token" | result '.result')"
-  TUNNEL_TOKEN="$token" cloudflared tunnel --no-autoupdate run
+  exec cloudflared tunnel --no-autoupdate run --token-file <(printf '%s' "$token")
 else
   echo "tunnel: configuration is in sync"
 fi

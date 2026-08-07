@@ -22,6 +22,9 @@
         "type": "object",
         "additionalProperties": false,
         "required": ["name", "runtime", "command", "port"],
+        "dependentRequired": {
+          "localHostname": ["healthcheck"]
+        },
         "properties": {
           "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
           "runtime": { "enum": ["client", "static", "server"] },
