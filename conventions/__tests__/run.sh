@@ -299,6 +299,15 @@ if [[ -f "$INSTALL_RELEASE" ]]; then
   else
     not_ok "CLI cleanup refuses a lookalike outside the staging root"
   fi
+  mkdir -p "$TEST_TMP/staging"
+  unsafe_stage="$(mktemp -d "$TEST_TMP/staging/toolu-cli.XXXXXX")"
+  chmod 755 "$unsafe_stage"
+  TMPDIR="$TEST_TMP/staging" operations_install::cleanup "$unsafe_stage" >"$TEST_TMP/unsafe-cleanup.out" 2>&1
+  if [[ -d "$unsafe_stage" ]]; then
+    ok "CLI cleanup refuses staging directories without private ownership mode"
+  else
+    not_ok "CLI cleanup refuses staging directories without private ownership mode"
+  fi
 else
   not_ok "release installation helper exists"
 fi
@@ -511,8 +520,11 @@ token_file=""
 while [[ $# -gt 0 ]]; do
   if [[ "$1" == "--token-file" ]]; then token_file="${2:?}"; shift 2; else shift; fi
 done
-[[ -n "$token_file" && "$(<"$token_file")" == "connector-token" ]]
-printf '%s\n' "$$" >"${CLOUDFLARED_RUN_MARKER:?}"
+[[ "$token_file" == "${TMPDIR:-/tmp}/toolu-tunnel-token."*/token && -p "$token_file" ]]
+[[ "$(<"$token_file")" == "connector-token" ]]
+printf '%s\n%s\n' "$$" "$token_file" >"${CLOUDFLARED_RUN_MARKER:?}"
+trap 'exit 0' TERM INT
+while :; do sleep 1; done
 EOF
 chmod +x "$TEST_TMP/bin/curl" "$TEST_TMP/bin/cloudflared"
 PATH="$TEST_TMP/bin:$PATH" CLOUDFLARE_API_TOKEN=test CLOUDFLARE_ACCOUNT_ID=test \
@@ -520,10 +532,17 @@ PATH="$TEST_TMP/bin:$PATH" CLOUDFLARE_API_TOKEN=test CLOUDFLARE_ACCOUNT_ID=test 
     "$generated/scripts/operations/cloudflare/tunnel.sh" \
       --config "$generated/operations.config.json" --run >/dev/null 2>&1 &
 tunnel_script_pid=$!
-if wait "$tunnel_script_pid" && [[ "$(<"$TEST_TMP/cloudflared-ran")" == "$tunnel_script_pid" ]]; then
-  ok "tunnel connector securely replaces its supervisor process"
+for _ in $(seq 1 50); do [[ -f "$TEST_TMP/cloudflared-ran" ]] && break; sleep 0.1; done
+connector_pid="$(sed -n '1p' "$TEST_TMP/cloudflared-ran" 2>/dev/null)"
+token_pipe="$(sed -n '2p' "$TEST_TMP/cloudflared-ran" 2>/dev/null)"
+for _ in $(seq 1 50); do [[ -n "$token_pipe" && ! -e "$token_pipe" ]] && break; sleep 0.1; done
+kill "$tunnel_script_pid" 2>/dev/null || true
+wait "$tunnel_script_pid" 2>/dev/null || true
+if [[ -n "$connector_pid" && ! -e "$token_pipe" ]] && ! kill -0 "$connector_pid" 2>/dev/null; then
+  ok "tunnel connector uses an ephemeral private pipe and stops with its supervisor"
 else
-  not_ok "tunnel connector securely replaces its supervisor process"
+  not_ok "tunnel connector uses an ephemeral private pipe and stops with its supervisor"
+  if [[ -n "$connector_pid" ]]; then kill "$connector_pid" 2>/dev/null || true; fi
 fi
 
 printf '\n%s passed, %s failed\n' "$passed" "$failed"

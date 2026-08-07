@@ -42,12 +42,14 @@ operations_install::finish() {
 }
 
 operations_install::cleanup() {
-  local directory="$1" base parent staging_root
+  local directory="$1" base parent staging_root mode owner
   base="$(basename "$directory")"
   parent="$(cd -P "$(dirname "$directory")" && pwd)" || return 1
   staging_root="$(cd -P "${TMPDIR:-/tmp}" && pwd)" || return 1
+  mode="$(stat -c '%a' "$directory" 2>/dev/null || stat -f '%Lp' "$directory" 2>/dev/null)"
+  owner="$(stat -c '%u' "$directory" 2>/dev/null || stat -f '%u' "$directory" 2>/dev/null)"
   if [[ -d "$directory" && ! -L "$directory" && "$base" == toolu-cli.* \
-    && "$parent" == "$staging_root" ]]; then
+    && "$parent" == "$staging_root" && "$mode" == "700" && "$owner" == "$(id -u)" ]]; then
     rm -rf -- "$directory"
   else
     echo "install-cli: refusing to clean unexpected path $directory" >&2

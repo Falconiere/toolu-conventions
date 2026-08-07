@@ -5,6 +5,8 @@
 TOOLU_OPERATIONS_JSON_ENV_SOURCED=1
 
 json_env::__decode() {
+  # Input is produced internally by jq's @base64 encoder. Both supported
+  # platform decoders reject malformed input; the fixture suite asserts it.
   if base64 --decode </dev/null >/dev/null 2>&1; then
     base64 --decode
   else
