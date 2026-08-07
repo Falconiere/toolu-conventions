@@ -192,17 +192,23 @@ sequence CI and the pre-push hook run:
 cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/guardrails/run.sh && cargo test
 ```
 
-`-D warnings` promotes every clippy `warn` (pedantic group, `missing_docs`,
+`dead_code = "deny"` in `Cargo.toml` rejects unused Rust items, while the
+independent `lint-suppressions` guardrail rejects source-authored
+`#[allow(dead_code)]` and `#![allow(dead_code)]`. `forbid` is deliberately not
+used: Rust's generated test harness injects its own `allow(dead_code)`, so it
+would break `cargo clippy --all-targets` before checking project code.
+Separately, `-D warnings` promotes every remaining clippy `warn` (pedantic group, `missing_docs`,
 `unwrap_used`/`expect_used`) to a hard error. `scripts/guardrails/run.sh`
-enforces the structure rules the compiler can't see — snake_case `.rs` filenames,
-the 500 code-line ceiling (tests exempt), and that the lefthook config is `.yml`.
-Fix the code; never silence a lint to pass. The freshly scaffolded skeleton passes
-this as-is.
+enforces the structure rules the compiler can't see — snake_case `.rs`
+filenames, the 500 code-line ceiling (tests exempt), and that the lefthook
+config is `.yml`. Fix the code; never silence a lint to pass. The freshly
+scaffolded skeleton passes this as-is.
 
 > **The TS stacks' `knip` and `jscpd` steps are deliberately absent here.** Both
 > are Node tools, and requiring a Node toolchain in a Rust repo to run them costs
-> more than it buys: clippy already flags dead code (`dead_code`, `unused_imports`)
-> and `cargo` fails on an unused crate dependency far less silently than npm does.
+> more than it buys: Cargo denies dead items through `dead_code`, clippy flags
+> `unused_imports`, and `cargo` fails on an unused crate dependency far less
+> silently than npm does.
 > If a crate grows enough to want them, the Rust-native equivalents are
 > `cargo machete` (unused dependencies) and `cargo +nightly udeps`; add them
 > deliberately and put them in this gate command, not beside it.

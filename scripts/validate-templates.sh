@@ -800,6 +800,23 @@ cp stacks/rust/templates/rustfmt.toml "$tmpcrate/rustfmt.toml"
   && CARGO_NET_OFFLINE=true cargo fmt --check \
   && CARGO_NET_OFFLINE=true cargo clippy --all-targets -- -D warnings \
 ) || bad "rust skeleton fmt/clippy"
+
+# Exercise the shipped Cargo.toml against a real unused item. The separate
+# lint-suppressions guardrail owns source attributes that would lower this
+# deny-level lint; `forbid` cannot be used because rustc's generated test
+# harness injects its own allow(dead_code).
+mkdir -p "$tmpcrate/src/bin"
+printf 'fn unused() {}\nfn main() {}\n' \
+  > "$tmpcrate/src/bin/dead-code-probe.rs"
+probe_output=$(cd "$tmpcrate" \
+  && CARGO_NET_OFFLINE=true cargo check --bin dead-code-probe 2>&1)
+probe_status=$?
+if [ "$probe_status" -eq 0 ]; then
+  bad 'rust dead-code policy: an unused function compiled successfully'
+elif ! printf '%s\n' "$probe_output" | grep -q 'function .* is never used'; then
+  bad "rust dead-code policy failed for an unexpected reason: $probe_output"
+fi
+rm -rf "$tmpcrate/src/bin"
 rm -rf "$(dirname "$tmpcrate")"
 
 [ "$fail" -eq 0 ] && note "validate-templates: GREEN" || note "validate-templates: RED"

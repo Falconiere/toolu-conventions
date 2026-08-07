@@ -17,10 +17,13 @@ cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/g
 
 Never advance while any error, warning, or test failure stands — even an
 unrelated one. `-D warnings` means every clippy `warn` (including `missing_docs`
-and the pedantic group) is a hard failure. `scripts/guardrails/run.sh`
-machine-enforces the structure rules the compiler can't see — snake_case `.rs`
-filenames, the 500 code-line ceiling (tests exempt), and that the lefthook config
-is `.yml`. Fix the code, do not silence the lint.
+and the pedantic group) is a hard failure. `dead_code = "deny"` rejects unused
+items, and `scripts/guardrails/run.sh` rejects source-authored
+`allow(dead_code)` attributes. (`forbid` cannot be used because Rust's generated
+test harness injects its own allow.) The same guardrail machine-enforces the
+other structure rules the compiler can't see — snake_case `.rs` filenames, the
+500 code-line ceiling (tests exempt), and that the lefthook config is `.yml`.
+Fix the code, do not silence the lint.
 
 ## Hard conventions
 
@@ -43,7 +46,10 @@ is `.yml`. Fix the code, do not silence the lint.
    surface. Tests use real inputs — **no mock-data tests**.
 6. **Doc line on every public item and module.** `///` on every `pub` fn, struct,
    enum, trait, and field; `//!` at the top of every module. `missing_docs` is on.
-7. **Docs in sync.** A change to a user-facing surface (CLI flags, public API,
+7. **No dead code.** Delete unused items or connect them to a real entry point.
+   Cargo sets `dead_code = "deny"`; `lint-suppressions` rejects
+   `#[allow(dead_code)]` and `#![allow(dead_code)]`.
+8. **Docs in sync.** A change to a user-facing surface (CLI flags, public API,
    config) updates the prose that describes it (README, this file) in the same
    change.
 
@@ -54,6 +60,8 @@ is `.yml`. Fix the code, do not silence the lint.
   `#[cfg(test)] #[path = "tests/….rs"] mod tests;` include is the only exception.
 - **No `unsafe`.** `unsafe_code = "forbid"` in `Cargo.toml`. If a crate genuinely
   needs it, that is a design decision — raise it, don't silently relax the lint.
+- **No `#![allow(dead_code)]`.** Dead code is deleted or wired into a real entry
+  point; the independent guardrail rejects opting out.
 - **No `.unwrap()` / `.expect()`** outside tests and the `main` bootstrap. Return
   `Result` and propagate with `?`. Use `thiserror` for library error types,
   `anyhow` for the binary's top level.

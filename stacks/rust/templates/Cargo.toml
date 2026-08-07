@@ -10,6 +10,7 @@ edition = "2024"
 # Groups get a negative `priority` so the individual lines beneath them win.
 [lints.rust]
 unsafe_code = "forbid"
+dead_code = "deny"
 missing_docs = "warn"
 
 [lints.clippy]
