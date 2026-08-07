@@ -4,14 +4,14 @@
 
 **Goal:** Make every generated Rust and TypeScript project reject dead code and the escape hatches that currently hide it.
 
-**Architecture:** Rust uses Cargo's non-lowerable forbid level. TypeScript keeps compiler, Oxlint, and Knip coverage, removes the leading-underscore exemption, and gains an independent file-addressable check for dead-code suppression directives. Template validation exercises behavior across all five current TypeScript stacks, including database-ts.
+**Architecture:** Rust uses Cargo's deny level plus an independent ban on source-authored allow(dead_code) attributes; forbid cannot be used because rustc's generated test harness injects its own allow(dead_code). TypeScript keeps compiler, Oxlint, and Knip coverage, removes the leading-underscore exemption, and gains the same independent file-addressable suppression check. Template validation exercises behavior across all five current TypeScript stacks, including database-ts.
 
 **Tech Stack:** Bash, Cargo/rustc/clippy, TypeScript, Oxlint 1.77.0, Knip, jq, GitHub Actions.
 
 ## Global Constraints
 
 - Delete dead code or wire it into a real entry point; do not rename or suppress it.
-- Rust must reject #![allow(dead_code)]; deny is insufficient because source can lower it.
+- Rust uses dead_code = "deny" and the independent guardrail rejects source-authored #[allow(dead_code)] and #![allow(dead_code)].
 - TypeScript retains noUnusedLocals, noUnusedParameters, typescript/no-unused-vars, and Knip.
 - Legitimate framework entry points remain documented Knip configuration.
 - Reject active blanket Oxlint disables and disables naming no-unused-vars, but not unrelated named suppressions.
@@ -33,7 +33,7 @@
 
 **Interfaces:**
 - Consumes: the validator's materialized tmpcrate.
-- Produces: dead_code = "forbid" on every Cargo target and a behavioral probe for #![allow(dead_code)].
+- Produces: dead_code = "deny" on every Cargo target, a behavioral unused-item probe, and a normal all-targets test harness that stays green.
 
 - [ ] **Step 1: Add the failing test**
 
@@ -41,14 +41,14 @@ After the normal Rust skeleton check in scripts/validate-templates.sh, add:
 
 ~~~bash
 mkdir -p "$tmpcrate/src/bin"
-printf '#![allow(dead_code)]\nfn unused() {}\nfn main() {}\n' \
+printf 'fn unused() {}\nfn main() {}\n' \
   > "$tmpcrate/src/bin/dead-code-probe.rs"
 probe_output=$(cd "$tmpcrate" \
   && CARGO_NET_OFFLINE=true cargo check --bin dead-code-probe 2>&1)
 probe_status=$?
 if [ "$probe_status" -eq 0 ]; then
-  bad 'rust dead-code policy: #![allow(dead_code)] compiled successfully'
-elif ! printf '%s\n' "$probe_output" | grep -q 'overruled by previous forbid'; then
+  bad 'rust dead-code policy: an unused function compiled successfully'
+elif ! printf '%s\n' "$probe_output" | grep -q 'function .* is never used'; then
   bad "rust dead-code policy failed for an unexpected reason: $probe_output"
 fi
 rm -rf "$tmpcrate/src/bin"
@@ -58,30 +58,30 @@ rm -rf "$tmpcrate/src/bin"
 
 Run: bash scripts/validate-templates.sh
 
-Expected: exit 1 with “#![allow(dead_code)] compiled successfully.”
+Expected: exit 1 with “an unused function compiled successfully.”
 
 - [ ] **Step 3: Implement the minimum**
 
 Add this under lints.rust in stacks/rust/templates/Cargo.toml:
 
 ~~~toml
-dead_code = "forbid"
+dead_code = "deny"
 ~~~
 
 Keep cargo clippy --all-targets -- -D warnings for the remaining warnings.
 
 - [ ] **Step 4: Update Rust documentation**
 
-- STRUCTURE: add a No dead code hard convention and name forbid.
-- SETUP: distinguish manifest-level forbid from -D warnings and correct the current claim that Clippy merely flags dead code.
+- STRUCTURE: add a No dead code hard convention and name Cargo deny plus the independent attribute check.
+- SETUP: distinguish manifest-level deny from -D warnings, explain why forbid breaks the generated test harness, and correct the current claim that Clippy merely flags dead code.
 - LIBRARIES: distinguish Cargo rust lints from Clippy lints.
-- CLAUDE template: say delete/connect unused items and never add allow(dead_code).
+- CLAUDE template: say delete/connect unused items and never add allow(dead_code); name the guardrail that enforces the attribute ban.
 
 - [ ] **Step 5: Verify GREEN**
 
 Run: bash scripts/validate-templates.sh
 
-Expected: GREEN and the probe fails specifically because a previous forbid overrules allow.
+Expected: GREEN; the deliberate unused-item probe fails under Cargo deny and the ordinary all-targets skeleton passes.
 
 - [ ] **Step 6: Commit**
 
@@ -89,7 +89,7 @@ Expected: GREEN and the probe fails specifically because a previous forbid overr
 git add scripts/validate-templates.sh stacks/rust/templates/Cargo.toml \
   stacks/rust/STRUCTURE.md stacks/rust/SETUP.md stacks/rust/LIBRARIES.md \
   stacks/rust/templates/CLAUDE.md.template
-git commit -m "feat(rust): forbid dead code"
+git commit -m "feat(rust): deny dead code"
 ~~~
 
 ---
@@ -223,7 +223,7 @@ git commit -m "feat(typescript): reject all unused code"
 
 **Interfaces:**
 - Consumes: gr_violation plus repo/file/hook/stop dispatch.
-- Produces: check id lint-suppressions and gr_check_lint_suppressions with one violation per file.
+- Produces: check id lint-suppressions and gr_check_lint_suppressions with one violation per file across TS/JS directives and Rust allow(dead_code) attributes.
 
 - [ ] **Step 1: Add failing fixtures**
 
@@ -238,6 +238,7 @@ In run-fixtures.sh add lint-suppressions to ALL_CHECKS and assert:
 
 - the committed fixture reports one violation in repo and --file modes;
 - a scratch active blanket // oxlint-disable reports;
+- a scratch Rust #[allow(dead_code)] and #![allow(dead_code)] each report;
 - // Explain oxlint-disable typescript/no-unused-vars here. stays silent;
 - --list now returns 14.
 
@@ -256,10 +257,11 @@ Create lint-suppressions.sh with these boundaries:
 ~~~bash
 GR_LS_BLANKET='^[[:space:]]*(//|/\*)[[:space:]]*oxlint-disable(-next-line|-line)?([[:space:]]*(\*/)?[[:space:]]*|[[:space:]]+--.*)$'
 GR_LS_UNUSED='^[[:space:]]*(//|/\*)[[:space:]]*oxlint-disable(-next-line|-line)?.*[[:space:],]((typescript|@typescript-eslint)/)?no-unused-vars([[:space:],*]|$)'
+GR_LS_RUST_UNUSED='^[[:space:]]*#!?\[[[:space:]]*allow[[:space:]]*\([^)]*dead_code[^)]*\)[[:space:]]*\]'
 
 gr_ls_source() {
   case "$1" in
-    *.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs) return 0 ;;
+    *.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs|*.rs) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -269,7 +271,8 @@ gr_ls_scan() {
   path=$1
   gr_ls_source "$path" || return 0
   [ -f "$path" ] || return 0
-  match=$(grep -E -I -n -m1 -e "$GR_LS_BLANKET" -e "$GR_LS_UNUSED" -- "$path")
+  match=$(grep -E -I -n -m1 -e "$GR_LS_BLANKET" -e "$GR_LS_UNUSED" \
+    -e "$GR_LS_RUST_UNUSED" -- "$path")
   status=$?
   [ "$status" -le 1 ] || gr_fatal "lint-suppressions scan failed on $path: grep exited $status"
   [ -n "$match" ] || return 0
@@ -291,13 +294,15 @@ gr_ls_scan_repo() {
   find . \( -name .git -o -name node_modules -o -name dist -o -name build \
               -o -name out -o -name coverage -o -name .wrangler -o -name .next \) -prune \
     -o -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mts' -o -name '*.cts' \
-                   -o -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \) \
+                   -o -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \
+                   -o -name '*.rs' \) \
     -print0 > "$list"
   if [ -s "$list" ]; then
     xargs -0 sh -c '
-      p1=$1; p2=$2; shift 2
-      grep -E -I -l -Z -e "$p1" -e "$p2" -- "$@" || [ $? -eq 1 ]
-    ' sh "$GR_LS_BLANKET" "$GR_LS_UNUSED" < "$list" > "$hits" 2> "$err"
+      p1=$1; p2=$2; p3=$3; shift 3
+      grep -E -I -l -Z -e "$p1" -e "$p2" -e "$p3" -- "$@" || [ $? -eq 1 ]
+    ' sh "$GR_LS_BLANKET" "$GR_LS_UNUSED" "$GR_LS_RUST_UNUSED" \
+      < "$list" > "$hits" 2> "$err"
     status=$?
     errtext=$(cat "$err")
     [ -z "$errtext" ] && [ "$status" -eq 0 ] || {
@@ -352,7 +357,7 @@ Expected: all pass; 14 ids; latency within budget.
 - guardrails README: 13→14, remaining eight→nine, all thirteen→all fourteen; add database-ts to TS lists; explain independent ownership.
 - CORE: explain this owns the escape hatch, not duplicate unused detection.
 - how-it-works.html: Fourteen checks, a passing lint-suppressions row, updated ownership prose.
-- conventions.html: name TS local/parameter checks, Knip graph checks, Rust forbid, and no suppression.
+- conventions.html: name TS local/parameter checks, Knip graph checks, Rust deny plus the attribute guardrail, and no suppression.
 - Do not rewrite dated specs/decisions.
 
 - [ ] **Step 7: Commit**
@@ -386,7 +391,7 @@ rg -n -i \
   stacks/*/{STRUCTURE.md,SETUP.md,LIBRARIES.md} stacks/*/templates/CLAUDE.md.template
 ~~~
 
-Inspect every hit. Current docs must agree on Rust forbid, TS ownership, no underscore/suppression escape, 14 shell checks, six plugin rules, and database-ts membership. Fix current docs; leave dated history alone.
+Inspect every hit. Current docs must agree on Rust deny plus the attribute guardrail (and the rustc test-harness reason forbid is not used), TS ownership, no underscore/suppression escape, 14 shell checks, six plugin rules, and database-ts membership. Fix current docs; leave dated history alone.
 
 - [ ] **Step 2: Verify config directly**
 
@@ -398,7 +403,7 @@ for stack in backend-ts console database-ts expo marketing; do
     "stacks/$stack/templates/base.oxlintrc.json" >/dev/null
   diff lint/base.oxlintrc.json "stacks/$stack/templates/base.oxlintrc.json"
 done
-grep -F 'dead_code = "forbid"' stacks/rust/templates/Cargo.toml
+grep -F 'dead_code = "deny"' stacks/rust/templates/Cargo.toml
 bash guardrails/run.sh --list
 ~~~
 
@@ -452,7 +457,7 @@ Invoke superpowers:requesting-code-review. Resolve findings and rerun focused pl
 
 - [ ] **Step 2: Open PR**
 
-Invoke github:yeet to confirm commits, push feat/no-dead-code, and open a draft PR against main. Summarize Rust forbid, TS three-layer enforcement, independent suppression check, docs drift fixes, and exact test results.
+Invoke github:yeet to confirm commits, push feat/no-dead-code, and open a draft PR against main. Summarize Rust deny plus the attribute ban, TS three-layer enforcement, independent suppression check, docs drift fixes, and exact test results.
 
 - [ ] **Step 3: Babysit**
 

@@ -133,12 +133,17 @@ Inherited from CORE, stated here in Rust terms — enforced by the `[lints]` tab
    it; the only exemptions are colocated/crate-root test modules (with an
    explicit `#[allow(...)]`) and fail-fast startup.
 4. **No `unsafe`.** `unsafe_code = "forbid"`.
-5. **No stray `println!` debugging** — `println!` is for real program stdout;
+5. **No dead code.** Cargo's `dead_code = "deny"` rejects unused items; the
+   independent `lint-suppressions` guardrail rejects `#[allow(dead_code)]` and
+   `#![allow(dead_code)]`. Delete the item or connect it to a real entry point.
+   `forbid` is not used because Rust's generated test harness injects its own
+   `allow(dead_code)` and would make `cargo clippy --all-targets` fail.
+6. **No stray `println!` debugging** — `println!` is for real program stdout;
    diagnostics go through `eprintln!` or `tracing`.
-6. **Prefer fallible conversions.** No silent truncating `as` casts — use
+7. **Prefer fallible conversions.** No silent truncating `as` casts — use
    `TryFrom`/`try_into` and handle the error (pedantic clippy flags the risky
    casts).
-7. **Docs in sync.** Touch a user-facing surface (CLI flags, public API, config),
+8. **Docs in sync.** Touch a user-facing surface (CLI flags, public API, config),
    update the prose describing it (`README.md`, `CLAUDE.md`) in the same change.
 
 ## LLM-indexability strategy

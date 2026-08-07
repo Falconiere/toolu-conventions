@@ -13,10 +13,13 @@ an ignored form or silence the diagnostic.
 
 ### Rust
 
-Set `dead_code = "forbid"` in the Rust template's `[lints.rust]` table. Although
-the policy is commonly described as “deny dead code,” Rust's `deny` level can be
-lowered by `#![allow(dead_code)]`. `forbid` is required to make that attribute a
-compiler error and therefore satisfies the no-suppression requirement.
+Set `dead_code = "deny"` in the Rust template's `[lints.rust]` table. Rust's
+`forbid` level would normally prevent a source attribute from lowering the
+lint, but it is incompatible with `rustc --test`: Rust's generated test harness
+injects its own `allow(dead_code)`, so `cargo clippy --all-targets` fails before
+it reaches project code. The independent suppression guardrail therefore
+rejects source-authored `#[allow(dead_code)]` and `#![allow(dead_code)]` while
+Cargo's `deny` level rejects the dead item itself.
 
 The existing `cargo clippy --all-targets -- -D warnings` gate remains in place
 for the rest of the warning surface.
@@ -38,10 +41,10 @@ exemptions from the canonical Oxlint base and propagate that byte-identical base
 to every TypeScript stack.
 
 Add an independent guardrail for source comments that disable the unused-code
-lint, including blanket Oxlint disable directives. It must reject only active
-lint directives, not documentation that discusses them. This check cannot be
-implemented as another Oxlint rule because the same directive could disable
-that rule too.
+lint, including blanket Oxlint disable directives, and for Rust attributes that
+allow `dead_code`. It must reject only active directives/attributes, not
+documentation that discusses them. This check cannot be implemented as another
+Oxlint rule because the same directive could disable that rule too.
 
 Existing Knip entries and narrowly documented ignores for framework-generated
 or non-TypeScript-consumed assets remain valid: an entry point or a tool
@@ -53,8 +56,10 @@ remedy for a genuine unused-code finding.
 Tests and template validation will prove the policy rather than only inspecting
 configuration text:
 
-- A Rust probe containing `#![allow(dead_code)]` fails under the shipped lint
-  level.
+- A Rust probe containing an unused item fails under the shipped `deny` level,
+  while the normal `--all-targets` test harness remains green.
+- Rust source containing `#[allow(dead_code)]` or `#![allow(dead_code)]` fails
+  the independent suppression guardrail.
 - TypeScript with an unused underscore-prefixed declaration fails the shipped
   Oxlint configuration.
 - TypeScript source that disables the unused-variable rule, or uses a blanket
@@ -74,7 +79,9 @@ After implementation, audit `CORE.md`, each Rust and TypeScript stack's
 `STRUCTURE.md`, `SETUP.md`, `LIBRARIES.md`, and generated `CLAUDE.md` guidance.
 Update every statement affected by the new enforcement, including:
 
-- Rust uses `forbid`, not a warning promoted only by `-D warnings`.
+- Rust uses Cargo `deny` plus an independent source-attribute guardrail, not a
+  warning promoted only by `-D warnings`; `forbid` is intentionally avoided
+  because it breaks Rust's generated test harness.
 - Leading underscores are not an accepted TypeScript unused-code escape hatch.
 - Dead code is deleted or wired into a real entry point, never suppressed.
 - Knip remains responsible for graph-level dead code and its legitimate
