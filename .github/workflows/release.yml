@@ -52,23 +52,13 @@ jobs:
           private-key: ${{ secrets.HOMEBREW_APP_PRIVATE_KEY }}
 
       # On PRs, prove the App is installed and the secrets resolve — without
-      # using the token for the dry-run (dry-run never pushes). Also print
-      # the numeric App id so protect-main can list it as a bypass actor.
+      # using the token for the dry-run (dry-run never pushes).
       - name: Verify publish App token
-        id: verify-app
         if: github.event_name == 'pull_request'
         uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.HOMEBREW_APP_ID }}
           private-key: ${{ secrets.HOMEBREW_APP_PRIVATE_KEY }}
-
-      - name: Report App id for ruleset bypass
-        if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ steps.verify-app.outputs.token }}
-        run: |
-          app_id="$(gh api "repos/${GITHUB_REPOSITORY}/installation" --jq .app_id)"
-          echo "all-app-release app_id=${app_id}"
 
       - name: Checkout
         uses: actions/checkout@v4
