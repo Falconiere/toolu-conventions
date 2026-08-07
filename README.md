@@ -8,6 +8,7 @@ same structure, tooling, and guard rails every time — across six stacks.
 
 [![CI](https://github.com/Falconiere/toolu-conventions/actions/workflows/ci.yml/badge.svg)](./.github/workflows/ci.yml)
 [![Code Review](https://github.com/Falconiere/toolu-conventions/actions/workflows/code-review.yml/badge.svg)](./.github/workflows/code-review.yml)
+[![Release](https://github.com/Falconiere/toolu-conventions/actions/workflows/release.yml/badge.svg)](./.github/workflows/release.yml)
 [![Guide](https://img.shields.io/badge/guide-GitHub%20Pages-0b7285)](https://falconiere.github.io/toolu-conventions/)
 [![Stacks](https://img.shields.io/badge/stacks-6-333)](#the-six-stacks)
 
@@ -235,6 +236,22 @@ bash guardrails/__tests__/run-latency.sh
 ```
 
 Specs, plans, and decision records live in [`docs/toolu/`](./docs/toolu/).
+
+### Releases
+
+Merges to `main` cut a release automatically via [`.github/workflows/release.yml`](./.github/workflows/release.yml)
+([semantic-release](https://semantic-release.gitbook.io/)). Version bumps follow Conventional
+Commits (`feat` → minor, `fix` → patch, `BREAKING CHANGE` / `type!:` → major). Commits that
+are only `docs` / `chore` / `ci` / `refactor` / `test` do not publish a release.
+
+Each release:
+
+- tags `vX.Y.Z` and creates a [GitHub Release](https://github.com/Falconiere/toolu-conventions/releases)
+- prepends notes to [`CHANGELOG.md`](./CHANGELOG.md) and commits it back (`[skip ci]`)
+- does **not** publish to npm — this kit is not a registry package
+
+The blockquotes below are the pre-automation history. New entries live in `CHANGELOG.md` and
+the GitHub Releases page.
 
 ---
 

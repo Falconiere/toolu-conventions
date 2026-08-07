@@ -1,0 +1,65 @@
+# Cut a GitHub Release + tag + CHANGELOG.md on every push to main that
+# carries releasable Conventional Commits (feat / fix / BREAKING).
+#
+# Docs-only, chore, and ci commits do not cut a release — semantic-release
+# exits 0 with nothing published. The kit itself is not an npm package, so
+# nothing is published to a registry.
+#
+# PRs get a dry-run so a broken .releaserc / missing plugin fails the gate
+# before merge rather than on the first release attempt.
+#
+# semantic-release 25 requires Node ^22.14 || >=24.10 — Bun installs the
+# toolchain, Node runs it (the version check reads process.version).
+name: Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # tag + GitHub Release + push CHANGELOG.md
+      issues: write # comment on released issues
+      pull-requests: write # comment on released PRs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.14"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install release toolchain
+        run: bun install --frozen-lockfile
+
+      - name: Release (dry-run on PRs)
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx --no-install semantic-release --dry-run
+
+      - name: Release
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx --no-install semantic-release
