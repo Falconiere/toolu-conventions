@@ -1,3 +1,20 @@
+# [0.5.0](https://github.com/Falconiere/toolu-conventions/compare/v0.4.0...v0.5.0) (2026-08-07)
+
+
+### Bug Fixes
+
+* address operations review findings ([c18d5cd](https://github.com/Falconiere/toolu-conventions/commit/c18d5cd1e019b8d1ee50835aabf2c58074bcae05))
+* enforce operations manifest boundaries ([5907f91](https://github.com/Falconiere/toolu-conventions/commit/5907f91e4fd5345551895776603d9d8210f80a91))
+* harden secret staging and service startup ([7213180](https://github.com/Falconiere/toolu-conventions/commit/7213180a363656ef7f0df16cfb0e035d3892d1a2))
+* harden tunnel token handoff ([0128ee7](https://github.com/Falconiere/toolu-conventions/commit/0128ee79e1f4f5344bf98677bc335da02e622d93))
+* keep tunnel failures scoped ([eca0ffa](https://github.com/Falconiere/toolu-conventions/commit/eca0ffa9797474838b2182c15e7cfe3499765e3f))
+* verify local supervisor ownership ([63ba292](https://github.com/Falconiere/toolu-conventions/commit/63ba292b8a10bd3021dce29e74cef336d86d1049))
+
+
+### Features
+
+* add operations conventions and skills ([180edb7](https://github.com/Falconiere/toolu-conventions/commit/180edb760abf7657e0ec4b0171a9b7a9a6cd2c48))
+
 # [0.4.0](https://github.com/Falconiere/toolu-conventions/compare/v0.3.0...v0.4.0) (2026-08-07)
 
 
