@@ -545,5 +545,72 @@ else
   if [[ -n "$connector_pid" ]]; then kill "$connector_pid" 2>/dev/null || true; fi
 fi
 
+jq 'del(.infisical, .cloudflare)
+  | del(.services[0].secretsTarget, .services[0].localHostname, .services[0].healthcheck)
+  | .services[0].port = 39992
+  | .services[0].command = "shopt -q login_shell || exec sleep 30"' \
+  "$FIXTURES/valid-backend.json" >"$generated/non-login-start.json"
+"$generated/scripts/operations/dev/start.sh" \
+  --config "$generated/non-login-start.json" >"$TEST_TMP/non-login-start.out" 2>&1 &
+start_pid=$!
+sleep 1.5
+if kill -0 "$start_pid" 2>/dev/null; then
+  ok "local services do not run in a login shell"
+else
+  not_ok "local services do not run in a login shell"
+fi
+kill "$start_pid" 2>/dev/null || true
+wait "$start_pid" 2>/dev/null || true
+
+foreign_start_port=39994
+python3 -m http.server "$foreign_start_port" --bind 127.0.0.1 >"$TEST_TMP/foreign-start.log" 2>&1 &
+foreign_start_pid=$!
+for _ in $(seq 1 20); do
+  [[ -n "$(dev_ports::listeners "$foreign_start_port")" ]] && break
+  sleep 0.1
+done
+jq --argjson port "$foreign_start_port" 'del(.infisical, .cloudflare)
+  | del(.services[0].secretsTarget, .services[0].localHostname, .services[0].healthcheck)
+  | .services[0].port = $port
+  | .services[0].command = "exec sleep 30"' \
+  "$FIXTURES/valid-backend.json" >"$generated/foreign-port-start.json"
+if "$generated/scripts/operations/dev/start.sh" \
+    --config "$generated/foreign-port-start.json" >"$TEST_TMP/foreign-port-start.out" 2>&1; then
+  not_ok "local start fails when a foreign process owns a port"
+elif kill -0 "$foreign_start_pid" 2>/dev/null; then
+  ok "local start fails without signalling a foreign port owner"
+else
+  not_ok "local start fails without signalling a foreign port owner"
+fi
+kill "$foreign_start_pid" 2>/dev/null || true
+wait "$foreign_start_pid" 2>/dev/null || true
+
+jq 'del(.infisical, .cloudflare)
+  | del(.services[0].secretsTarget, .services[0].localHostname, .services[0].healthcheck)
+  | .services[0].port = 39995
+  | .services[0].command = "exec sleep 30"' \
+  "$FIXTURES/valid-backend.json" >"$generated/fingerprint-start.json"
+"$generated/scripts/operations/dev/start.sh" \
+  --config "$generated/fingerprint-start.json" >"$TEST_TMP/fingerprint-start.out" 2>&1 &
+supervisor_pid=$!
+supervisor_state="$generated/.tooling/operations/dev.pids"
+for _ in $(seq 1 30); do [[ -s "$supervisor_state" ]] && break; sleep 0.1; done
+service_record="$(sed -n '1p' "$supervisor_state")"
+service_pid="${service_record%%|*}"
+printf '%s|reused-process-fingerprint\n' "$service_pid" >"$supervisor_state"
+for _ in $(seq 1 30); do
+  kill -0 "$supervisor_pid" 2>/dev/null || break
+  sleep 0.1
+done
+if ! kill -0 "$supervisor_pid" 2>/dev/null && kill -0 "$service_pid" 2>/dev/null; then
+  ok "local supervisor detects PID reuse without signalling the replacement"
+else
+  not_ok "local supervisor detects PID reuse without signalling the replacement"
+fi
+kill "$supervisor_pid" 2>/dev/null || true
+wait "$supervisor_pid" 2>/dev/null || true
+kill "$service_pid" 2>/dev/null || true
+wait "$service_pid" 2>/dev/null || true
+
 printf '\n%s passed, %s failed\n' "$passed" "$failed"
 [[ "$failed" -eq 0 ]]

@@ -19,7 +19,9 @@ state_file="$state_dir/dev.pids"
 mkdir -p "$state_dir"
 
 dev_ports::stop_owned "$state_file"
-while IFS= read -r port; do dev_ports::assert_available "$port" "$state_file"; done < <(jq -r '.services[].port' "$CONFIG_FILE")
+while IFS= read -r port; do
+  dev_ports::assert_available "$port" "$state_file" || exit 1
+done < <(jq -r '.services[].port' "$CONFIG_FILE")
 : >"$state_file"
 
 cleanup() {
@@ -42,7 +44,7 @@ if jq -e 'has("infisical")' "$CONFIG_FILE" >/dev/null; then
 fi
 
 while IFS=$'\t' read -r name command; do
-  (cd "$PROJECT_ROOT" && exec bash -lc "$command") &
+  (cd "$PROJECT_ROOT" && exec bash -c "$command") &
   pid=$!
   printf '%s|%s\n' "$pid" "$(dev_ports::fingerprint "$pid")" >>"$state_file"
   echo "dev: started $name (pid $pid)"
@@ -71,9 +73,13 @@ if jq -e 'has("cloudflare")' "$CONFIG_FILE" >/dev/null; then
 fi
 
 while :; do
+  # The state file is immutable during this pass; is_owned opens a separate
+  # descriptor only to compare the same recorded fingerprint.
+  # shellcheck disable=SC2094
   while IFS= read -r record || [[ -n "$record" ]]; do
     pid="${record%%|*}"
-    kill -0 "$pid" 2>/dev/null || { echo "dev: pid $pid exited; stopping the stack" >&2; exit 1; }
+    dev_ports::is_owned "$pid" "$state_file" \
+      || { echo "dev: pid $pid exited or its process fingerprint changed; stopping the stack" >&2; exit 1; }
   done <"$state_file"
   sleep 1
 done
