@@ -20,9 +20,12 @@ injects its own `allow(dead_code)`, so `cargo clippy --all-targets` fails before
 it reaches project code. The independent suppression guardrail therefore
 rejects source-authored direct and `cfg_attr` `allow(dead_code)` attributes,
 including crate-level and multiline forms. Comments inside an attribute cannot
-hide the lint name. The lexical scanner ignores comments and string contents
-before matching Rust attribute syntax, while Cargo's `deny` level rejects the
-dead item itself.
+hide the lint name, nor can the equivalent raw-identifier spellings of
+`cfg_attr`, `allow`, or `dead_code`. Equivalent `allow(unused)`,
+`warn(dead_code|unused)`, and `expect(dead_code|unused)` attributes are rejected
+too because they lower or consume the same diagnostic. The lexical scanner
+ignores comments, strings, and character literals before matching Rust
+attribute syntax, while Cargo's `deny` level rejects the dead item itself.
 
 The existing `cargo clippy --all-targets -- -D warnings` gate remains in place
 for the rest of the warning surface.
@@ -51,9 +54,10 @@ Add an independent guardrail for source comments that disable the unused-code
 lint, including blanket Oxlint disable directives, and for Rust attributes that
 allow `dead_code`. It must reject only active directives/attributes, not
 documentation that discusses them. A stateful lexical pass distinguishes real
-JavaScript comments from quoted/template text and real Rust attributes from
-comments, normal strings, and raw strings. This check cannot be implemented as
-another Oxlint rule because the same directive could disable that rule too.
+JavaScript comments from quoted/template or rendered JSX text and real Rust
+attributes from comments, normal/raw strings, and character literals. This
+check cannot be implemented as another Oxlint rule because the same directive
+could disable that rule too.
 
 Existing Knip entries and narrowly documented ignores for framework-generated
 or non-TypeScript-consumed assets remain valid: an entry point or a tool
@@ -68,14 +72,17 @@ configuration text:
 - A Rust probe containing an unused item fails under the shipped `deny` level,
   while the normal `--all-targets` test harness remains green.
 - Rust source containing direct, crate-level, conditional `cfg_attr`, multiline,
-  or comment-formatted `allow(dead_code)` fails the independent suppression
-  guardrail; attribute text in a raw string stays silent.
+  comment-formatted, or raw-identifier-spelled `allow(dead_code)` fails the
+  independent suppression guardrail. The same is true for `allow(unused)` and
+  `warn`/`expect` attributes targeting `dead_code` or `unused`; attribute text in
+  comments, strings, and character literals stays silent.
 - TypeScript with an unused underscore-prefixed declaration fails the shipped
   Oxlint configuration.
 - TypeScript source that disables the unused-variable rule, or uses a blanket
   Oxlint disable directive, fails the independent guardrail.
-- Directive text inside a TypeScript template literal stays silent because it
-  is documentation rather than an active lint comment.
+- Directive text inside a TypeScript string, template literal, or rendered JSX
+  text stays silent because it is documentation rather than an active lint
+  comment; a real comment inside a JSX expression still fails.
 - Clean fixtures and the freshly materialized templates continue to pass.
 - Template validation asserts that all TypeScript stacks retain
   `noUnusedLocals`, `noUnusedParameters`, the canonical Oxlint base, and Knip in

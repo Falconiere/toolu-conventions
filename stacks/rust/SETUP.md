@@ -194,8 +194,9 @@ cargo fmt --check && cargo clippy --all-targets -- -D warnings && bash scripts/g
 
 `dead_code = "deny"` in `Cargo.toml` rejects unused Rust items, while the
 independent `lint-suppressions` guardrail rejects source-authored
-direct and `cfg_attr` `allow(dead_code)` attributes, including crate-level and
-multiline forms. `forbid` is deliberately not used: Rust's generated test
+direct and `cfg_attr` lint-level attributes that lower or consume `dead_code`
+directly or through `unused`, including crate-level, multiline, and
+raw-identifier forms. `forbid` is deliberately not used: Rust's generated test
 harness injects its own `allow(dead_code)`, so it
 would break `cargo clippy --all-targets` before checking project code.
 Separately, `-D warnings` promotes every remaining clippy `warn` (pedantic group, `missing_docs`,

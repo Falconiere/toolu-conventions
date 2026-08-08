@@ -135,8 +135,9 @@ Inherited from CORE, stated here in Rust terms — enforced by the `[lints]` tab
 4. **No `unsafe`.** `unsafe_code = "forbid"`.
 5. **No dead code.** Cargo's `dead_code = "deny"` rejects unused items; the
    independent `lint-suppressions` guardrail rejects direct and `cfg_attr`
-   `allow(dead_code)` attributes, including crate-level and multiline forms.
-   Delete the item or connect it to a real entry point.
+   attributes that lower or consume `dead_code` directly or through `unused`,
+   including crate-level, multiline, and raw-identifier forms. Delete the item
+   or connect it to a real entry point.
    `forbid` is not used because Rust's generated test harness injects its own
    `allow(dead_code)` and would make `cargo clippy --all-targets` fail.
 6. **No stray `println!` debugging** — `println!` is for real program stdout;
