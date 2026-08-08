@@ -25,7 +25,7 @@ picks the version compatible with your SDK.
 | Validation | `zod` (v4) | Every boundary: env, parsed responses, forms, storage. Types come from `z.infer`. |
 | Testing | `jest` + `jest-expo` + `@testing-library/react-native` | Unit/component tests, real data. |
 | Lint / format | `oxlint` + `oxfmt` (+ `oxlint-tsgolint` for type-aware) | Fast Rust tooling. |
-| Dead code / unused deps | `knip` | Gate step. Fails on an unused file, export, or dependency. |
+| Dead code / unused deps | TypeScript + oxlint + `knip` | Compiler and lint reject unused locals/parameters (including `_name`); knip rejects unused files, exports, and dependencies. |
 | Copy-paste detection | `jscpd` | Gate step, `threshold: 0` + `exitCode: 1`. |
 | Git hooks | `lefthook` | Pre-commit lint + format. |
 

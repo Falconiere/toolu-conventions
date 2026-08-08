@@ -22,7 +22,7 @@ Install with **`bun add`** (runtime) / **`bun add -d`** (dev).
 | HTTP framework | `hono` | Tiny, fast, Web-standard `Request`/`Response`. Built for this runtime; a Hono app *is* a valid Worker handler. |
 | Typed API surface | `@orpc/server` | Procedures with Zod input **and** output schemas, mounted at `/rpc` via the fetch adapter. Our own clients are typed from these declarations. |
 | Validation | `zod` (v4) | Every boundary: bindings, procedure input/output, webhook payloads. Types come from `z.infer`. |
-| Dead code / unused deps | `knip` (dev) | Gate step. Fails on an unused file, export, or dependency. |
+| Dead code / unused deps | TypeScript + oxlint + `knip` (dev) | Compiler and lint reject unused locals/parameters (including `_name`); knip rejects unused files, exports, and dependencies. |
 | Copy-paste detection | `jscpd` (dev) | Gate step, `threshold: 0` + `exitCode: 1`. |
 | Runtime + deploy | `wrangler` (dev) | Runs the real runtime locally (`wrangler dev`), generates `Env` types, deploys, and manages secrets. |
 | Package manager | `bun` | Install and script runner. **Not** the runtime and **not** the test runner here — those are workerd and Vitest. |

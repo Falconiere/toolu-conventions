@@ -79,6 +79,10 @@ barrel files, `lefthook.yml`). A violation fails the gate.
 
 - `as any`, `: any`, `as unknown as T` → use `unknown` + type guards.
 - `console.log`, `debugger` → use `console.warn` / `console.error`.
+- **An unused local or parameter, including `_name`** → TypeScript/oxlint fails
+  the gate. Delete it or use it; never add an ignore pattern.
+- **An unused export, file, or dependency** → knip fails the gate. Delete it or
+  wire it into the module graph.
 - **Barrel files** (an `index.ts` that only re-exports) → import the concrete
   file. **Sanctioned exception:** `app/**` route files re-export a feature screen
   as a default export (Expo Router requires it) — that is the only place a

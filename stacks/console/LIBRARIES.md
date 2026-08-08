@@ -22,7 +22,7 @@ committed; CI installs with `--frozen-lockfile`.
 | API client | `@orpc/client` + `@orpc/tanstack-query` | The typed client for our own API, plus its Query bindings. Query keys derive from the procedure path — no key factory to write. |
 | Validation | `zod` (v4) | Every boundary: env, any response this app parses itself, form schemas. Types come from `z.infer`. |
 | Styling | `tailwindcss` (v4) + `@tailwindcss/vite` | **The** styling system, not an option. CSS-first: the design tokens are `@theme` blocks in `src/ui/theme/*.css`, so there is no `tailwind.config.js` and no TS token file. `tailwindcss` is in `knip.json`'s `ignoreDependencies` on purpose — nothing imports it from TypeScript (`globals.css` does, and knip does not follow CSS), so without the entry knip fails the gate on a dependency the app cannot run without. |
-| Dead code / unused deps | `knip` | Gate step. Fails on an unused file, export, or dependency. |
+| Dead code / unused deps | TypeScript + oxlint + `knip` | Compiler and lint reject unused locals/parameters (including `_name`); knip rejects unused files, exports, and dependencies. |
 | Copy-paste detection | `jscpd` | Gate step, `threshold: 0` + `exitCode: 1`. |
 | Fonts | `@fontsource-variable/archivo` + `@fontsource-variable/jetbrains-mono` | The two families the design language names, self-hosted — no runtime request to Google. |
 | Testing | `vitest` + `@testing-library/react` + `@testing-library/jest-dom` + `@testing-library/user-event` + `jsdom` | Component tests in a jsdom environment. |

@@ -174,10 +174,13 @@ blocked-patterns list.
     and outputs, webhook payloads, anything parsed. `type X = z.infer<typeof X>`
     — never an interface declared beside a schema (CORE rule 13). — enforced by
     `no-restricted-imports` (competing validation libraries) + review.
-11. **Nothing unused, nothing duplicated.** `knip` fails the gate on an unused
-    file, export, or dependency; `jscpd` fails it on copy-paste. — enforced by
-    `knip.json` and `.jscpd.json` (`threshold: 0` is what fails the gate;
-    `exitCode: 1` covers the case where the threshold is later raised).
+11. **Nothing unused, nothing duplicated.** TypeScript and oxlint reject unused
+    locals and parameters, including names prefixed with `_`; `knip` rejects an
+    unused file, export, or dependency; `jscpd` rejects copy-paste. Delete or
+    wire dead code instead of suppressing the checks. — enforced by
+    `noUnusedLocals`, `noUnusedParameters`, `eslint/no-unused-vars`, `knip.json`,
+    and `.jscpd.json` (`threshold: 0` fails the duplication gate;
+    `exitCode: 1` covers a later threshold).
 12. **Secrets never enter `wrangler.jsonc`,** and `.dev.vars` is never committed.
     — enforced by `guardrails` (fails if git tracks `.dev.vars`).
 13. **Co-locate tests** in a sibling `__tests__/`: `health-service.ts` →

@@ -19,7 +19,7 @@ libSQL and Drizzle ecosystems ship.
 | Validation | `zod` (v4) | The config boundary. Types from `z.infer`. |
 | Testing | `vitest` (≥4.1) + `@cloudflare/vitest-pool-workers` | Boots workerd from this package's `wrangler.jsonc`, with no Worker entry needed. |
 | Runtime tooling | `wrangler` (dev) | Loads `.dev.vars` for the test pool. This package never deploys. |
-| Dead code | `knip` (dev) | Configured at the workspace root, with this package's `exports` targets as its entries — a library with no `src/index.ts` would otherwise read as entirely unused. |
+| Dead code / unused deps | TypeScript + oxlint + `knip` (dev) | Compiler and lint reject unused locals/parameters (including `_name`). Knip is configured at the workspace root, with this package's `exports` targets as its entries — a library with no `src/index.ts` would otherwise read as entirely unused. |
 | Lint / format | `oxlint` + `oxfmt` | Including the house plugin's `no-module-scope-database`. |
 
 ### Picking the right libSQL entry

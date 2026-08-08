@@ -94,7 +94,7 @@ in the project's `CLAUDE.md` is not optional.
 | API between our own apps | **oRPC** (`@orpc/server` / `@orpc/client`) | Procedures with Zod input *and* output schemas; the client is typed from the same declaration, so the contract cannot drift. Served at `/rpc`. |
 | Server state on the client | **TanStack Query** (`@tanstack/react-query`) + `@orpc/tanstack-query` | `orpc.<procedure>.queryOptions(...)` — query keys derive from the procedure path, so there is no key factory to hand-write and none to get wrong. |
 | Forms on the client | **TanStack Form** (`@tanstack/react-form`) + Zod | One form library across console and expo. Pass Zod schemas directly via Standard Schema (`validators: { onChange: schema }`) — **do not** add `@tanstack/zod-form-adapter` (deprecated). Prefer the same Zod schema as the matching oRPC input when fields align. |
-| Dead code + unused deps | **knip** | Part of the gate. An unused export or a dependency nobody imports fails the build, which is what keeps "lean" true over time instead of aspirational. |
+| Dead code + unused deps | **TypeScript + oxlint + knip** | Part of the gate. The compiler and `eslint/no-unused-vars` reject unused locals and parameters; knip rejects unused files, exports, and dependencies. An underscore prefix is not an exemption. |
 | Copy-paste detection | **jscpd** | Part of the gate, at `threshold: 0` with `exitCode: 1`. Duplication is the failure mode the size ceilings push you toward if nothing is watching. |
 | Package manager | **bun** | Install and scripts. Note it is *not* the runtime for the Workers stacks. |
 | Styling | **TailwindCSS** on every web surface | Console and marketing both. Not an opt-in and not a per-project question: utilities only, one `src/ui/globals.css`, tokens as `@theme` blocks in `src/ui/theme/*.css`. No CSS Modules, no CSS-in-JS, no Astro scoped `<style>`, no `style` object, and no `tailwind.config.js` (v4 is CSS-first). **Expo is the exception, not a precedent:** React Native has no cascade, so native keeps `StyleSheet.create` + the TS token files — that pattern never comes back to web. |
@@ -184,6 +184,10 @@ two numbers drift apart, and how an `oxlint-disable` silences half a rule.
   `no-new-func`, and `no-script-url` on every stack, plus `react/no-danger` on
   the two React stacks (console, expo) — `dangerouslySetInnerHTML` needs an
   explicit inline disable, not a config change, to be used at all.
+  It also enforces `eslint/no-unused-vars` with an explicit empty options object,
+  which rejects every unused local and parameter, including names prefixed with
+  `_`; every TypeScript config also enables `noUnusedLocals` and
+  `noUnusedParameters` as a second compiler-level check.
 - **The rule set itself is shared, not five copies drifting apart.** It ships
   from the kit as `lint/base.oxlintrc.json` (+ `lint/base-react.oxlintrc.json`
   for the two React stacks) and is copied byte-identically into every stack's
@@ -235,12 +239,16 @@ deliberately violate the gate to test it — and is not hand-edited; change
 no other enforcer. The TypeScript stacks carry no ast-grep dependency at all:
 their pattern rules run inside oxlint.
 
-Two of the gate steps exist to keep the codebase from rotting quietly:
+Two parts of the gate work together to keep the codebase from rotting quietly:
 
-- **knip** (`knip.json`) fails on an unused file, an unused export, or a
-  dependency nothing imports. The no-barrel rule is what makes it accurate —
-  with no re-export layer to hide behind, an export that nothing uses is
-  genuinely dead.
+- **Dead-code enforcement is layered by scope.** TypeScript's
+  `noUnusedLocals`/`noUnusedParameters` and oxlint's `eslint/no-unused-vars`
+  reject unused locals and parameters; the oxlint rule uses an explicit empty
+  options object so `_name` is still dead code, not an escape hatch. **knip**
+  (`knip.json`) handles the module graph and fails on an unused file, export, or
+  dependency. The no-barrel rule is what makes knip accurate — with no re-export
+  layer to hide behind, an export that nothing uses is genuinely dead. Delete or
+  wire unused code; do not add ignore patterns to keep it.
 - **jscpd** (`.jscpd.json`) fails on copy-paste. It ships with `"threshold": 0`
   **and `"exitCode": 1`**, and the division of labour between them is worth
   knowing: `threshold: 0` is what fails the gate — any clone exceeds it, so

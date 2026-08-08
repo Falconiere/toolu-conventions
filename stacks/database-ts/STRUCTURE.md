@@ -126,7 +126,12 @@ These inherit CORE. Each names its enforcer; `(review)` means no machine check.
 11. **Tests run in workerd against real Turso.** No mock client. —
     `vitest.config.ts` for the runtime, (review) for the mock rule.
 12. **No `any`.** — `typescript/no-explicit-any`.
-13. **`max-lines: 300`**, code lines only. — `max-lines`.
+13. **Nothing unused.** TypeScript and oxlint reject unused locals and
+    parameters, including names prefixed with `_`; root-level knip rejects an
+    unused file, export, or dependency. Delete or wire dead code instead of
+    suppressing the checks. — `noUnusedLocals`, `noUnusedParameters`,
+    `eslint/no-unused-vars`, and `knip.json`.
+14. **`max-lines: 300`**, code lines only. — `max-lines`.
 
 ## Testing
 

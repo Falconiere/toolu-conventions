@@ -16,6 +16,10 @@ bad() { printf 'FAIL %s\n' "$*"; fail=1; }
 # stops being validated. `__tests__/` is deliberately absent — it is a
 # violating-by-design fixture tree, and shipping it would trip the gate it tests.
 GR_MANIFEST='run.sh lib checks patterns schema.json oxlint-plugin'
+# One current inventory for every assertion that claims to cover all
+# TypeScript stacks. database-ts joined after the original four; spelling the
+# list once prevents new-stack drift from silently skipping a lint layer.
+TS_STACKS='console marketing backend-ts database-ts expo'
 
 # --- JSON (comment-free by rule; jq is the validator). shared/ is in the search
 #     path alongside stacks/*/templates: shared/.claude/settings.json ships to
@@ -541,7 +545,7 @@ done
 #     matters only above threshold 0, where jscpd stops throwing and without the
 #     key reports clones and exits 0. Required here so the pair stays correct if
 #     a project ever relaxes the threshold. ---
-for stack in console marketing backend-ts expo; do
+for stack in $TS_STACKS; do
   [ -f "stacks/$stack/templates/knip.json" ] \
     || bad "stack '$stack' is missing templates/knip.json"
   jscpd_cfg="stacks/$stack/templates/.jscpd.json"
@@ -733,7 +737,7 @@ done
 
 # --- lint-base sync: lint/ is the single source; every TS stack ships a
 #     byte-identical copy. Same contract as guardrails/, same failure it ends.
-for stack in console marketing backend-ts expo; do
+for stack in $TS_STACKS; do
   for item in base.oxlintrc.json .oxfmtrc.json; do
     diff "lint/$item" "stacks/$stack/templates/$item" >/dev/null 2>&1 \
       || bad "lint-base: $stack copy of $item differs from lint/ — re-copy, don't hand-edit"
@@ -746,9 +750,36 @@ for stack in console expo; do
     || bad "lint-base: $stack .oxlintrc.json does not extend ./base-react.oxlintrc.json"
 done
 # No non-react stack may ship or extend the react layer.
-for stack in marketing backend-ts; do
+for stack in marketing backend-ts database-ts; do
   [ -e "stacks/$stack/templates/base-react.oxlintrc.json" ] \
     && bad "lint-base: $stack ships base-react.oxlintrc.json but declares no react plugin"
+done
+
+# Dead-code enforcement is deliberately layered. tsc/astro catches local
+# declarations and parameters, Oxlint closes the underscore exemption, and
+# Knip owns the project graph (files, exports and dependencies). Losing any one
+# leaves a class of unused code invisible while the full gate still looks wired.
+for stack in $TS_STACKS; do
+  jq -e \
+    '.compilerOptions.noUnusedLocals == true and .compilerOptions.noUnusedParameters == true' \
+    "stacks/$stack/templates/tsconfig.json" >/dev/null \
+    || bad "dead-code: $stack must enable noUnusedLocals and noUnusedParameters"
+  # database-ts ships a complete package manifest; the other stack kits have
+  # the scaffolder add scripts from the SETUP.md manifest block. Validate the
+  # actual source each scaffold uses instead of assuming one storage shape.
+  if [ -f "stacks/$stack/templates/package.json" ]; then
+    jq -e \
+      '.scripts["check:unused"] == "knip" and (.scripts.check | contains("check:unused"))' \
+      "stacks/$stack/templates/package.json" >/dev/null \
+      || bad "dead-code: $stack must run knip in its full check gate"
+  else
+    grep -q '"check:unused": "knip"' "stacks/$stack/SETUP.md" \
+      && grep -q '"check": .*check:unused' "stacks/$stack/SETUP.md" \
+      || bad "dead-code: $stack setup must add knip to its full check gate"
+  fi
+  jq -e '.rules["eslint/no-unused-vars"] == ["error", {}]' \
+    "stacks/$stack/templates/base.oxlintrc.json" >/dev/null \
+    || bad "dead-code: $stack must reject every unused variable without name exemptions"
 done
 # The kit source must parse too (the copies are covered by the JSON sweep above).
 for f in lint/*.json lint/.oxfmtrc.json; do

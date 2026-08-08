@@ -208,6 +208,12 @@ Set the `package.json` scripts:
 `.astro` frontmatter and templates, and it is what keeps this stack honest about
 the CORE no-`any` rule inside components.
 
+Dead code has no naming escape hatch. `noUnusedLocals` and
+`noUnusedParameters` provide compiler coverage, oxlint's
+`eslint/no-unused-vars` rejects every unused local or parameter (including
+`_name`), and knip checks the module graph for unused files, exports, and
+dependencies. Delete or wire the code; do not add an ignore pattern.
+
 ---
 
 ## Phase 3 — Create the folder structure

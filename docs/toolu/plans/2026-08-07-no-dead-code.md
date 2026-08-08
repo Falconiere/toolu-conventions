@@ -12,7 +12,7 @@
 
 - Delete dead code or wire it into a real entry point; do not rename or suppress it.
 - Rust uses dead_code = "deny" and the independent guardrail rejects source-authored #[allow(dead_code)] and #![allow(dead_code)].
-- TypeScript retains noUnusedLocals, noUnusedParameters, typescript/no-unused-vars, and Knip.
+- TypeScript retains noUnusedLocals, noUnusedParameters, eslint/no-unused-vars, and Knip.
 - Legitimate framework entry points remain documented Knip configuration.
 - Reject active blanket Oxlint disables and disables naming no-unused-vars, but not unrelated named suppressions.
 - lint/base.oxlintrc.json remains canonical and every TS stack copy stays byte-identical.
@@ -107,7 +107,7 @@ git commit -m "feat(rust): deny dead code"
 
 **Interfaces:**
 - Consumes: canonical lint base, TS configs/package scripts, real Oxlint suite.
-- Produces: typescript/no-unused-vars = error without ignore patterns and validation of all five TS stacks.
+- Produces: eslint/no-unused-vars = ["error", {}], whose empty options object disables Oxlint's intrinsic underscore default, plus validation of all five TS stacks.
 
 - [ ] **Step 1: Add the failing behavior test**
 
@@ -121,7 +121,7 @@ printf 'const _unused = 1;\nexport const live = (_dead: string) => 1;\n' \
   > "$TREE/src/utilities/unused.ts"
 unused_out=$(cd "$TREE" && $OXLINT src/utilities/unused.ts 2>&1)
 unused_status=$?
-unused_count=$(printf '%s\n' "$unused_out" | grep -c 'typescript(no-unused-vars)' || true)
+unused_count=$(printf '%s\n' "$unused_out" | grep -c 'eslint(no-unused-vars)' || true)
 if [ "$unused_status" -ne 0 ] && [ "$unused_count" -eq 2 ]; then
   ok 'canonical lint rejects underscore-prefixed unused locals and parameters'
 else
@@ -141,8 +141,11 @@ Expected: the new assertion gets zero rather than two diagnostics.
 
 Replace the option array in lint/base.oxlintrc.json with:
 
+Oxlint's bare rule form defaults varsIgnorePattern to ^_. Keep an options object
+but remove both explicit ignore patterns:
+
 ~~~json
-"typescript/no-unused-vars": "error"
+"eslint/no-unused-vars": ["error", {}]
 ~~~
 
 Synchronize:
@@ -171,7 +174,7 @@ for stack in $TS_STACKS; do
   jq -e '.scripts["check:unused"] == "knip" and (.scripts.check | contains("check:unused"))' \
     "stacks/$stack/templates/package.json" >/dev/null \
     || bad "dead-code: $stack must run knip in its full gate"
-  jq -e '.rules["typescript/no-unused-vars"] == "error"' \
+  jq -e '.rules["eslint/no-unused-vars"] == ["error", {}]' \
     "stacks/$stack/templates/base.oxlintrc.json" >/dev/null \
     || bad "dead-code: $stack must reject unused variables without name exemptions"
 done
@@ -230,7 +233,7 @@ git commit -m "feat(typescript): reject all unused code"
 Create:
 
 ~~~ts
-// oxlint-disable-next-line typescript/no-unused-vars
+// oxlint-disable-next-line eslint/no-unused-vars
 const unused = 1;
 ~~~
 
@@ -239,7 +242,7 @@ In run-fixtures.sh add lint-suppressions to ALL_CHECKS and assert:
 - the committed fixture reports one violation in repo and --file modes;
 - a scratch active blanket // oxlint-disable reports;
 - a scratch Rust #[allow(dead_code)] and #![allow(dead_code)] each report;
-- // Explain oxlint-disable typescript/no-unused-vars here. stays silent;
+- // Explain oxlint-disable eslint/no-unused-vars here. stays silent;
 - --list now returns 14.
 
 Expected message: unused-code lint suppression — delete the dead code or wire it into a real entry point; do not disable the unused-code lint.
@@ -256,7 +259,7 @@ Create lint-suppressions.sh with these boundaries:
 
 ~~~bash
 GR_LS_BLANKET='^[[:space:]]*(//|/\*)[[:space:]]*oxlint-disable(-next-line|-line)?([[:space:]]*(\*/)?[[:space:]]*|[[:space:]]+--.*)$'
-GR_LS_UNUSED='^[[:space:]]*(//|/\*)[[:space:]]*oxlint-disable(-next-line|-line)?.*[[:space:],]((typescript|@typescript-eslint)/)?no-unused-vars([[:space:],*]|$)'
+GR_LS_UNUSED='^[[:space:]]*(//|/\*)[[:space:]]*oxlint-disable(-next-line|-line)?.*[[:space:],]((eslint|typescript|@typescript-eslint)/)?no-unused-vars([[:space:],*]|$)'
 GR_LS_RUST_UNUSED='^[[:space:]]*#!?\[[[:space:]]*allow[[:space:]]*\([^)]*dead_code[^)]*\)[[:space:]]*\]'
 
 gr_ls_source() {
@@ -399,7 +402,7 @@ Inspect every hit. Current docs must agree on Rust deny plus the attribute guard
 for stack in backend-ts console database-ts expo marketing; do
   jq -e '.compilerOptions.noUnusedLocals == true and .compilerOptions.noUnusedParameters == true' \
     "stacks/$stack/templates/tsconfig.json" >/dev/null
-  jq -e '.rules["typescript/no-unused-vars"] == "error"' \
+  jq -e '.rules["eslint/no-unused-vars"] == ["error", {}]' \
     "stacks/$stack/templates/base.oxlintrc.json" >/dev/null
   diff lint/base.oxlintrc.json "stacks/$stack/templates/base.oxlintrc.json"
 done
