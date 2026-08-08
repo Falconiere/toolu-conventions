@@ -60,7 +60,9 @@ includes regex literal escape/class state inside JSX and template expressions
 and full-source generic-arrow lookahead with regex/comment states. Control-header
 parentheses distinguish consequent regex statements from division, so braces,
 parentheses, multiline parameters, or TSX type parameters cannot corrupt the
-comment context. Regex detection otherwise uses comment-free lexical context to
+comment context. Statement keywords such as `do` and `else` are also regex
+boundaries, while property methods that share a keyword name are not. Regex
+detection otherwise uses comment-free lexical context to
 distinguish division after ordinary, postfix, and completed-regex expressions,
 including when block-comment trivia intervenes. This check cannot be implemented as another Oxlint rule
 because the same directive could disable that rule too.
@@ -95,7 +97,8 @@ configuration text:
   boundaries; ordinary, postfix, non-null, and
   completed-regex division are not mistaken for regex literals, even across
   block-comment trivia. Regex consequents after `if`, `while`, `for`, or `with`
-  conditions remain regexes in both normal scanning and generic-arrow defaults.
+  conditions and after `do` or `else` remain regexes in both normal scanning
+  and generic-arrow defaults; member calls such as `object.if()` remain values.
 - Clean fixtures and the freshly materialized templates continue to pass.
 - Template validation asserts that all TypeScript stacks retain
   `noUnusedLocals`, `noUnusedParameters`, the canonical Oxlint base, and Knip in

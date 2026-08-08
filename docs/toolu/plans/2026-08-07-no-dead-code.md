@@ -248,7 +248,7 @@ In run-fixtures.sh add lint-suppressions to ALL_CHECKS and assert:
 - directive/attribute text inside TypeScript strings, rendered JSX text, and Rust comments/strings/character literals stays silent, while real JSX/template expression comments report even after brace-bearing regex literals;
 - standard, const, and defaulted TSX generic arrows remain code context, division is not mistaken for a regex, and later directives report;
 - multiline generic parameters containing regex classes or comments, including trivia around parameter boundaries, remain code context; postfix increment/decrement, non-null, and completed-regex division keep later directives visible even when block-comment trivia intervenes;
-- regex consequents after control-header parentheses remain regex context in ordinary TSX and generic-arrow defaults;
+- regex consequents after control-header parentheses or `do`/`else` remain regex context in ordinary TSX and generic-arrow defaults, while keyword-named property calls keep following division in code context;
 - multiline Rust attributes balance nested macro brackets before deciding the outer attribute has ended;
 - a missing or incomplete lexical helper exits through the controlled fatal path instead of running without enforcement;
 - // Explain oxlint-disable eslint/no-unused-vars here. stays silent;
@@ -271,8 +271,9 @@ Create lint-suppressions.sh with these boundaries:
   Keep JSX/template expression comments visible by lexing regex escapes and
   character classes without confusing ordinary or postfix-expression division,
   including division separated from its left operand by block-comment trivia;
-  track control-header parentheses so their consequent regex statements remain
-  regex context.
+  track token-bounded control headers and statement keywords so consequent
+  regex statements remain regex context without treating `object.if()` as a
+  control statement.
   Disambiguate TSX generic arrows across the full remaining source through the
   closing type parameters, regex/comment-aware value parameters, and `=>`. Reject blanket
   eslint/oxlint disables and rule lists containing any supported

@@ -149,10 +149,13 @@ text and from Rust comments, strings, or character literals, so documentation
 examples remain legal. JSX/template expressions remain executable context even
 when regex literals contain braces, and TSX generic arrows are not mistaken for
 markup, including multiline parameter lists with regexes or comments around
-their boundaries. A comment-free lexical context keeps ordinary, postfix-expression, and
-completed-regex division as code even when block-comment trivia intervenes; a
-control-parenthesis stack keeps consequent regex statements in regex context. A
-scoped disable for an unrelated rule is still available.
+their boundaries. A comment-free lexical context keeps ordinary,
+postfix-expression, and completed-regex division as code even when block-comment
+trivia intervenes; a control-parenthesis stack keeps consequent regex statements
+in regex context. A
+token-boundary check extends that handling to `do` and `else` without confusing
+keyword-named property methods such as `object.if()`. A scoped disable for an
+unrelated rule is still available.
 
 ## What differs per stack
 

@@ -33,20 +33,26 @@ gr_ls_js_pop_brace() {
   GR_LS_JS_BRACE_DEPTH=${frame#*,}
 }
 
-gr_ls_js_is_control_paren() {
+gr_ls_js_after_keyword() {
   local prefix keyword before last
   prefix=$1
+  shift
   prefix=${prefix%"${prefix##*[![:space:]]}"}
-  for keyword in if while for with; do
+  for keyword in "$@"; do
     case "$prefix" in
       *"$keyword")
         before=${prefix%"$keyword"}
+        before=${before%"${before##*[![:space:]]}"}
         last=${before: -1}
-        [[ $last =~ [[:alnum:]_$] ]] || return 0
+        [[ $last =~ [[:alnum:]_$.] ]] || return 0
         ;;
     esac
   done
   return 1
+}
+
+gr_ls_js_is_control_paren() {
+  gr_ls_js_after_keyword "$1" if while for with
 }
 
 gr_ls_js_push_paren() {
@@ -272,8 +278,10 @@ gr_ls_js_starts_regex() {
     if [[ $last =~ [[:alnum:]_$] ]]; then return 1; fi
     case "$last" in ')'|']'|'}'|'"'|"'"|\`) return 1 ;; esac
   fi
+  gr_ls_js_after_keyword "$prefix" return case delete void typeof yield await \
+    throw else do instanceof in of && return 0
   case "$prefix" in
-    ''|*'=>'|*'return'|*'case'|*'delete'|*'void'|*'typeof'|*'yield'|*'await'|*'throw'|*'='|*'('|*'['|*'{'|*','|*':'|*'?'|*';'|*'!'|*'~'|*'+'|*'-'|*'*'|*'/'|*'%'|*'&'|*'|'|*'^') return 0 ;;
+    ''|*'=>'|*'='|*'('|*'['|*'{'|*','|*':'|*'?'|*';'|*'!'|*'~'|*'+'|*'-'|*'*'|*'/'|*'%'|*'&'|*'|'|*'^') return 0 ;;
     *) return 1 ;;
   esac
 }

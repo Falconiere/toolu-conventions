@@ -454,6 +454,20 @@ if tagged lint-suppressions; then
     && ok 'AC-23 a regex consequent cannot corrupt JSX expression depth' \
     || bad 'AC-23 regexes after control conditions must preserve JSX comments' "exit=$STATUS out=$out"
 
+  printf 'export const Example = (input: string) => <div>{(() => { do /}/.test(input); while (false); } /* oxlint-disable */)()}</div>;\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/jsx-do-regex-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/jsx-do-regex-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a regex after do cannot corrupt JSX expression depth' \
+    || bad 'AC-23 do consequents must preserve JSX comments' "exit=$STATUS out=$out"
+
+  printf 'export const Example = (ready: boolean, input: string) => <div>{(() => { if (ready) input.trim(); else /}/.test(input); } /* oxlint-disable */)()}</div>;\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/jsx-else-regex-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/jsx-else-regex-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a regex after else cannot corrupt JSX expression depth' \
+    || bad 'AC-23 else consequents must preserve JSX comments' "exit=$STATUS out=$out"
+
   printf 'export const example = `${/\\}/.test("}") /* oxlint-disable */}`;\nconst hidden = 1;\n' \
     > "$SC/src/utilities/template-regex-active-disable.ts"
   gr_in "$SC" --file src/utilities/template-regex-active-disable.ts; out=$OUT
@@ -524,6 +538,13 @@ if tagged lint-suppressions; then
     && ok 'AC-23 a completed regex value keeps following division visible' \
     || bad 'AC-23 division after a regex value must not consume directives' "exit=$STATUS out=$out"
 
+  printf 'const object = { if(value: number) { return value; } };\nexport const ratio = object.if(4) / 2 /* oxlint-disable */;\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/member-if-division-active-disable.ts"
+  gr_in "$SC" --file src/utilities/member-if-division-active-disable.ts; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a member named if does not create control context' \
+    || bad 'AC-23 property calls must keep following division visible' "exit=$STATUS out=$out"
+
   printf 'export const matches = <T,>(\n  value: T,\n  pattern = /[)]/,\n) => pattern.test(String(value));\nconst hidden = 1;// oxlint-disable-line no-unused-vars\n' \
     > "$SC/src/utilities/tsx-generic-regex-active-disable.tsx"
   gr_in "$SC" --file src/utilities/tsx-generic-regex-active-disable.tsx; out=$OUT
@@ -552,6 +573,20 @@ if tagged lint-suppressions; then
     && ok 'AC-23 a control-consequent regex cannot end generic parameters' \
     || bad 'AC-23 generic lookahead must parse regex after control conditions' "exit=$STATUS out=$out"
 
+  printf 'export const pair = <T,>(input: string, value: T, test = (() => { do /)/.test(input); while (false); })) => [value, test] as const;\nconst hidden = 1;// oxlint-disable-line no-unused-vars\n' \
+    > "$SC/src/utilities/tsx-generic-do-regex-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/tsx-generic-do-regex-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a do regex cannot end generic parameters' \
+    || bad 'AC-23 generic lookahead must parse regex after do' "exit=$STATUS out=$out"
+
+  printf 'export const pair = <T,>(ready: boolean, input: string, value: T, test = (() => { if (ready) input.trim(); else /)/.test(input); })) => [value, test] as const;\nconst hidden = 1;// oxlint-disable-line no-unused-vars\n' \
+    > "$SC/src/utilities/tsx-generic-else-regex-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/tsx-generic-else-regex-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 an else regex cannot end generic parameters' \
+    || bad 'AC-23 generic lookahead must parse regex after else' "exit=$STATUS out=$out"
+
   printf 'pub const NORMAL: &str = "#[allow(dead_code)]";\n/*\n#[allow(dead_code)]\n*/\npub const EXAMPLE: &str = r#"\n#[allow(dead_code)]\n"#;\n' \
     > "$SC/src/utilities/raw-string-documentation.rs"
   gr_in "$SC" --file src/utilities/raw-string-documentation.rs; out=$OUT
@@ -560,7 +595,7 @@ if tagged lint-suppressions; then
     || bad 'AC-23 Rust strings must not be mistaken for attributes' "exit=$STATUS out=$out"
 
   gr_in "$SC" --only lint-suppressions; out=$OUT
-  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 36 ] \
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 41 ] \
     && ! printf '%s\n' "$out" | grep -q 'template-documentation\|raw-string-documentation\|jsx-documentation\|jsx-arrow-documentation' \
     && ok 'AC-23 repo candidate scan reaches every active suppression form' \
     || bad 'AC-23 repo mode must find active forms without flagging strings' "exit=$STATUS out=$out"
