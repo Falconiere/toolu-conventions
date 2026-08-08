@@ -65,23 +65,45 @@ fi
 now_ms() { python3 -c 'import time; print(int(time.time()*1000))'; }
 
 fail=0
-measure() {
+measure_once() {
+  dir=$1
+  shift
+  start=$(now_ms)
+  (cd "$dir" && bash "$GR" "$@" >/dev/null 2>&1)
+  GR_LATENCY_ELAPSED=$(( $(now_ms) - start ))
+}
+
+measure_in() {
   label=$1
   budget=$2
-  shift 2
-  start=$(now_ms)
-  (cd "$TREE" && bash "$GR" "$@" >/dev/null 2>&1)
-  elapsed=$(( $(now_ms) - start ))
+  dir=$3
+  shift 3
+  measure_once "$dir" "$@"
+  elapsed=$GR_LATENCY_ELAPSED
+  samples=$elapsed
+  if [ "$elapsed" -gt "$budget" ]; then
+    # Shared CI hosts occasionally pause every process long enough to turn an
+    # otherwise healthy 150ms file check into 300ms. Retry only a failed sample
+    # and judge the median: one scheduling outlier cannot fail the gate, while
+    # two over-budget measurements still expose a real regression.
+    measure_once "$dir" "$@"; second=$GR_LATENCY_ELAPSED
+    measure_once "$dir" "$@"; third=$GR_LATENCY_ELAPSED
+    samples="$elapsed,$second,$third"
+    if [ "$elapsed" -gt "$second" ]; then swap=$elapsed; elapsed=$second; second=$swap; fi
+    if [ "$second" -gt "$third" ]; then swap=$second; second=$third; third=$swap; fi
+    if [ "$elapsed" -gt "$second" ]; then swap=$elapsed; elapsed=$second; second=$swap; fi
+    elapsed=$second
+  fi
   if [ "$elapsed" -le "$budget" ]; then
-    printf '  ok    %-12s %5sms (budget %sms)\n' "$label" "$elapsed" "$budget"
+    printf '  ok    %-12s %5sms (budget %sms; samples %s)\n' "$label" "$elapsed" "$budget" "$samples"
   else
-    printf '  FAIL  %-12s %5sms exceeds budget %sms\n' "$label" "$elapsed" "$budget"
+    printf '  FAIL  %-12s %5sms exceeds budget %sms (samples %s)\n' "$label" "$elapsed" "$budget" "$samples"
     fail=1
   fi
 }
 
-measure 'repo mode' "$REPO_BUDGET_MS"
-measure '--file' "$FILE_BUDGET_MS" --file src/features/domain-7/components/part-3.tsx
+measure_in 'repo mode' "$REPO_BUDGET_MS" "$TREE"
+measure_in '--file' "$FILE_BUDGET_MS" "$TREE" --file src/features/domain-7/components/part-3.tsx
 
 # ---------------------------------------------------------------- workspace
 #
@@ -89,7 +111,8 @@ measure '--file' "$FILE_BUDGET_MS" --file src/features/domain-7/components/part-
 # fresh jq config read that a single-root run does not. The budget does not get
 # to grow for that: the SAME 500 files are split across two packages, so this
 # measures the overhead of the split, not a bigger tree. If it regresses, the
-# dispatch is doing per-package work that belongs in the parent.
+# dispatch is serializing independent packages or doing per-package work that
+# belongs in the parent.
 WS=$(mktemp -d)
 trap 'rm -rf "$TREE" "$WS"' EXIT
 
@@ -126,22 +149,6 @@ ln -sf "$native" "$WS/packages/api/node_modules/.bin/ast-grep" 2>/dev/null || {
 
 ws_count=$(find "$WS/packages" -path '*/src/*' -type f | wc -l)
 printf 'workspace tree: %s files across 2 packages\n' "$ws_count"
-
-measure_in() {
-  label=$1
-  budget=$2
-  dir=$3
-  shift 3
-  start=$(now_ms)
-  (cd "$dir" && bash "$GR" "$@" >/dev/null 2>&1)
-  elapsed=$(( $(now_ms) - start ))
-  if [ "$elapsed" -le "$budget" ]; then
-    printf '  ok    %-12s %5sms (budget %sms)\n' "$label" "$elapsed" "$budget"
-  else
-    printf '  FAIL  %-12s %5sms exceeds budget %sms\n' "$label" "$elapsed" "$budget"
-    fail=1
-  fi
-}
 
 measure_in 'ws repo' "$REPO_BUDGET_MS" "$WS"
 measure_in 'ws --file' "$FILE_BUDGET_MS" "$WS" --file packages/api/src/features/domain-7/components/part-3.tsx

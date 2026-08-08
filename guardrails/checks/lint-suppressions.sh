@@ -181,37 +181,47 @@ gr_ls_scan() {
 # including untracked edits, while pruning dependencies and generated output.
 # Lists are NUL-delimited because filenames may contain spaces, colons, or
 # newlines; the rest of guardrails already makes the same path-safety promise.
+gr_ls_find_sources() {
+  local list kind
+  list=$1
+  kind=$2
+  if [ "$kind" = script ]; then
+    find . \
+      \( -path './.git' -o -path './node_modules' -o -path './dist' \
+         -o -path './build' -o -path './out' -o -path './coverage' \
+         -o -path './.wrangler' -o -path './.next' -o -path './.expo' \
+         -o -path './target' -o -path './vendor' \) -prune \
+      -o -type f \
+      \( -name '*.ts' -o -name '*.tsx' -o -name '*.mts' -o -name '*.cts' \
+         -o -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \
+         -o -name '*.astro' \) -print0 > "$list"
+  else
+    find . \
+      \( -path './.git' -o -path './node_modules' -o -path './dist' \
+         -o -path './build' -o -path './out' -o -path './coverage' \
+         -o -path './.wrangler' -o -path './.next' -o -path './.expo' \
+         -o -path './target' -o -path './vendor' \) -prune \
+      -o -type f -name '*.rs' -print0 > "$list"
+  fi
+}
+
 gr_ls_repo_lists() {
-  local script_list rust_list path inventory errfile status errtext
+  local script_list rust_list errfile status errtext
   script_list=$1
   rust_list=$2
-  inventory=$(mktemp)
   errfile=$(mktemp)
-  find . \
-    \( -path './.git' -o -path './node_modules' -o -path './dist' \
-       -o -path './build' -o -path './out' -o -path './coverage' \
-       -o -path './.wrangler' -o -path './.next' -o -path './.expo' \
-       -o -path './target' -o -path './vendor' \) -prune \
-    -o -type f -print0 > "$inventory" 2>"$errfile"
+  gr_ls_find_sources "$script_list" script 2>"$errfile"
   status=$?
+  if [ "$status" -eq 0 ]; then
+    gr_ls_find_sources "$rust_list" rust 2>>"$errfile"
+    status=$?
+  fi
   if [ "$status" -ne 0 ] || [ -s "$errfile" ]; then
     errtext=$(cat "$errfile")
-    rm -f "$inventory" "$errfile"
+    rm -f "$errfile"
     gr_fatal "lint-suppressions source inventory failed: ${errtext:-find exited $status}"
   fi
   rm -f "$errfile"
-  while IFS= read -r -d '' path; do
-    path=${path#./}
-    # Match extensions inline: a helper call through command substitution would
-    # fork once per source file, adding almost a second on the latency tree.
-    case "$path" in
-      *.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs|*.astro)
-        printf '%s\0' "$path" >> "$script_list"
-        ;;
-      *.rs) printf '%s\0' "$path" >> "$rust_list" ;;
-    esac
-  done < "$inventory"
-  rm -f "$inventory"
 }
 
 # gr_ls_scan_batch <nul-list> <kind> — one grep process per language family,
@@ -235,6 +245,7 @@ gr_ls_scan_batch() {
     gr_fatal "lint-suppressions $kind repo scan failed: ${errtext:-batch exited $status}"
   fi
   while IFS= read -r -d '' path; do
+    path=${path#./}
     gr_ls_scan "$path"
   done < "$hitfile"
   rm -f "$hitfile"

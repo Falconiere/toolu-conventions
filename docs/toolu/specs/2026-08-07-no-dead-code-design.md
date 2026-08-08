@@ -59,8 +59,9 @@ attributes from comments, normal/raw strings, and character literals. This
 includes regex literal escape/class state inside JSX and template expressions
 and full-source generic-arrow lookahead with regex/comment states, so braces,
 parentheses, multiline parameters, or TSX type parameters cannot corrupt the
-comment context. Regex detection distinguishes division after ordinary and
-postfix expressions. This check cannot be implemented as another Oxlint rule
+comment context. Regex detection uses comment-free lexical context to
+distinguish division after ordinary, postfix, and completed-regex expressions,
+including when block-comment trivia intervenes. This check cannot be implemented as another Oxlint rule
 because the same directive could disable that rule too.
 
 Existing Knip entries and narrowly documented ignores for framework-generated
@@ -89,8 +90,10 @@ configuration text:
   comment; a real comment inside a JSX/template expression still fails when
   preceded by a brace-bearing regex. Standard, const, defaulted, and multiline
   TSX generic arrows keep later directives visible even when parameters contain
-  regex classes or comments with `)`; ordinary, postfix, and non-null division
-  are not mistaken for regex literals.
+  regex classes, comments with `)`, or comment trivia around their parameter
+  boundaries; ordinary, postfix, non-null, and
+  completed-regex division are not mistaken for regex literals, even across
+  block-comment trivia.
 - Clean fixtures and the freshly materialized templates continue to pass.
 - Template validation asserts that all TypeScript stacks retain
   `noUnusedLocals`, `noUnusedParameters`, the canonical Oxlint base, and Knip in

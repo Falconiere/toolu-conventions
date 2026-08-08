@@ -247,7 +247,7 @@ In run-fixtures.sh add lint-suppressions to ALL_CHECKS and assert:
 - Rust allow(unused), warn(dead_code), expect(dead_code), and conditional expect(unused) each report because they also neutralize dead_code;
 - directive/attribute text inside TypeScript strings, rendered JSX text, and Rust comments/strings/character literals stays silent, while real JSX/template expression comments report even after brace-bearing regex literals;
 - standard, const, and defaulted TSX generic arrows remain code context, division is not mistaken for a regex, and later directives report;
-- multiline generic parameters containing regex classes or comments remain code context; postfix increment/decrement and non-null division also keep later directives visible;
+- multiline generic parameters containing regex classes or comments, including trivia around parameter boundaries, remain code context; postfix increment/decrement, non-null, and completed-regex division keep later directives visible even when block-comment trivia intervenes;
 - a missing or incomplete lexical helper exits through the controlled fatal path instead of running without enforcement;
 - // Explain oxlint-disable eslint/no-unused-vars here. stays silent;
 - --list now returns 14.
@@ -267,7 +267,8 @@ Create lint-suppressions.sh with these boundaries:
 - Lex TypeScript/JavaScript strings, template literals, and rendered JSX text
   before parsing real line comments and single- or multiline block comments.
   Keep JSX/template expression comments visible by lexing regex escapes and
-  character classes without confusing ordinary or postfix-expression division.
+  character classes without confusing ordinary or postfix-expression division,
+  including division separated from its left operand by block-comment trivia.
   Disambiguate TSX generic arrows across the full remaining source through the
   closing type parameters, regex/comment-aware value parameters, and `=>`. Reject blanket
   eslint/oxlint disables and rule lists containing any supported
@@ -282,8 +283,9 @@ Create lint-suppressions.sh with these boundaries:
 - File mode scans in Bash without child processes. Repo mode uses one NUL-safe
   candidate grep per language family and reuses the syntax-aware file scanner
   only for hits, preserving one violation per file.
-- Inventory with foreground `find`, capture stderr/status, and exit 3 if the
-  tree cannot be traversed; a skipped subtree must never read as clean.
+- Inventory each language family with a foreground, extension-filtered `find`
+  instead of a per-source Bash loop; capture stderr/status and exit 3 if the
+  tree cannot be traversed, because a skipped subtree must never read as clean.
 - Include untracked source files so the Stop hook sees newly written
   suppressions before they are staged.
 
@@ -303,6 +305,10 @@ bash guardrails/__tests__/run-latency.sh
 ~~~
 
 Expected: all pass; 14 ids; latency within budget.
+An over-budget latency sample is retried twice and the median of the three
+samples decides the gate, preserving the budget without failing on one shared-host pause.
+Workspace repo dispatch runs its isolated package checks concurrently so a
+workspace pays the slowest package's cost rather than summing independent work.
 
 - [ ] **Step 6: Update public/guardrail docs**
 

@@ -475,6 +475,41 @@ if tagged lint-suppressions; then
     && ok 'AC-23 non-null postfix division keeps directives visible' \
     || bad 'AC-23 postfix ! must not turn division into a regex' "exit=$STATUS out=$out"
 
+  printf 'let counter = 1;\nexport const value = counter++ /* retain old value */ / 2 /* oxlint-disable */;\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/commented-postfix-division-active-disable.ts"
+  gr_in "$SC" --file src/utilities/commented-postfix-division-active-disable.ts; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 comment trivia after postfix increment keeps directives visible' \
+    || bad 'AC-23 comment trivia must not hide postfix division' "exit=$STATUS out=$out"
+
+  printf 'let counter = 1;\nexport const value = counter-- /* retain old value */ / 2 /* oxlint-disable */;\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/commented-postfix-decrement-active-disable.ts"
+  gr_in "$SC" --file src/utilities/commented-postfix-decrement-active-disable.ts; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 comment trivia after postfix decrement keeps directives visible' \
+    || bad 'AC-23 comment trivia must not hide postfix decrement division' "exit=$STATUS out=$out"
+
+  printf 'export const divide = (value: number | undefined) => value! /* checked */ / 2 /* oxlint-disable */;\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/commented-non-null-division-active-disable.ts"
+  gr_in "$SC" --file src/utilities/commented-non-null-division-active-disable.ts; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 comment trivia after non-null postfix keeps directives visible' \
+    || bad 'AC-23 comment trivia must not hide non-null division' "exit=$STATUS out=$out"
+
+  printf 'let counter = 1;\nexport const value = counter++ /* retain\nold value */ / 2 /* oxlint-disable */;\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/multiline-commented-postfix-division-active-disable.ts"
+  gr_in "$SC" --file src/utilities/multiline-commented-postfix-division-active-disable.ts; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 multiline comment trivia preserves postfix division context' \
+    || bad 'AC-23 multiline comment trivia must not hide postfix division' "exit=$STATUS out=$out"
+
+  printf 'export const ratio = /[}]/ /* completed regex */ / 2 /* oxlint-disable */;\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/regex-value-division-active-disable.ts"
+  gr_in "$SC" --file src/utilities/regex-value-division-active-disable.ts; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a completed regex value keeps following division visible' \
+    || bad 'AC-23 division after a regex value must not consume directives' "exit=$STATUS out=$out"
+
   printf 'export const matches = <T,>(\n  value: T,\n  pattern = /[)]/,\n) => pattern.test(String(value));\nconst hidden = 1;// oxlint-disable-line no-unused-vars\n' \
     > "$SC/src/utilities/tsx-generic-regex-active-disable.tsx"
   gr_in "$SC" --file src/utilities/tsx-generic-regex-active-disable.tsx; out=$OUT
@@ -489,6 +524,13 @@ if tagged lint-suppressions; then
     && ok 'AC-23 comment parens cannot corrupt generic lookahead' \
     || bad 'AC-23 generic parameter comments must remain code context' "exit=$STATUS out=$out"
 
+  printf 'export const identity = <T,>/* type boundary */(value: T)/* value boundary */=> value;\nconst hidden = 1;// oxlint-disable-line no-unused-vars\n' \
+    > "$SC/src/utilities/tsx-generic-boundary-comments-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/tsx-generic-boundary-comments-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 comments around generic parameters remain trivia' \
+    || bad 'AC-23 generic boundary comments must not create JSX context' "exit=$STATUS out=$out"
+
   printf 'pub const NORMAL: &str = "#[allow(dead_code)]";\n/*\n#[allow(dead_code)]\n*/\npub const EXAMPLE: &str = r#"\n#[allow(dead_code)]\n"#;\n' \
     > "$SC/src/utilities/raw-string-documentation.rs"
   gr_in "$SC" --file src/utilities/raw-string-documentation.rs; out=$OUT
@@ -497,7 +539,7 @@ if tagged lint-suppressions; then
     || bad 'AC-23 Rust strings must not be mistaken for attributes' "exit=$STATUS out=$out"
 
   gr_in "$SC" --only lint-suppressions; out=$OUT
-  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 27 ] \
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 33 ] \
     && ! printf '%s\n' "$out" | grep -q 'template-documentation\|raw-string-documentation\|jsx-documentation\|jsx-arrow-documentation' \
     && ok 'AC-23 repo candidate scan reaches every active suppression form' \
     || bad 'AC-23 repo mode must find active forms without flagging strings' "exit=$STATUS out=$out"

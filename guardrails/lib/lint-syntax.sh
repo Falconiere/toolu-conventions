@@ -13,6 +13,7 @@ gr_ls_script_syntax_reset() {
   GR_LS_JS_TAG_KIND=''
   GR_LS_JS_TAG_LAST=''
   GR_LS_JS_REGEX_CLASS=0
+  GR_LS_JS_CODE_CONTEXT=''
   case ${1-} in *.tsx|*.jsx|*.astro) GR_LS_JS_JSX_ENABLED=1 ;; *) GR_LS_JS_JSX_ENABLED=0 ;; esac
 }
 
@@ -54,7 +55,7 @@ gr_ls_js_skip_trivia() {
 }
 
 gr_ls_js_is_generic_arrow() {
-  local line i length char next previous after quote angle paren mode regex_class
+  local line i length char next previous after quote angle paren mode regex_class regex_context
   line=$1
   i=$(( $2 + 1 ))
   length=${#line}
@@ -116,16 +117,14 @@ gr_ls_js_is_generic_arrow() {
     i=$((i + 1))
   done
   [ "$angle" -eq 0 ] || return 1
-  while [ "$i" -lt "$length" ]; do
-    char=${line:i:1}
-    [ -z "${char//[[:space:]]/}" ] || break
-    i=$((i + 1))
-  done
+  gr_ls_js_skip_trivia "$line" "$i"
+  i=$GR_LS_JS_SCAN_INDEX
   [ "${line:i:1}" = '(' ] || return 1
   paren=1
   quote=''
   mode=code
   regex_class=0
+  regex_context='('
   i=$((i + 1))
   while [ "$i" -lt "$length" ] && [ "$paren" -gt 0 ]; do
     char=${line:i:1}
@@ -134,14 +133,17 @@ gr_ls_js_is_generic_arrow() {
       code)
         if [ "$char$next" = '//' ]; then mode=line_comment
         elif [ "$char$next" = '/*' ]; then mode=block_comment
-        elif [ "$char" = / ] && gr_ls_js_starts_regex "$line" "$i"; then
+        elif [ "$char" = / ] \
+          && gr_ls_js_starts_regex "${regex_context}/${next}" "${#regex_context}"; then
           mode=regex
           regex_class=0
+          regex_context=${regex_context}v
         else
           case "$char" in
-            "'"|'"'|\`) quote=$char; mode=quote ;;
-            '(') paren=$((paren + 1)) ;;
-            ')') paren=$((paren - 1)) ;;
+            "'"|'"'|\`) quote=$char; mode=quote; regex_context=${regex_context}v ;;
+            '(') paren=$((paren + 1)); regex_context=${regex_context}${char} ;;
+            ')') paren=$((paren - 1)); regex_context=${regex_context}${char} ;;
+            *) regex_context=${regex_context}${char} ;;
           esac
         fi
         ;;
@@ -151,7 +153,9 @@ gr_ls_js_is_generic_arrow() {
       block_comment)
         if [ "$char$next" = '*/' ]; then mode=code; i=$((i + 1)); fi
         ;;
-      line_comment) [ "$char" = $'\n' ] && mode=code ;;
+      line_comment)
+        if [ "$char" = $'\n' ]; then mode=code; regex_context=${regex_context}' '; fi
+        ;;
       regex)
         if [ "$char" = '\\' ]; then
           i=$((i + 1))
@@ -169,11 +173,8 @@ gr_ls_js_is_generic_arrow() {
     i=$((i + 1))
   done
   [ "$paren" -eq 0 ] || return 1
-  while [ "$i" -lt "$length" ]; do
-    char=${line:i:1}
-    [ -z "${char//[[:space:]]/}" ] || break
-    i=$((i + 1))
-  done
+  gr_ls_js_skip_trivia "$line" "$i"
+  i=$GR_LS_JS_SCAN_INDEX
   [ "${line:i:2}" = '=>' ]
 }
 
@@ -200,8 +201,10 @@ gr_ls_js_starts_jsx() {
 }
 
 # Division follows a completed value; a regex literal follows an expression
-# boundary. This is the same lexical distinction JavaScript parsers make, kept
-# deliberately conservative so ordinary `a / b` remains code.
+# boundary. Callers pass code-only context: whitespace and comments are trivia,
+# while completed strings, templates, regexes, and JSX nodes use a value token.
+# Keeping that context separately prevents a trailing `*/` from turning a
+# comment-separated division operator into a supposed regex literal.
 gr_ls_js_starts_regex() {
   local line offset next prefix before last
   line=$1
@@ -243,11 +246,12 @@ gr_ls_js_finish_root() {
 # replacing quoted/template text and rendered JSX text. Expressions inside
 # templates and JSX return to code, keeping real lint comments visible.
 gr_ls_script_syntax_line() {
-  local line i length char next output
+  local line i length char next output context regex_probe
   line=$1
   i=0
   length=${#line}
   output=''
+  context=$GR_LS_JS_CODE_CONTEXT
   while [ "$i" -lt "$length" ]; do
     char=${line:i:1}
     next=${line:i+1:1}
@@ -260,13 +264,17 @@ gr_ls_script_syntax_line() {
           output=${output}'/*'
           GR_LS_JS_STATE=block
           i=$((i + 2))
-        elif [ "$char" = / ] && gr_ls_js_starts_regex "$line" "$i"; then
+        elif [ "$char" = / ] \
+          && regex_probe="${context}/${next}" \
+          && gr_ls_js_starts_regex "$regex_probe" "${#context}"; then
           output="${output} "
           GR_LS_JS_STATE=regex
           GR_LS_JS_REGEX_CLASS=0
+          context=${context}v
           i=$((i + 1))
         elif [ "$char" = '<' ] && gr_ls_js_starts_jsx "$line" "$i"; then
           output="${output} "
+          context=${context}v
           i=$((i + 1))
           if [ "$next" = / ]; then
             output="${output} "
@@ -277,23 +285,25 @@ gr_ls_script_syntax_line() {
           fi
         else
           case "$char" in
-            "'") output="${output} "; GR_LS_JS_STATE=single; i=$((i + 1)) ;;
-            '"') output="${output} "; GR_LS_JS_STATE=double; i=$((i + 1)) ;;
-            \`) output="${output} "; GR_LS_JS_STATE=template; i=$((i + 1)) ;;
+            "'") output="${output} "; context=${context}v; GR_LS_JS_STATE=single; i=$((i + 1)) ;;
+            '"') output="${output} "; context=${context}v; GR_LS_JS_STATE=double; i=$((i + 1)) ;;
+            \`) output="${output} "; context=${context}v; GR_LS_JS_STATE=template; i=$((i + 1)) ;;
             '{')
               [ "$GR_LS_JS_BRACE_DEPTH" -gt 0 ] && GR_LS_JS_BRACE_DEPTH=$((GR_LS_JS_BRACE_DEPTH + 1))
               output=${output}${char}
+              context=${context}${char}
               i=$((i + 1))
               ;;
             '}')
               output=${output}${char}
+              context=${context}${char}
               i=$((i + 1))
               if [ "$GR_LS_JS_BRACE_DEPTH" -gt 0 ]; then
                 GR_LS_JS_BRACE_DEPTH=$((GR_LS_JS_BRACE_DEPTH - 1))
                 [ "$GR_LS_JS_BRACE_DEPTH" -eq 0 ] && gr_ls_js_pop_brace
               fi
               ;;
-            *) output=${output}${char}; i=$((i + 1)) ;;
+            *) output=${output}${char}; context=${context}${char}; i=$((i + 1)) ;;
           esac
         fi
         ;;
@@ -339,6 +349,7 @@ gr_ls_script_syntax_line() {
           i=$((i + 1))
         elif [ "$char$next" = '${' ]; then
           output="${output} "
+          context=${context}'{'
           i=$((i + 1))
           gr_ls_js_push_brace template
         elif [ "$char" = \` ]; then
@@ -358,6 +369,7 @@ gr_ls_script_syntax_line() {
             GR_LS_JS_TAG_KIND=close
           fi
         elif [ "$char" = '{' ]; then
+          context=${context}'{'
           gr_ls_js_push_brace jsx_text
         fi
         ;;
@@ -367,7 +379,7 @@ gr_ls_script_syntax_line() {
         case "$char" in
           "'") GR_LS_JS_STATE=jsx_single ;;
           '"') GR_LS_JS_STATE=jsx_double ;;
-          '{') gr_ls_js_push_brace jsx_tag ;;
+          '{') context=${context}'{'; gr_ls_js_push_brace jsx_tag ;;
           '>')
             if [ "$GR_LS_JS_TAG_KIND" = close ]; then
               GR_LS_JS_JSX_DEPTH=$((GR_LS_JS_JSX_DEPTH - 1))
@@ -395,6 +407,9 @@ gr_ls_script_syntax_line() {
   # JavaScript regex literals cannot cross a physical newline. Recover code
   # state on malformed input so one bad line cannot hide later directives.
   [ "$GR_LS_JS_STATE" = regex ] && GR_LS_JS_STATE=code
+  context=${context}' '
+  [ "${#context}" -gt 128 ] && context=${context: -128}
+  GR_LS_JS_CODE_CONTEXT=$context
   GR_LS_SANITIZED=$output
 }
 
