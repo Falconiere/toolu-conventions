@@ -1,3 +1,30 @@
+# [0.6.0](https://github.com/Falconiere/toolu-conventions/compare/v0.5.0...v0.6.0) (2026-08-08)
+
+
+### Bug Fixes
+
+* close dead-code enforcement bypasses ([4c20e6b](https://github.com/Falconiere/toolu-conventions/commit/4c20e6b8e9acc0e4b2750b526fdecdb70bab3e2d))
+* **guardrails:** close remaining suppression escapes ([5982117](https://github.com/Falconiere/toolu-conventions/commit/5982117284f9b881a6a1d0e3bd41315d64e95824))
+* **guardrails:** disambiguate TypeScript syntax ([82591c0](https://github.com/Falconiere/toolu-conventions/commit/82591c0efcffff5a6c3661cbbd24837917d3ce07))
+* **guardrails:** distinguish statement keyword context ([ddec0c2](https://github.com/Falconiere/toolu-conventions/commit/ddec0c2a81175a9c831546c874a3d2b11c3c66fe))
+* **guardrails:** fail closed on parser edge cases ([1e7caed](https://github.com/Falconiere/toolu-conventions/commit/1e7caed2748561bed1de64ed0637614a9d75f82b))
+* **guardrails:** parse suppression syntax accurately ([f8e0d4f](https://github.com/Falconiere/toolu-conventions/commit/f8e0d4f96035d95ecb8e0dab2a4bf331aeacf0b9))
+* **guardrails:** preserve lexical context across trivia ([3d33ab5](https://github.com/Falconiere/toolu-conventions/commit/3d33ab5fe1a31ba63514eca7deb7b9f09cec15e3))
+* **guardrails:** preserve TSX expression context ([d9308b8](https://github.com/Falconiere/toolu-conventions/commit/d9308b88064d2c348075b285ccc04d3c6f7cca3a))
+* **guardrails:** recognize private member boundaries ([f1c46a8](https://github.com/Falconiere/toolu-conventions/commit/f1c46a8b96e52b8337272350615ec0efc0652df7))
+
+
+### Features
+
+* **guardrails:** reject dead-code suppressions ([3f0904f](https://github.com/Falconiere/toolu-conventions/commit/3f0904f0a6c063329507ba5de81600c00eccbd72))
+* **rust:** deny dead code ([cf2508e](https://github.com/Falconiere/toolu-conventions/commit/cf2508e5ba6fdb97e7433073660024ab2c79d98f))
+* **typescript:** reject all unused code ([09293d2](https://github.com/Falconiere/toolu-conventions/commit/09293d2560eecbea8829fe729eb89b1cf0da173b))
+
+
+### Performance Improvements
+
+* **guardrails:** keep suppression hooks within budget ([01b0432](https://github.com/Falconiere/toolu-conventions/commit/01b04324c3f237e0d19a83c09608ba1353ba824a))
+
 # [0.5.0](https://github.com/Falconiere/toolu-conventions/compare/v0.4.0...v0.5.0) (2026-08-07)
 
 
