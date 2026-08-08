@@ -148,7 +148,9 @@ scanners distinguish executable syntax from TypeScript strings or rendered JSX
 text and from Rust comments, strings, or character literals, so documentation
 examples remain legal. JSX/template expressions remain executable context even
 when regex literals contain braces, and TSX generic arrows are not mistaken for
-markup; a scoped disable for an unrelated rule is still available.
+markup, including multiline parameter lists with regexes or comments. Regex
+recognition keeps ordinary and postfix-expression division as code; a scoped
+disable for an unrelated rule is still available.
 
 ## What differs per stack
 

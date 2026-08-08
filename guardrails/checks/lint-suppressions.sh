@@ -25,8 +25,16 @@ GR_LS_SCRIPT_CANDIDATE='(oxlint|eslint)-disable'
 GR_LS_RUST_CANDIDATE='(^|[^[:alnum:]_])(allow|warn|expect)([^[:alnum:]_]|$)'
 
 gr_ls_load_syntax() {
+  local helper required
   [ "${GR_LS_SYNTAX_LOADED-0}" -eq 1 ] && return 0
-  . "$GR_DIR/lib/lint-syntax.sh"
+  helper="$GR_DIR/lib/lint-syntax.sh"
+  [ -r "$helper" ] || gr_fatal "lint-suppressions syntax helper is missing or unreadable: $helper"
+  . "$helper" || gr_fatal "lint-suppressions could not load syntax helper: $helper"
+  for required in gr_ls_script_syntax_reset gr_ls_script_syntax_line \
+    gr_ls_rust_syntax_reset gr_ls_rust_syntax_line; do
+    [ "$(type -t "$required")" = function ] \
+      || gr_fatal "lint-suppressions syntax helper is incomplete: missing $required"
+  done
   GR_LS_SYNTAX_LOADED=1
 }
 
@@ -38,13 +46,21 @@ gr_ls_block_forbidden() {
 # multi-line block directives. A prose comment remains legal because the lint
 # directive must be the first token after the actual comment delimiter.
 gr_ls_script_forbidden() {
-  local path line block after in_block
+  local path source source_offset raw_length line block after in_block
   path=$1
+  source=${2-}
+  [ -n "$source" ] || source=$(< "$path") || return 2
+  GR_LS_JS_SOURCE=$source
+  GR_LS_JS_SOURCE_OFFSET=0
+  source_offset=0
   block=''
   in_block=0
   gr_ls_script_syntax_reset "$path"
   while IFS= read -r line || [ -n "$line" ]; do
+    raw_length=${#line}
+    GR_LS_JS_SOURCE_OFFSET=$source_offset
     gr_ls_script_syntax_line "$line"
+    source_offset=$((source_offset + raw_length + 1))
     line=$GR_LS_SANITIZED
     if [ "$in_block" -eq 1 ]; then
       block="$block $line"
@@ -145,7 +161,7 @@ gr_ls_scan() {
   gr_ls_load_syntax
 
   if [ "$kind" = 'script' ]; then
-    gr_ls_script_forbidden "$path"
+    gr_ls_script_forbidden "$path" "$content"
   else
     gr_ls_rust_forbidden "$path"
   fi
