@@ -822,6 +822,9 @@ bash guardrails/__tests__/run-plugin.sh >/dev/null 2>&1 \
   || bad "guardrails: the oxlint plugin suite is red — run: bash guardrails/__tests__/run-plugin.sh"
 
 # --- Rust skeleton: materialize into temp crate, fmt + clippy offline ---
+# No check below this point reads stdin. Close it for the remainder of the
+# validator before Cargo starts its stdin-based rustc capability probe.
+exec </dev/null
 tmpcrate="$(mktemp -d)/skel"
 mkdir -p "$tmpcrate"
 cp -R stacks/rust/templates/src "$tmpcrate/src"

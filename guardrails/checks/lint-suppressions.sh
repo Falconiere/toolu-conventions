@@ -7,8 +7,8 @@
 #   other rule;
 # - a scoped no-unused-vars disable hides exactly the dead code this convention
 #   exists to expose;
-# - Rust's direct or cfg_attr allow(dead_code) overrides Cargo's workspace-level
-#   `dead_code = "deny"`, whether written on one line or several.
+# - Rust's allow/warn/expect attributes can lower or consume `dead_code`
+#   directly or through the `unused` lint group, overriding Cargo's deny level.
 #
 # Script and Rust paths are scanned separately. An oxlint directive in Rust is
 # just prose, and a Rust attribute-like string in TypeScript is not an
@@ -21,10 +21,10 @@ GR_LS_LINE_UNUSED='//[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:sp
 GR_LS_BLOCK_START='/\*[[:space:]]*(oxlint|eslint)-disable'
 GR_LS_BLOCK_BLANKET='/\*[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]*(--[^*]*)?\*/'
 GR_LS_BLOCK_UNUSED='/\*[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]+([^,[:space:]*]+[[:space:]]*,[[:space:]]*)*((eslint|typescript|@typescript-eslint)/)?no-unused-vars([[:space:],*]|$)'
-GR_LS_RUST_DIRECT='^#!?\[allow\(([^,)]*,)*dead_code(,[^)]*)?\)\]'
-GR_LS_RUST_CFG_ATTR='^#!?\[cfg_attr\(.*,allow\(([^,)]*,)*dead_code(,[^)]*)?\).*\)\]'
+GR_LS_RUST_DIRECT='^#!?\[(r#)?(allow|warn|expect)\(([^,)]*,)*(r#)?(dead_code|unused)(,[^)]*)?\)\]'
+GR_LS_RUST_CFG_ATTR='^#!?\[(r#)?cfg_attr\(.*,(r#)?(allow|warn|expect)\(([^,)]*,)*(r#)?(dead_code|unused)(,[^)]*)?\).*\)\]'
 GR_LS_SCRIPT_CANDIDATE='(oxlint|eslint)-disable'
-GR_LS_RUST_CANDIDATE='(^|[^[:alnum:]_])allow([^[:alnum:]_]|$)'
+GR_LS_RUST_CANDIDATE='(^|[^[:alnum:]_])(allow|warn|expect)([^[:alnum:]_]|$)'
 
 gr_ls_block_forbidden() {
   [[ $1 =~ $GR_LS_BLOCK_BLANKET ]] || [[ $1 =~ $GR_LS_BLOCK_UNUSED ]]
@@ -38,7 +38,7 @@ gr_ls_script_forbidden() {
   path=$1
   block=''
   in_block=0
-  gr_ls_script_syntax_reset
+  gr_ls_script_syntax_reset "$path"
   while IFS= read -r line || [ -n "$line" ]; do
     gr_ls_script_syntax_line "$line"
     line=$GR_LS_SANITIZED

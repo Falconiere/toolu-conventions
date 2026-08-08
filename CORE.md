@@ -219,8 +219,9 @@ two numbers drift apart, and how an `oxlint-disable` silences half a rule.
   itself is exempt unconditionally, since the kit's own fixtures plant fake
   secrets on purpose. Its `lint-suppressions` check separately protects the
   enforcement boundary: it rejects blanket eslint/oxlint disables, scoped
-  `no-unused-vars` disables, and Rust `allow(dead_code)` in direct or
-  `cfg_attr` attributes, including multiline forms. The linter/compiler still
+  `no-unused-vars` disables, and Rust lint-level attributes that lower or
+  consume `dead_code` directly or through the `unused` group, including direct,
+  conditional, multiline, and raw-identifier forms. The linter/compiler still
   owns deciding what is dead;
   this check owns the distinct fact that source may not silence that decision.
 

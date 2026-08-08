@@ -4,14 +4,14 @@
 
 **Goal:** Make every generated Rust and TypeScript project reject dead code and the escape hatches that currently hide it.
 
-**Architecture:** Rust uses Cargo's deny level plus an independent ban on source-authored allow(dead_code) attributes; forbid cannot be used because rustc's generated test harness injects its own allow(dead_code). TypeScript keeps compiler, Oxlint, and Knip coverage, removes the leading-underscore exemption, and gains the same independent file-addressable suppression check. Template validation exercises behavior across all five current TypeScript stacks, including database-ts.
+**Architecture:** Rust uses Cargo's deny level plus an independent ban on source-authored lint attributes that lower or consume dead_code; forbid cannot be used because rustc's generated test harness injects its own allow(dead_code). TypeScript keeps compiler, Oxlint, and Knip coverage, removes the leading-underscore exemption, and gains the same independent file-addressable suppression check. Template validation exercises behavior across all five current TypeScript stacks, including database-ts.
 
 **Tech Stack:** Bash, Cargo/rustc/clippy, TypeScript, Oxlint 1.77.0, Knip, jq, GitHub Actions.
 
 ## Global Constraints
 
 - Delete dead code or wire it into a real entry point; do not rename or suppress it.
-- Rust uses dead_code = "deny" and the independent guardrail rejects source-authored direct or cfg_attr allow(dead_code), including crate-level, comment-formatted, and multiline forms.
+- Rust uses dead_code = "deny" and the independent guardrail rejects source-authored attributes that lower or consume dead_code directly or through the unused group, including direct, cfg_attr, crate-level, comment-formatted, raw-identifier, and multiline forms.
 - TypeScript retains noUnusedLocals, noUnusedParameters, eslint/no-unused-vars, and Knip.
 - Legitimate framework entry points remain documented Knip configuration.
 - Reject active blanket Oxlint disables and disables naming no-unused-vars, but not unrelated named suppressions.
@@ -228,7 +228,7 @@ git commit -m "feat(typescript): reject all unused code"
 
 **Interfaces:**
 - Consumes: gr_violation plus repo/file/hook/stop dispatch.
-- Produces: check id lint-suppressions and gr_check_lint_suppressions with one violation per file across TS/JS line/block directives and direct, cfg_attr, comment-formatted, or multiline Rust allow(dead_code) attributes.
+- Produces: check id lint-suppressions and gr_check_lint_suppressions with one violation per file across TS/JS line/block directives and direct, cfg_attr, comment-formatted, raw-identifier, or multiline Rust lint-level attributes that neutralize dead_code.
 
 - [ ] **Step 1: Add failing fixtures**
 
@@ -243,8 +243,9 @@ In run-fixtures.sh add lint-suppressions to ALL_CHECKS and assert:
 
 - the committed fixture reports one violation in repo and --file modes;
 - scratch active blanket line and inline block disables report;
-- scratch Rust item/crate direct, cfg_attr, multiline, and comment-formatted allow(dead_code) each report;
-- directive/attribute text inside TypeScript template literals and Rust raw strings stays silent;
+- scratch Rust item/crate direct, cfg_attr, multiline, comment-formatted, and raw-identifier allow(dead_code) each report;
+- Rust allow(unused), warn(dead_code), expect(dead_code), and conditional expect(unused) each report because they also neutralize dead_code;
+- directive/attribute text inside TypeScript strings, rendered JSX text, and Rust comments/strings/character literals stays silent, while a real JSX expression comment reports;
 - // Explain oxlint-disable eslint/no-unused-vars here. stays silent;
 - --list now returns 14.
 
@@ -260,15 +261,16 @@ Expected: zero findings where findings are required.
 
 Create lint-suppressions.sh with these boundaries:
 
-- Lex TypeScript/JavaScript strings and template literals before parsing real
-  line comments and single- or multiline block comments. Reject blanket
+- Lex TypeScript/JavaScript strings, template literals, and rendered JSX text
+  before parsing real line comments and single- or multiline block comments.
+  Keep JSX expression comments visible. Reject blanket
   eslint/oxlint disables and rule lists containing any supported
   `no-unused-vars` alias, including an inline block followed by code.
-- Lex Rust comments, normal strings, and raw strings before parsing attributes
-  as complete blocks. Reject
-  direct item/crate `allow(dead_code)` and conditional
-  `cfg_attr(..., allow(dead_code))`, including multiline forms and attributes
-  with embedded comments.
+- Lex Rust comments, normal/raw strings, character/byte literals, and lifetimes
+  before parsing attributes as complete blocks. Reject
+  direct item/crate and conditional `cfg_attr` forms of `allow`, `warn`, or
+  `expect` when they target `dead_code` or its `unused` lint group, including
+  multiline forms, embedded comments, and equivalent raw-identifier spellings.
 - Keep unrelated scoped lint disables and prose that merely names a directive
   silent.
 - File mode scans in Bash without child processes. Repo mode uses one NUL-safe

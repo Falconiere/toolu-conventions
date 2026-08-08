@@ -335,12 +335,82 @@ if tagged lint-suppressions; then
     && ok 'AC-23 comments cannot hide a Rust allow(dead_code) attribute' \
     || bad 'AC-23 comments inside Rust attributes must not bypass the check' "exit=$STATUS out=$out"
 
+  printf '#[r#allow(r#dead_code)]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/raw-ident-allow-dead-code.rs"
+  gr_in "$SC" --file src/utilities/raw-ident-allow-dead-code.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 Rust raw-identifier allow(dead_code) is rejected' \
+    || bad 'AC-23 r#allow must not bypass the Rust attribute check' "exit=$STATUS out=$out"
+
+  printf '#![r#cfg_attr(all(), r#allow(r#dead_code))]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/raw-ident-cfg-allow-dead-code.rs"
+  gr_in "$SC" --file src/utilities/raw-ident-cfg-allow-dead-code.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 conditional Rust r#allow(dead_code) is rejected' \
+    || bad 'AC-23 cfg_attr r#allow must not bypass the check' "exit=$STATUS out=$out"
+
+  printf '#[allow(unused)]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/allow-unused-group.rs"
+  gr_in "$SC" --file src/utilities/allow-unused-group.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 Rust allow(unused) cannot hide dead code' \
+    || bad 'AC-23 the unused lint group must not bypass dead_code deny' "exit=$STATUS out=$out"
+
+  printf '#[warn(dead_code)]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/warn-dead-code.rs"
+  gr_in "$SC" --file src/utilities/warn-dead-code.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 Rust warn(dead_code) cannot lower the deny level' \
+    || bad 'AC-23 source warning levels must not bypass dead_code deny' "exit=$STATUS out=$out"
+
+  printf '#[expect(dead_code)]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/expect-dead-code.rs"
+  gr_in "$SC" --file src/utilities/expect-dead-code.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 Rust expect(dead_code) cannot consume the diagnostic' \
+    || bad 'AC-23 lint expectations must not legitimize dead code' "exit=$STATUS out=$out"
+
+  printf '#![cfg_attr(all(), r#expect(r#unused))]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/cfg-expect-unused-group.rs"
+  gr_in "$SC" --file src/utilities/cfg-expect-unused-group.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 conditional expect(unused) cannot consume dead code' \
+    || bad 'AC-23 conditional lint expectations must not bypass the policy' "exit=$STATUS out=$out"
+
+  printf 'const QUOTE: char = '\''"'\'';\nconst BYTE: u8 = b'\''"'\'';\nfn borrow<'\''a>(value: &'\''a str) -> &'\''a str { value }\n#[allow(dead_code)]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/char-before-allow-dead-code.rs"
+  gr_in "$SC" --file src/utilities/char-before-allow-dead-code.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a Rust character literal cannot hide a later attribute' \
+    || bad 'AC-23 Rust character literals must not corrupt attribute scanning' "exit=$STATUS out=$out"
+
   printf 'export const quoted = "/* oxlint-disable */";\nexport const example = `\n/* oxlint-disable */\n`;\n' \
     > "$SC/src/utilities/template-documentation.ts"
   gr_in "$SC" --file src/utilities/template-documentation.ts; out=$OUT
   [ "$STATUS" -eq 0 ] && [ "$(count_check "$out" lint-suppressions)" -eq 0 ] \
     && ok 'AC-23 a directive shown in a template literal is not active' \
     || bad 'AC-23 TypeScript strings must not be mistaken for lint directives' "exit=$STATUS out=$out"
+
+  printf 'export const Example = () => <pre>/* oxlint-disable */</pre>;\nexport const Multiline = () => (\n  <pre>\n    /* oxlint-disable */\n  </pre>\n);\n' \
+    > "$SC/src/utilities/jsx-documentation.tsx"
+  gr_in "$SC" --file src/utilities/jsx-documentation.tsx; out=$OUT
+  [ "$STATUS" -eq 0 ] && [ "$(count_check "$out" lint-suppressions)" -eq 0 ] \
+    && ok 'AC-23 directive-looking JSX text is not an active comment' \
+    || bad 'AC-23 JSX documentation text must remain legal' "exit=$STATUS out=$out"
+
+  printf 'export const Example = () => <pre>{/* oxlint-disable */ null}</pre>;\n' \
+    > "$SC/src/utilities/jsx-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/jsx-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a real lint comment inside a JSX expression is rejected' \
+    || bad 'AC-23 JSX expression comments must remain visible to the check' "exit=$STATUS out=$out"
+
+  printf 'export const identity = <T,>(value: T) => value;\nconst hidden = 1;// oxlint-disable-line no-unused-vars\n' \
+    > "$SC/src/utilities/tsx-generic-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/tsx-generic-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a TSX generic cannot hide a later active directive' \
+    || bad 'AC-23 TSX generics must remain JavaScript lexical context' "exit=$STATUS out=$out"
 
   printf 'pub const NORMAL: &str = "#[allow(dead_code)]";\n/*\n#[allow(dead_code)]\n*/\npub const EXAMPLE: &str = r#"\n#[allow(dead_code)]\n"#;\n' \
     > "$SC/src/utilities/raw-string-documentation.rs"
@@ -350,8 +420,8 @@ if tagged lint-suppressions; then
     || bad 'AC-23 Rust strings must not be mistaken for attributes' "exit=$STATUS out=$out"
 
   gr_in "$SC" --only lint-suppressions; out=$OUT
-  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 8 ] \
-    && ! printf '%s\n' "$out" | grep -q 'template-documentation\|raw-string-documentation' \
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 17 ] \
+    && ! printf '%s\n' "$out" | grep -q 'template-documentation\|raw-string-documentation\|jsx-documentation' \
     && ok 'AC-23 repo candidate scan reaches every active suppression form' \
     || bad 'AC-23 repo mode must find active forms without flagging strings' "exit=$STATUS out=$out"
   rm -rf "$SC"

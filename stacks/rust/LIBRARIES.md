@@ -19,7 +19,7 @@ lints offline. The only tooling is the toolchain itself and git hooks:
 | --- | --- | --- |
 | Build / test / run | `cargo` | The one entry point for everything. |
 | Format | `rustfmt` (`cargo fmt`) | Config in `rustfmt.toml`, stable options only. |
-| Lint | Cargo `[lints]` + `clippy` + guardrails | `dead_code = "deny"` rejects unused items; `lint-suppressions` rejects direct or conditional `allow(dead_code)` attributes; Clippy owns the remaining house set and CI runs `-D warnings`. |
+| Lint | Cargo `[lints]` + `clippy` + guardrails | `dead_code = "deny"` rejects unused items; `lint-suppressions` rejects direct or conditional attributes that lower/consume `dead_code` (including through `unused`); Clippy owns the remaining house set and CI runs `-D warnings`. |
 | Git hooks | `lefthook` | Pre-commit fmt, pre-push clippy. Standalone binary. |
 
 ---
