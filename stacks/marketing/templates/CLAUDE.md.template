@@ -1,6 +1,6 @@
-# CLAUDE.md — {{APP_NAME}}
+# CLAUDE.md — {{TOOLU_DISPLAY_NAME}}
 
-{{ONE_LINE_DESCRIPTION}} Astro marketing site. Static output · TypeScript
+{{TOOLU_DESCRIPTION}} Astro marketing site. Static output · TypeScript
 (strictest) · TailwindCSS · bun · Vitest · oxlint + oxfmt + `astro check` ·
 deployed to Cloudflare Workers. Read this file first — it is the map and the
 rulebook.
@@ -171,7 +171,7 @@ long as it never hardcodes a value.
 
 - **Deviations from the house language:** <none | what-and-why>
 
-{{DESIGN_NOTES}}
+{{TOOLU_DESIGN_NOTES}}
 
 ## Tool usage (for agents)
 

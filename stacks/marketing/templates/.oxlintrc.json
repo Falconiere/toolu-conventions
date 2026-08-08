@@ -13,7 +13,8 @@
     "dist",
     ".astro",
     ".wrangler",
-    "coverage"
+    "coverage",
+    "scripts/guardrails/oxlint-plugin"
   ],
   "rules": {
     "max-lines": [

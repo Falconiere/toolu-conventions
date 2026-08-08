@@ -110,8 +110,15 @@ export const signalThemes = {
 
 export type SignalThemeName = keyof typeof signalThemes;
 
+function resolveDefaultSignal(value: string): SignalThemeName {
+  if (value === 'jade' || value === 'blueprint' || value === 'ion' || value === 'chalk') {
+    return value;
+  }
+  throw new Error(`Unsupported signal theme: ${value}`);
+}
+
 /** The shipped default. One signal per product — change it here, in one place. */
-export const defaultSignal: SignalThemeName = 'jade';
+export const defaultSignal = resolveDefaultSignal('{{TOOLU_THEME_PRESET}}');
 
 const signal = signalThemes[defaultSignal];
 

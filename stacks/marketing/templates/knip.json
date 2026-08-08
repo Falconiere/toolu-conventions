@@ -1,12 +1,6 @@
 {
   "$schema": "./node_modules/knip/schema.json",
-  "entry": [
-    "src/pages/**/*.{astro,ts}",
-    "src/content.config.ts",
-    "astro.config.mjs",
-    "vitest.config.ts"
-  ],
   "project": ["src/**/*.{ts,tsx,astro}"],
-  "ignoreBinaries": ["wrangler"],
+  "ignore": ["src/constants/env.ts", "src/ui/theme/**"],
   "ignoreDependencies": ["tailwindcss"]
 }

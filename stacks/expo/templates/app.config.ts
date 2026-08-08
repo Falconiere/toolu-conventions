@@ -11,15 +11,12 @@ const VARIANT =
 const IS_PROD = VARIANT === 'prod';
 
 // ── Identity (fill these in) ─────────────────────────────────────────────────
-const APP_NAME = IS_PROD ? '<project-name>' : '<project-name> (Test)';
-const SLUG = '<project-slug>'; // kebab-case, e.g. my-app
-const SCHEME = '<url-scheme>'; // deep-link scheme, e.g. myapp
-const IOS_BUNDLE = IS_PROD ? '<bundle-id>' : '<bundle-id>.test';
-const ANDROID_PACKAGE = IS_PROD ? '<android-package>' : '<android-package>.test';
-const EAS_PROJECT_ID = '<eas-project-id>'; // from `eas init`
-
-// Icon set switches with variant: test builds use the dev icon, prod the prod icon.
-const ICON_DIR = IS_PROD ? './assets/icons/prod' : './assets/icons/dev';
+const APP_NAME = IS_PROD ? '{{TOOLU_DISPLAY_NAME}}' : '{{TOOLU_DISPLAY_NAME}} (Test)';
+const SLUG = '{{TOOLU_PROJECT_SLUG}}';
+const SCHEME = '{{TOOLU_URL_SCHEME}}';
+const IOS_BUNDLE = IS_PROD ? '{{TOOLU_BUNDLE_ID}}' : '{{TOOLU_BUNDLE_ID}}.test';
+const ANDROID_PACKAGE = IS_PROD ? '{{TOOLU_ANDROID_PACKAGE}}' : '{{TOOLU_ANDROID_PACKAGE}}.test';
+const EAS_PROJECT_ID = '{{TOOLU_EAS_PROJECT_ID}}'; // replace after `eas init`
 
 const config: ExpoConfig = {
   name: APP_NAME,
@@ -28,7 +25,6 @@ const config: ExpoConfig = {
   version: '1.0.0',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
-  icon: `${ICON_DIR}/icon.png`,
   platforms: ['ios', 'android'],
   runtimeVersion: { policy: 'fingerprint' },
   updates: {
@@ -45,10 +41,7 @@ const config: ExpoConfig = {
   },
   android: {
     package: ANDROID_PACKAGE,
-    adaptiveIcon: {
-      foregroundImage: `${ICON_DIR}/adaptive-icon.png`,
-      backgroundColor: '#ffffff',
-    },
+    adaptiveIcon: { backgroundColor: '#ffffff' },
   },
   plugins: ['expo-router'],
   experiments: {

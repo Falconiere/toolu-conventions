@@ -1,5 +1,5 @@
 [package]
-name = "project-name"
+name = "{{TOOLU_PROJECT_NAME}}"
 version = "0.1.0"
 edition = "2024"
 

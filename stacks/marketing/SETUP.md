@@ -1,5 +1,11 @@
 # SETUP — New Marketing Site (Astro)
 
+> **Canonical path:** `npx @toolu/create@latest <target> --stack marketing --name <name>`.
+> The finite overlays are blog, changelog, Cloudflare SSR, a React island, and
+> exactly one PostHog/Plausible/Fathom analytics provider. Cloudflare and
+> local-dev operations are supported; Infisical is not because this recipe has
+> no owned secrets target.
+
 **You are an AI coding agent. Your job is to scaffold a new marketing site by
 following this guide top to bottom.** Work through the phases in order. Phase 0
 gathers everything you need; after that, prefer acting over asking. When a step

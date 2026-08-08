@@ -1,6 +1,6 @@
-# CLAUDE.md — {{APP_NAME}}
+# CLAUDE.md — {{TOOLU_DISPLAY_NAME}}
 
-{{ONE_LINE_DESCRIPTION}} HTTP service on **Cloudflare Workers**. Hono ·
+{{TOOLU_DESCRIPTION}} HTTP service on **Cloudflare Workers**. Hono ·
 TypeScript (strict) · Turso · Vitest in the real runtime · oxlint + oxfmt. Read
 this file first — it is the map and the rulebook.
 

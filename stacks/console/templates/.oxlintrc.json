@@ -17,6 +17,7 @@
     "dist",
     ".wrangler",
     "coverage",
+    "scripts/guardrails/oxlint-plugin",
     "src/route-tree.gen.ts",
     "worker-configuration.d.ts"
   ],

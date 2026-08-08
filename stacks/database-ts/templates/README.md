@@ -1,4 +1,4 @@
-# @<project-name>/database
+# @{{TOOLU_PROJECT_NAME}}/database
 
 The database, as its own package. It owns the Drizzle schema, the Turso client
 factory, and the migrations. The API imports it and writes its own queries.
@@ -20,8 +20,8 @@ which is a different and more expensive design.
 ## Using it
 
 ```ts
-import { createDatabase } from '@<project-name>/database/client';
-import { profiles } from '@<project-name>/database/schema';
+import { createDatabase } from '@{{TOOLU_PROJECT_NAME}}/database/client';
+import { profiles } from '@{{TOOLU_PROJECT_NAME}}/database/schema';
 import { eq } from 'drizzle-orm';
 
 export async function getProfile(env: Env, id: string) {

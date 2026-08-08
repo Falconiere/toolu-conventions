@@ -1,5 +1,5 @@
 {
-  "name": "<project-name>",
+  "name": "{{TOOLU_PROJECT_NAME}}",
   "private": true,
   "type": "module",
   "workspaces": [

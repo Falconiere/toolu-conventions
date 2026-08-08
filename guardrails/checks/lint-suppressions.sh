@@ -209,7 +209,9 @@ gr_ls_find_sources() {
       \( -path './.git' -o -path './node_modules' -o -path './dist' \
          -o -path './build' -o -path './out' -o -path './coverage' \
          -o -path './.wrangler' -o -path './.next' -o -path './.expo' \
-         -o -path './target' -o -path './vendor' \) -prune \
+         -o -path './target' -o -path './vendor' \
+         -o -path './src/route-tree.gen.ts' \
+         -o -path './worker-configuration.d.ts' \) -prune \
       -o -type f \
       \( -name '*.ts' -o -name '*.tsx' -o -name '*.mts' -o -name '*.cts' \
          -o -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \

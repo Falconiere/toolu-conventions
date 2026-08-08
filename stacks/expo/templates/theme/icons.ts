@@ -197,3 +197,11 @@ export const glyphs = {
 } as const;
 
 export type GlyphName = keyof typeof glyphs;
+
+export const iconStroke = {
+  sm: 1.5,
+  md: 1.25,
+  lg: 1.25,
+} as const;
+
+export type IconSize = keyof typeof iconStroke;

@@ -1,4 +1,4 @@
-# CLAUDE.md — project-name
+# CLAUDE.md — {{TOOLU_DISPLAY_NAME}}
 
 Read-first rules for any agent working in this repo. These are enforced by
 `clippy`, `rustfmt`, and Lefthook; treat them as hard constraints, not
@@ -6,7 +6,7 @@ suggestions.
 
 ## What this is
 
-`project-name` — a single-crate Rust project. One crate, one `Cargo.toml`; no
+`{{TOOLU_PROJECT_NAME}}` — a single-crate Rust project. One crate, one `Cargo.toml`; no
 workspace. (Replace this line with a one-sentence description of the program.)
 
 ## Quality gate — run before calling anything done
@@ -81,7 +81,7 @@ Fix the code, do not silence the lint.
 ## Repo map
 
 ```
-project-name/
+{{TOOLU_PROJECT_NAME}}/
 ├── Cargo.toml            # crate manifest + [lints] table (the house lint set)
 ├── rustfmt.toml          # formatting config (stable options only)
 ├── lefthook.yml          # pre-commit fmt · pre-push clippy

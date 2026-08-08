@@ -1,5 +1,10 @@
 # SETUP — database-ts
 
+> This is a derived CLI recipe, never a public `--stack` value. Select
+> `--stack backend-ts --integration drizzle --integration database-package` to
+> materialize `packages/api` and `packages/database` as one verified Bun
+> workspace.
+
 You are scaffolding the **database package** of a workspace. You do not run this
 file on its own: the `backend-ts` kit dispatches here when the operator answers
 **yes** to *separate database package?*. A database package with no consumer has

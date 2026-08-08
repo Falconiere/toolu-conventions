@@ -1,161 +1,181 @@
-# SETUP — Project Scaffold Router
+# `@toolu/create` setup and compatibility guide
 
-You are a coding agent scaffolding a new project from this kit. Follow this
-file top to bottom. It routes you to a stack kit; the stack kit's `SETUP.md`
-does the heavy lifting.
-
-## 0. Prerequisites (verify before intake)
-
-Run and confirm each; stop and report anything missing:
+The public initializer is the canonical way to create a Toolu project:
 
 ```bash
-git --version
-bun --version          # TS stacks only
-cargo --version        # rust only
-jq --version           # required — agent-guardrails reads guardrails.config.json
-gh --version           # optional — repo creation
+npx @toolu/create@latest my-project
 ```
 
-`jq` is not optional: the guard-rail gate exits 3 without it rather than
-silently passing. Install with `apt-get install jq` · `brew install jq` ·
-`apk add jq`.
+It supports macOS, Linux, and WSL with Node 20.12 or newer. Native Windows and
+updating an existing project are not supported. The target directory must not
+exist.
 
-ast-grep is needed by the **Rust stack only** (`cargo install ast-grep --locked`),
-for the two pattern rules clippy does not cover. The TypeScript stacks need no
-extra tool: their pattern and structure rules run inside oxlint, via the house
-plugin at `scripts/guardrails/oxlint-plugin/`.
+## Prerequisites
 
-Read [`CORE.md`](./CORE.md) now. Every rule in it binds the project you are
-about to create — including the platform defaults (Cloudflare Workers, Turso,
-better-auth, the kit's own `http.ts` instead of axios) and the five guard-rail
-layers. If the stack is `expo`, `console`, or `marketing`, read
-[`DESIGN.md`](./DESIGN.md) too — the theme tokens ship pre-filled with that
-language.
+The initializer verifies its toolchain before creating its staging directory. It
+does not install or modify global tools.
 
-## 1. Intake questions (fixed order — ask all up front, don't trickle)
+- All projects: Node 20.12+, Bun and `bunx`, Git, `jq`, and `ast-grep`.
+- Rust projects: Cargo, rustfmt, and Clippy in addition to the shared tools.
 
-1. **Stack** — one of: `console` · `marketing` · `backend-ts` · `expo` · `rust`.
+Install missing tools using their official instructions, then rerun the same
+command. Provider CLIs are installed only by generated project scripts when a
+human explicitly runs those scripts later; scaffolding never authenticates.
 
-   | Stack | Builds | Runs on |
-   | --- | --- | --- |
-   | `console` | The authenticated product app (SPA) | React + Vite + TanStack Router → Cloudflare Workers static assets |
-   | `marketing` | The public website | Astro (static) → Cloudflare Workers static assets |
-   | `backend-ts` | The HTTP API | Hono → Cloudflare Workers (workerd) + Turso |
-   | `expo` | The mobile app | Expo / React Native |
-   | `rust` | A CLI or service in Rust | Single crate |
-   | `database-ts` | The database, as its own package | Drizzle + Turso, a Bun workspace package beside `backend-ts` |
+## Command interface
 
-   > The kit has **six** stacks but only **five you choose here**. `database-ts`
-   > is reached through the `backend-ts` intake question below, never on its
-   > own: a database package with no consumer has no gate, no bindings, and
-   > nothing to be typed against.
+```text
+create-toolu <target> [options]
 
-   > A full product is usually **three** of these — `marketing`, `console`, and
-   > `backend-ts` — each its own repo. If the user describes a whole product,
-   > say so and scaffold them one at a time rather than merging them.
+--config <path>          Replay or extend a toolu.scaffold.json manifest
+--stack <id>             console | marketing | backend-ts | expo | rust
+--name <name>            Lowercase kebab-case package/project name
+--display-name <name>    Human-readable product name
+--integration <id>       Add an integration (repeatable)
+--operation <id>         Add an operations module (repeatable)
+--staging                Include a staging environment
+--no-staging             Explicitly omit staging
+--theme <preset>         jade | blueprint | ion | chalk
+--theme-from <path>      Import compatible tokens and record SHA-256 hashes
+--page <slug>            Add a marketing route (repeatable)
+--domain <host>          Production domain used by generated metadata
+--console-url <url>      Associated console URL
+--port <number>          Local service port
+```
 
-2. **Project name** — kebab-case; used for the directory, package/crate name,
-   the Cloudflare Worker name, and bundle/app identifiers where applicable.
-3. **Operations modules** — each is opt-in:
+`--integration`, `--operation`, and `--page` preserve command-line order and may
+be repeated. Flags override config values. Optional values not supplied by either
+source receive stable defaults. An interactive terminal asks for any missing
+required values and presents a review confirmation; non-TTY execution fails once
+with the complete missing list (`<target>, --stack, --name`). Ctrl+C exits without
+creating a target.
 
-   | Module | Compatible projects | What it adds |
-   | --- | --- | --- |
-   | `cloudflare-infra` | console · marketing · backend-ts · compatible workspaces | environment deploys, Worker secret sync, tunnel ingress/DNS planning |
-   | `infisical-secrets` | backend-ts · Rust services · workspaces · console with a same-project Worker API | machine-identity secret delivery to server-runtime targets |
-   | `local-dev` | every stack and workspace | manifest-driven services, ports, probes, cleanup, and optional provider adapters |
+## Stable defaults
 
-   `local-dev` is independent. It uses the Cloudflare and Infisical adapters
-   only when those modules are also selected; never select a provider solely
-   because local dev was selected.
+- Integrations and operations: none.
+- Staging: off.
+- Visual theme: Jade.
+- Marketing routes: `home`.
+- Backend persistence: Turso.
+- Backend Drizzle: off.
+- Ports: console 5173, marketing 4321, backend 8787, Expo 8081, Rust 3000.
+- Display name: title-cased project name.
 
-4. **Environments** — when either provider module is selected, the contract is
-   exactly `local` · `development` · `production`; do not offer staging. With
-   no provider module, retain the existing question for every non-Rust stack:
-   **staging environment?** Default no (development + production only).
-5. **Optional integrations** — offer the menu for the chosen stack; each is
-   opt-in:
+Direct dependency versions are exact. `bun.lock` or `Cargo.lock` freezes the
+resolved transitive dependency graph in the generated project.
 
-   | Stack | Integration options (option → what it wires) |
-   | --- | --- |
-   | console | API layer (oRPC client + TanStack Query bindings) · auth client (better-auth) · same-project Worker API (`@cloudflare/vite-plugin` + Turso; default no) |
-   | marketing | Content collections (blog/changelog) · SSR via `@astrojs/cloudflare` (default no — static) · an interactive island · analytics |
-   | backend-ts | Database (**Turso**, default yes) · auth (better-auth, server half) · structured logging · Drizzle ORM over Turso — and if Drizzle, **separate database package?** (default yes), which scaffolds `database-ts` into a Bun workspace |
-   | expo | API layer (oRPC client + TanStack Query bindings; the kit's `http.ts` for everything else) · auth (better-auth client + `expo-secure-store`) · local storage (`@react-native-async-storage/async-storage`) |
-   | rust | CLI parsing (`clap`) · HTTP service (`axum` + `tokio`) · serialization (`serde`/`serde_json`) |
+## Compatibility matrix
 
-   Note what is **not** a question: the validator (always **Zod**, at every
-   boundary, with types from `z.infer`), how our own apps talk to our own API
-   (always **oRPC + TanStack Query**), forms on clients (always **TanStack Form**
-   + Zod via Standard Schema — no `@tanstack/zod-form-adapter`), the HTTP client
-   for everything else (always the kit's `src/utilities/http.ts` — axios is
-   banned), the database (always **Turso**), the auth library (always
-   **better-auth**), the host (always **Cloudflare Workers**), and the gate
-   steps (**knip** and **jscpd** are not optional). See CORE.md → "Platform
-   defaults".
+| Stack | Integrations | Operations | Theme |
+| --- | --- | --- | --- |
+| `console` | `api`, `auth`, `worker-api` | `cloudflare`, `local-dev`; `infisical` requires `worker-api` | preset or compatible web import |
+| `marketing` | `blog`, `changelog`, `ssr-cloudflare`, `react-island`, one of `analytics-posthog`, `analytics-plausible`, `analytics-fathom` | `cloudflare`, `local-dev` | preset or compatible web import |
+| `backend-ts` | `auth`, `structured-logging`, `drizzle`, `database-package` | `cloudflare`, `infisical`, `local-dev` | none |
+| `expo` | `api`, `auth`, `async-storage` | `local-dev` | preset or compatible native import |
+| `rust` | `clap`, `axum`, `serde` | `infisical` and `local-dev` require `axum`; Cloudflare is unsupported | none |
 
-6. **Design context** — `console`, `marketing`, and `expo` only: free-text
-   brand/look description (colors, tone, reference apps). The theme tokens
-   already ship the house language ([`DESIGN.md`](./DESIGN.md)); ask whether to
-   **keep it as-is** (default), pick a different **signal temperature** (Jade ·
-   Blueprint · Ion · Chalk — a one-line change, nothing else moves), or override
-   the brand outright. If overridden, feed the description into the token
-   templates keeping their structure (web: `theme/palette.css` + `scale.css`;
-   expo: `colors.ts`/`typography.ts`), and record the direction — and the
-   deviation — in the generated `CLAUDE.md` design-notes section.
+`database-package` requires `drizzle` and materializes a Bun workspace with
+`packages/api` and `packages/database` from the derived `database-ts` stack.
+Turso remains the persistence provider.
+Rust CLI projects do not support local-dev operations because the operations
+contract requires a long-running Axum service and health probe.
 
-   > Styling itself is **not** an intake question. Every web surface in this kit
-   > is TailwindCSS; expo is `StyleSheet.create` + TS tokens because React Native
-   > has no cascade. See CORE.md → "Platform defaults".
+## Operations modules
 
-   > If this project is the sibling of one you already built (a `marketing` site
-   > next to a `console`, say), **copy that project's tokens rather than
-   > re-deriving them**. They are one product; a visitor who signs up should not
-   > feel a seam.
+The `--operation` intake maps stable CLI IDs to the repository-owned modules:
 
-## 2. Dispatch
+| CLI ID | Convention source | Purpose |
+| --- | --- | --- |
+| `cloudflare` | `conventions/cloudflare-infra/` | deploy ordering, Worker secret sync, and tunnel ingress/DNS planning |
+| `infisical` | `conventions/infisical-secrets/` | machine-identity secret delivery to server-runtime targets |
+| `local-dev` | `conventions/local-dev/` | manifest-driven services, fixed ports, probes, and ownership-safe cleanup |
 
-Open `stacks/<stack>/SETUP.md` and execute it end to end with the intake
-answers.
+The generator installs the shared operations contract and every selected module
+as part of the deterministic recipe. Maintainers changing that routing should
+follow [`conventions/SETUP.md`](./conventions/SETUP.md); generated projects do
+not need to execute that manual setup guide.
 
-If any operations modules were selected, next open
-[`conventions/SETUP.md`](./conventions/SETUP.md), install the shared contract,
-and execute each selected module's `SETUP.md`. The module flow supersedes a
-stack's staging instructions only for that scaffold; projects with no selected
-provider module retain the stack's existing environment behavior.
+Provider operations (`cloudflare` or `infisical`) use exactly `local`,
+`development`, and `production`; they cannot be combined with `--staging`.
+Without provider operations, `--staging` adds a real Wrangler or EAS staging
+profile as appropriate. Local-dev remains independently selectable.
 
-**If the answer to *separate database package?* was yes**, the backend-ts kit
-hands off to `stacks/database-ts/SETUP.md` partway through, and the project
-becomes a Bun workspace. Order matters: the workspace root first (its
-`package.json`, `guardrails.workspace.json`, `knip.json`, `lefthook.yml` and
-both workflows all come from `shared/workspace/`), then `packages/database`,
-then `packages/api`. Do not create a `guardrails.config.json` at the root — see
-CORE.md → "Monorepos" for why its absence is load-bearing. Templates referenced there live in `stacks/<stack>/templates/` under
-their real filenames (only `CLAUDE.md.template` is suffixed — rename it to
-`CLAUDE.md` when copying). Placeholder style is per-stack — each stack's
-SETUP.md documents its own substitution convention; follow it as written.
+Marketing page values are `home` or deterministic lowercase route slugs such as
+`pricing` and `about/team`. Traversal, empty segments, uppercase characters, and
+unstable dynamic routes are rejected.
 
-Two stacks deliberately reach across the kit: `marketing` copies its token
-stylesheets (`theme/palette.css`, `theme/scale.css`, `theme/icons.ts`) and
-`globals.css` from `stacks/console/templates/`, and `expo` copies
-`utilities/http.ts` and `src/api/orpc.ts` from there too. The same pattern holds
-one level up, for the pieces every stack shares rather than each keeping its own
-copy: the guard-rail module comes from `guardrails/` at the kit root (its
-manifest — `run.sh`, `lib/`, `checks/`, `patterns/`, `schema.json`,
-`oxlint-plugin/` — never the `__tests__/` fixtures) into the project's
-`scripts/guardrails/`, and the agent hooks come from
-`shared/.claude/settings.json` into the project's `.claude/settings.json`.
-Console, marketing, and backend-ts also take their `folder-README.md` from
-`shared/folder-README.md`; expo and rust ship their own instead, because those
-two genuinely differ from the shared one. None of this is a mistake to "fix" by
-duplicating — one source, on purpose.
+## Themes
 
-## 3. Finish — human-only checklist
+Jade, Blueprint, Ion, and Chalk change the signal-temperature tokens while
+preserving component structure. `--theme-from` imports only the finite compatible
+token surface:
 
-After the stack SETUP completes and its gate is green, print the checklist the
-stack kit defines (Cloudflare login, Turso database creation, secrets, store
-logins, EAS setup, branch protection — things only a human can do). Do not
-attempt them yourself.
+- web: `palette.css` and `scale.css`;
+- native: `colors.ts`, `icons.ts`, `motion.ts`, `spacing.ts`, and `typography.ts`.
 
-Every TS stack's checklist includes adding the `DEEPSEEK_API_KEY` repository
-secret and requiring both **CI** and **Code Review** on `main`. Without those,
-two of the five guard-rail layers in `CORE.md` are decorative.
+The generated manifest records the resolved source and SHA-256 hash for every
+file. Replay verifies those hashes before filesystem mutation and fails if a
+source changed. Keep the source available or vendor the token directory beside
+the replay manifest.
+
+## Deterministic manifests and replay
+
+Every project contains `toolu.scaffold.json` with schema version 1, generator
+version, identity, discriminated stack settings, selected integrations and
+operations, environments, runtime metadata, theme selection/import hashes, and
+recipe IDs. Its public JSON Schema is
+[`schemas/toolu.scaffold.schema.json`](./schemas/toolu.scaffold.schema.json).
+
+```bash
+npx @toolu/create@latest --config ./toolu.scaffold.json
+```
+
+Because targets must be new, use flags to replay into another target when
+needed:
+
+```bash
+npx @toolu/create@latest new-target \
+  --config ./toolu.scaffold.json \
+  --name new-target
+```
+
+Pre-1.0 replay compatibility is limited to the same generator minor line. A
+manifest produced by 0.6.x is accepted by another 0.6.x generator and rejected
+by an incompatible line.
+
+## Filesystem and failure behavior
+
+All validation and prerequisite checks happen before mutation. The generator
+then authors in a sibling `.<target>.toolu-staging` directory, installs
+dependencies, generates runtime types, formats, initializes Git, installs
+Lefthook, runs canonical checks/builds and operations validators, and atomically
+renames the directory on success.
+
+On failure, the final target remains absent. Staging output is retained with a
+mode-0600 `.toolu-failure.json` containing the phase, exit code, redacted bounded
+command logs, and safe rerun guidance. Inspect it, then remove or rename that
+exact staging directory before retrying. The CLI never creates a remote, pushes,
+makes an initial commit, deploys, provisions cloud resources, or signs in.
+
+## Human-only follow-up
+
+After generation, follow the generated README for any selected provider. EAS,
+Cloudflare, Turso, Infisical, npm organization administration, provider
+authentication, repository secrets, branch protection, and deployment remain
+human or CI actions.
+
+## Maintainer release bootstrap
+
+The release workflow publishes `@toolu/create` with provenance using an npm trusted publisher
+and keeps the existing GitHub App for changelog and tag pushes.
+One-time setup:
+
+1. initially publish or claim public package `@toolu/create` for the `@toolu`
+   organization;
+2. configure `.github/workflows/release.yml` as the package's npm trusted
+   publisher;
+3. run a release and verify its provenance attestation; and
+4. disable and delete every legacy npm publish token.
+
+Do not add an npm token back to the workflow. Its `id-token: write` permission is
+the publication credential.

@@ -1,5 +1,10 @@
 # SETUP — Expo app
 
+> **Canonical path:** `npx @toolu/create@latest <target> --stack expo --name <name>`.
+> The finite overlays are API, auth, and AsyncStorage. Local-dev is the only
+> compatible operations module. Themes are Jade, Blueprint, Ion, Chalk, or an
+> exact compatible native-token import.
+
 You are a coding agent scaffolding a new Expo + TypeScript app from this kit.
 **Follow this file top to bottom, executing each step.** When a step references a
 template, read it from this kit's `templates/` directory and copy it to the stated

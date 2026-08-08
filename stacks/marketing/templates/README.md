@@ -1,6 +1,6 @@
-# {{APP_NAME}}
+# {{TOOLU_DISPLAY_NAME}}
 
-{{ONE_PARAGRAPH_DESCRIPTION}} — the public marketing site, built with Astro and
+{{TOOLU_DESCRIPTION}} — the public marketing site, built with Astro and
 deployed as static assets on Cloudflare Workers.
 
 > **New here (human or agent)?** Read [`CLAUDE.md`](./CLAUDE.md) first — it's the
@@ -42,7 +42,7 @@ Every `src/*` folder except `pages` has a `README.md` describing its contents.
 | Env | When |
 | --- | --- |
 | development | local (`bun run dev`) |
-{{STAGING_ROW}}
+{{TOOLU_STAGING_ROW}}
 | production | deployed Worker |
 
 Config is read from `PUBLIC_*` env vars and validated in `src/constants/env.ts`.

@@ -1,6 +1,6 @@
-# CLAUDE.md — {{APP_NAME}}
+# CLAUDE.md — {{TOOLU_DISPLAY_NAME}}
 
-{{ONE_LINE_DESCRIPTION}} React + Vite console app. TanStack Router (file-based)
+{{TOOLU_DESCRIPTION}} React + Vite console app. TanStack Router (file-based)
 · TypeScript (strict) · TailwindCSS · bun · Vitest + Testing Library · oxlint +
 oxfmt · deployed to Cloudflare Workers. Read this file first — it is the map and
 the rulebook.
@@ -184,7 +184,7 @@ in, as long as it never hardcodes a value.
 
 - **Deviations from the house language:** <none | what-and-why>
 
-{{DESIGN_NOTES}}
+{{TOOLU_DESIGN_NOTES}}
 
 ## Tool usage (for agents)
 

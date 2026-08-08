@@ -3,12 +3,12 @@
      Vite treats it as the build entry and rewrites the script src on build.
      `data-signal` picks the signal temperature for the whole product — omit the
      attribute for Jade (the default). See docs/design-language.md. -->
-<html lang="en">
+<html lang="en" data-signal="{{TOOLU_THEME_PRESET}}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark light" />
-    <title>{{APP_NAME}}</title>
+    <title>{{TOOLU_DISPLAY_NAME}}</title>
   </head>
   <body>
     <div id="root"></div>

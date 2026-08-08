@@ -1,16 +1,81 @@
 {
-  "name": "toolu-conventions",
+  "name": "@toolu/create",
   "version": "0.6.0",
-  "private": true,
-  "description": "Conventions kit — release tooling only. Not published to npm.",
+  "description": "Deterministic initializer for Toolu projects.",
+  "keywords": ["create", "initializer", "scaffold", "toolu"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Falconiere/toolu-conventions.git"
+  },
+  "homepage": "https://github.com/Falconiere/toolu-conventions#readme",
+  "bugs": {
+    "url": "https://github.com/Falconiere/toolu-conventions/issues"
+  },
   "license": "UNLICENSED",
+  "type": "module",
+  "bin": {
+    "create-toolu": "dist/create-toolu.js"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "files": [
+    "dist/create-toolu.js",
+    "stacks",
+    "guardrails/run.sh",
+    "guardrails/lib",
+    "guardrails/checks",
+    "guardrails/patterns",
+    "guardrails/schema.json",
+    "guardrails/workspace.schema.json",
+    "guardrails/oxlint-plugin",
+    "shared/.claude/settings.json",
+    "shared/README.md",
+    "shared/workspace",
+    "conventions/shared/templates",
+    "conventions/SETUP.md",
+    "conventions/*/SETUP.md",
+    "conventions/cloudflare-infra/templates",
+    "conventions/infisical-secrets/templates",
+    "conventions/local-dev/templates",
+    "schemas",
+    "DESIGN.md",
+    "SETUP.md",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "bun run build:cli",
+    "build:cli": "bun build src/cli.ts --target=node --outfile=dist/create-toolu.js && chmod 755 dist/create-toolu.js",
+    "prepack": "bun run build:cli >/dev/null",
+    "type-check": "tsc --noEmit",
+    "format:check": "oxfmt --check src tests",
+    "test": "bun run test:unit && bun run test:integration && bun run evals",
+    "test:unit": "bun test tests/*.test.ts",
+    "test:integration": "bun test tests/integration/*.test.ts",
+    "evals": "bun test tests/evals/scenarios.test.ts tests/evals/theme-imports.test.ts && bun test tests/evals/typescript-e2e.test.ts --test-name-pattern 'real console' && bun test tests/evals/typescript-e2e.test.ts --test-name-pattern 'real marketing' && bun test tests/evals/typescript-e2e.test.ts --test-name-pattern 'real backend-ts' && bun run build:cli && bash tests/evals/expo-cli-e2e.sh && bun test tests/evals/rust-e2e.test.ts && bun test tests/evals/maximal-e2e.test.ts --test-name-pattern 'maximal console' && bun test tests/evals/maximal-e2e.test.ts --test-name-pattern 'maximal marketing' && bun test tests/evals/maximal-e2e.test.ts --test-name-pattern 'maximal backend-workspace'",
+    "package:inspect": "bash scripts/inspect-package.sh",
+    "quality": "bun run type-check && bun run format:check && bun run test && bun run build && bash guardrails/__tests__/run-fixtures.sh && bash guardrails/__tests__/run-plugin.sh && bash guardrails/__tests__/run-latency.sh && bash conventions/__tests__/run.sh && bash scripts/validate-templates.sh && bun run package:inspect",
+    "release": "semantic-release"
+  },
+  "dependencies": {
+    "@clack/prompts": "1.7.0",
+    "zod": "4.4.3"
+  },
   "devDependencies": {
+    "@types/bun": "1.3.14",
+    "@types/node": "22.15.3",
+    "oxfmt": "0.62.0",
     "@semantic-release/changelog": "7.0.0",
     "@semantic-release/commit-analyzer": "13.0.1",
     "@semantic-release/git": "11.0.1",
     "@semantic-release/github": "12.0.9",
     "@semantic-release/npm": "13.1.5",
     "@semantic-release/release-notes-generator": "14.1.1",
-    "semantic-release": "25.0.9"
+    "semantic-release": "25.0.9",
+    "typescript": "5.9.3"
   }
 }

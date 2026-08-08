@@ -1,5 +1,11 @@
 # Rust — Setup
 
+> **Canonical path:** `npx @toolu/create@latest <target> --stack rust --name <name>`.
+> The finite overlays are Clap, Axum, and Serde. Infisical and local-dev require
+> Axum because both operations recipes need a long-running server target;
+> local-dev is not compatible with the plain Rust CLI recipe. Cloudflare Worker
+> operations are unsupported.
+
 Scaffold a single-crate Rust project that is green under the house gate from the
 first commit. Follow this file top to bottom. It inherits every rule in
 [`../../CORE.md`](../../CORE.md); read that first if you haven't.
