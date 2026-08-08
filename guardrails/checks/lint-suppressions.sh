@@ -14,11 +14,13 @@
 # just prose, and a Rust attribute-like string in TypeScript is not an
 # attribute; applying all patterns to all languages would invent violations.
 
-GR_LS_LINE_BLANKET='(^|[[:space:]])//[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]*(--[^[:cntrl:]]*)?$'
-GR_LS_LINE_UNUSED='(^|[[:space:]])//[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]+([^,[:space:]]+[[:space:]]*,[[:space:]]*)*((eslint|typescript|@typescript-eslint)/)?no-unused-vars([[:space:],]|$)'
-GR_LS_BLOCK_START='(^|[[:space:]])/\*[[:space:]]*(oxlint|eslint)-disable'
-GR_LS_BLOCK_BLANKET='(^|[[:space:]])/\*[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]*(--[^*]*)?\*/'
-GR_LS_BLOCK_UNUSED='(^|[[:space:]])/\*[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]+([^,[:space:]*]+[[:space:]]*,[[:space:]]*)*((eslint|typescript|@typescript-eslint)/)?no-unused-vars([[:space:],*]|$)'
+. "$GR_DIR/lib/lint-syntax.sh"
+
+GR_LS_LINE_BLANKET='//[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]*(--[^[:cntrl:]]*)?$'
+GR_LS_LINE_UNUSED='//[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]+([^,[:space:]]+[[:space:]]*,[[:space:]]*)*((eslint|typescript|@typescript-eslint)/)?no-unused-vars([[:space:],]|$)'
+GR_LS_BLOCK_START='/\*[[:space:]]*(oxlint|eslint)-disable'
+GR_LS_BLOCK_BLANKET='/\*[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]*(--[^*]*)?\*/'
+GR_LS_BLOCK_UNUSED='/\*[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]+([^,[:space:]*]+[[:space:]]*,[[:space:]]*)*((eslint|typescript|@typescript-eslint)/)?no-unused-vars([[:space:],*]|$)'
 GR_LS_RUST_DIRECT='^#!?\[allow\(([^,)]*,)*dead_code(,[^)]*)?\)\]'
 GR_LS_RUST_CFG_ATTR='^#!?\[cfg_attr\(.*,allow\(([^,)]*,)*dead_code(,[^)]*)?\).*\)\]'
 GR_LS_SCRIPT_CANDIDATE='(oxlint|eslint)-disable'
@@ -36,7 +38,10 @@ gr_ls_script_forbidden() {
   path=$1
   block=''
   in_block=0
+  gr_ls_script_syntax_reset
   while IFS= read -r line || [ -n "$line" ]; do
+    gr_ls_script_syntax_line "$line"
+    line=$GR_LS_SANITIZED
     if [ "$in_block" -eq 1 ]; then
       block="$block $line"
       case "$line" in
@@ -80,7 +85,10 @@ gr_ls_rust_forbidden() {
   path=$1
   attr=''
   in_attr=0
+  gr_ls_rust_syntax_reset
   while IFS= read -r line || [ -n "$line" ]; do
+    gr_ls_rust_syntax_line "$line"
+    line=$GR_LS_SANITIZED
     if [ "$in_attr" -eq 1 ]; then
       attr="$attr $line"
       case "$line" in
