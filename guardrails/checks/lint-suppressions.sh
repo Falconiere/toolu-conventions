@@ -18,14 +18,6 @@ GR_LS_BLANKET='(^|[[:space:]])(//|/\*|\*)[[:space:]]*(oxlint|eslint)-disable(-ne
 GR_LS_UNUSED='(^|[[:space:]])(//|/\*|\*)[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]+([^,[:space:]]+[[:space:]]*,[[:space:]]*)*((eslint|typescript|@typescript-eslint)/)?no-unused-vars([[:space:],*]|$)'
 GR_LS_RUST_UNUSED='^[[:space:]]*#!?\[[[:space:]]*allow[[:space:]]*\([[:space:]]*([^,)]*[[:space:]]*,[[:space:]]*)*dead_code([[:space:]]*,[^)]*)?\)[[:space:]]*\]'
 
-# gr_ls_kind <path> — print the pattern family for source files we understand.
-gr_ls_kind() {
-  case "$1" in
-    *.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs|*.astro) printf 'script' ;;
-    *.rs) printf 'rust' ;;
-  esac
-}
-
 # gr_ls_scan <path> — file/hook mode. Read in Bash instead of launching grep:
 # this path runs after every edit, and one process per check is measurable once
 # workspace dispatch has already re-execed the package guardrail. Repo mode
@@ -69,8 +61,8 @@ gr_ls_repo_lists() {
   rust_list=$2
   while IFS= read -r -d '' path; do
     path=${path#./}
-    # Match extensions inline: command-substituting gr_ls_kind here would fork
-    # once per source file, adding almost a second on the 500-file latency tree.
+    # Match extensions inline: a helper call through command substitution would
+    # fork once per source file, adding almost a second on the latency tree.
     case "$path" in
       *.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs|*.astro)
         printf '%s\0' "$path" >> "$script_list"
