@@ -2,8 +2,8 @@
 # carries releasable Conventional Commits (feat / fix / BREAKING).
 #
 # Docs-only, chore, and ci commits do not cut a release — semantic-release
-# exits 0 with nothing published. The kit itself is not an npm package, so
-# nothing is published to a registry.
+# exits 0 with nothing published. Releases publish @toolu/create through npm
+# trusted publishing; no long-lived npm token is stored in GitHub.
 #
 # Pushes to main authenticate as the `all-app-release` GitHub App (secrets
 # HOMEBREW_APP_ID / HOMEBREW_APP_PRIVATE_KEY — same publish App as
@@ -36,8 +36,10 @@ jobs:
   release:
     name: release
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     permissions:
       contents: write # tag + GitHub Release + push CHANGELOG.md
+      id-token: write # npm trusted-publisher OIDC assertion
       issues: write # comment on released issues
       pull-requests: write # comment on released PRs
     steps:
@@ -74,6 +76,11 @@ jobs:
         with:
           node-version: "22.14"
 
+      # npm trusted publishing requires npm >=11.5.1 in addition to Node
+      # >=22.14. setup-node installs Node's bundled npm, which may be older.
+      - name: Setup npm trusted-publishing client
+        run: npm install --global npm@11.5.1
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -81,6 +88,16 @@ jobs:
 
       - name: Install release toolchain
         run: bun install --frozen-lockfile
+
+      - name: Install verification toolchain
+        if: github.event_name == 'push'
+        run: |
+          rustup component add rustfmt clippy
+          cargo install ast-grep --version 0.45.0 --locked
+
+      - name: Verify release candidate
+        if: github.event_name == 'push'
+        run: bun run quality
 
       # Invoke via node + the local bin path — not bunx (semantic-release 25
       # reads process.version and rejects Bun's reported runtime).
@@ -94,4 +111,5 @@ jobs:
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          NPM_CONFIG_PROVENANCE: "true"
         run: node node_modules/semantic-release/bin/semantic-release.js

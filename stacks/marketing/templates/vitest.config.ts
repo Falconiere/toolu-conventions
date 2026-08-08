@@ -1,12 +1,11 @@
-/// <reference types="vitest/config" />
-/** Vitest config — Astro's own Vite config, plus the test block. */
-import { getViteConfig } from 'astro/config';
+/** Vitest config for source-level unit tests. */
+import { fileURLToPath } from 'node:url';
+import { defineConfig } from 'vitest/config';
 
-// Unlike the console stack (where the Vitest block lives inside vite.config.ts),
-// Astro owns its build config in astro.config.mjs and exposes it here through
-// `getViteConfig`. That helper loads the Astro config, so aliases, integrations
-// and env handling match the real build — there is no second source of truth.
-export default getViteConfig({
+export default defineConfig({
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
   test: {
     environment: 'node',
     include: ['src/**/__tests__/**/*.test.{ts,tsx}'],

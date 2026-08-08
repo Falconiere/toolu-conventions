@@ -1,4 +1,4 @@
-//! Binary entry point for `project-name`.
+//! Binary entry point for `{{TOOLU_PROJECT_NAME}}`.
 //!
 //! This is a starter skeleton: replace it with the real program. It exists so
 //! the toolchain, lints, and test harness are wired and green from commit one.

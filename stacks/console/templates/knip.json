@@ -1,13 +1,6 @@
 {
   "$schema": "./node_modules/knip/schema.json",
-  "entry": [
-    "src/main.tsx",
-    "src/app/**/*.tsx",
-    "vite.config.ts",
-    "vitest.setup.ts"
-  ],
   "project": ["src/**/*.{ts,tsx}"],
-  "ignore": ["src/route-tree.gen.ts"],
-  "ignoreBinaries": ["wrangler"],
+  "ignore": ["src/route-tree.gen.ts", "src/constants/env.ts", "src/ui/theme/**"],
   "ignoreDependencies": ["tailwindcss"]
 }

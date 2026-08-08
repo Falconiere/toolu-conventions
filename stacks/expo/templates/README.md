@@ -1,4 +1,4 @@
-# <project-name>
+# {{TOOLU_DISPLAY_NAME}}
 
 <one-paragraph-description> — a React Native app built with Expo, Expo Router,
 and TypeScript.
@@ -38,8 +38,8 @@ Every `src/*` folder has a `README.md` describing its contents.
 
 | Env | When | Bundle id |
 | --- | --- | --- |
-| development | local + dev builds | `<bundle-id>.test` |
-| production | store releases | `<bundle-id>` |
+| development | local + dev builds | `{{TOOLU_BUNDLE_ID}}.test` |
+| production | store releases | `{{TOOLU_BUNDLE_ID}}` |
 
 (Add a `staging` row if a staging env was enabled at setup.)
 

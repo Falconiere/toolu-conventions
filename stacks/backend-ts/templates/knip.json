@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/knip/schema.json",
-  "entry": ["src/index.ts", "vitest.config.ts"],
   "project": ["src/**/*.ts"],
-  "ignore": ["worker-configuration.d.ts"],
-  "ignoreBinaries": ["wrangler"]
+  "ignore": ["src/constants/env.ts"],
+  "ignoreDependencies": ["cloudflare:workers"],
+  "ignoreExportsUsedInFile": true
 }

@@ -1,5 +1,11 @@
 # SETUP — New Console App (React + Vite + TanStack Router)
 
+> **Canonical path:** `npx @toolu/create@latest <target> --stack console --name <name>`.
+> This document explains the owned recipe. The CLI supports only `api`, `auth`, and
+> `worker-api`; operations are Cloudflare and local-dev, plus Infisical when
+> `worker-api` supplies a server runtime. Themes are Jade, Blueprint, Ion, Chalk,
+> or an exact compatible web-token import.
+
 **You are an AI coding agent. Your job is to scaffold a new console app by
 following this guide top to bottom.** Work through the phases in order. Phase 0
 gathers everything you need; after that, prefer acting over asking. When a step

@@ -1,6 +1,6 @@
-# {{APP_NAME}}
+# {{TOOLU_DISPLAY_NAME}}
 
-{{ONE_PARAGRAPH_DESCRIPTION}} — a Hono HTTP service on Cloudflare Workers,
+{{TOOLU_DESCRIPTION}} — a Hono HTTP service on Cloudflare Workers,
 written in strict TypeScript, with Turso for persistence.
 
 > **New here (human or agent)?** Read [`CLAUDE.md`](./CLAUDE.md) first — it's the

@@ -2,15 +2,17 @@
 
 # toolu-conventions
 
-**A conventions kit an AI agent can execute.**
-Hand [`SETUP.md`](./SETUP.md) to a coding agent and it scaffolds a new project with the
-same structure, tooling, and guard rails every time — across six stacks.
+**A deterministic project initializer with executable conventions.**
+Run one command to create, install, verify, and initialize the same guarded project
+shape every time across five base stacks and one derived database workspace.
+Together, the repository owns six stacks; five are selected directly and
+`database-ts` is materialized only as part of a backend workspace.
 
 [![CI](https://github.com/Falconiere/toolu-conventions/actions/workflows/ci.yml/badge.svg)](./.github/workflows/ci.yml)
 [![Code Review](https://github.com/Falconiere/toolu-conventions/actions/workflows/code-review.yml/badge.svg)](./.github/workflows/code-review.yml)
 [![Release](https://github.com/Falconiere/toolu-conventions/actions/workflows/release.yml/badge.svg)](./.github/workflows/release.yml)
 [![Guide](https://img.shields.io/badge/guide-GitHub%20Pages-0b7285)](https://falconiere.github.io/toolu-conventions/)
-[![Stacks](https://img.shields.io/badge/stacks-6-333)](#the-six-stacks)
+[![Stacks](https://img.shields.io/badge/base_stacks-5-333)](#the-five-base-stacks)
 
 [Guide](https://falconiere.github.io/toolu-conventions/) ·
 [Design system](https://falconiere.github.io/toolu-conventions/design-system.html) ·
@@ -23,10 +25,10 @@ same structure, tooling, and guard rails every time — across six stacks.
 
 ## What this is
 
-Markdown an agent executes, plus copy-ready templates. **No CLI, no generator, nothing
-to install.** You clone the kit next to an empty repo, point an agent at `SETUP.md`, and
-answer five intake questions. The agent does the rest and prints the human-only
-checklist at the end.
+`@toolu/create` is a public npm initializer backed by complete, repository-owned recipes.
+It does not invoke Vite, Astro, Expo, or another moving upstream scaffolder. A manifest and
+generator version always select the same authored files and exact direct dependency versions.
+The generated lockfile freezes the transitive graph.
 
 The point is not "a nice starter". The point is that project #7 has the same folder
 tree, the same banned dependencies, the same lint config, and the same five enforcement
@@ -36,38 +38,50 @@ when it drifts.
 ## Quick start
 
 ```bash
-git clone https://github.com/Falconiere/toolu-conventions.git
-mkdir my-new-project && cd my-new-project
+npx @toolu/create@latest my-project
 ```
 
-Then, in your agent of choice:
+The interactive wizard uses Clack. Automation can provide the complete configuration as
+flags:
 
-> **Set up this project by following `../toolu-conventions/SETUP.md`.**
-
-The agent will:
-
-1. **Check prerequisites** — `git`, `bun` (TS stacks), `cargo` (rust), `jq`. The rust stack
-   additionally needs ast-grep, for the two pattern rules clippy doesn't cover — install it
-   yourself with `cargo install ast-grep --locked`; the agent verifies and reports, it
-   never installs.
-   Neither `jq` nor ast-grep is optional where it applies: the guard-rail gate exits `3`
-   rather than silently passing when one is missing.
-2. **Ask intake** — stack · project name · operations modules · environments · optional integrations · design context.
-3. **Dispatch** to `stacks/<stack>/SETUP.md` and scaffold end to end.
-4. **Run the gate** and only then hand back a human checklist (Cloudflare login, Turso
-   database, repo secrets, branch protection — things only a human can do).
-
-```mermaid
-flowchart LR
-  A["SETUP.md<br/>router"] --> B["intake<br/>5 questions"]
-  B --> C["stacks/&lt;stack&gt;/SETUP.md"]
-  C --> D["templates/<br/>copy-ready files"]
-  D --> E["new repo<br/>+ 5 guard-rail layers"]
-  F["CORE.md<br/>house rules"] --> C
-  G["DESIGN.md<br/>UI language"] --> C
+```bash
+npx @toolu/create@latest my-console \
+  --stack console \
+  --name my-console \
+  --display-name "My Console" \
+  --integration api \
+  --integration auth \
+  --operation local-dev \
+  --theme blueprint
 ```
 
-## The six stacks
+Every successful run:
+
+1. validates all answers, compatibility, target safety, theme hashes, and prerequisites
+   before filesystem mutation;
+2. authors into a sibling staging directory from owned recipes;
+3. installs dependencies, initializes Git, installs Lefthook, and runs the canonical checks
+   and build; and
+4. atomically renames the verified staging directory to the target.
+
+The target must not exist. Failed output stays in `.<target>.toolu-staging` with a redacted
+diagnostic log and rerun guidance. The initializer never authenticates, deploys, creates a
+remote, pushes, or makes an initial commit.
+
+For repeatable scaffolds, keep the generated manifest and replay it:
+
+```bash
+npx @toolu/create@latest --config ./toolu.scaffold.json
+```
+
+Flags override manifest values. In non-TTY environments, omitted required values are reported
+together as `<target>, --stack, --name`; optional values use stable defaults. See
+[`SETUP.md`](./SETUP.md) for every flag and the compatibility matrix.
+
+Supported hosts are macOS, Linux, and WSL with Node 20.12+. Native Windows and updating an
+existing directory are intentionally unsupported.
+
+## The five base stacks
 
 | Stack | Builds | Runs on |
 | --- | --- | --- |
@@ -78,7 +92,7 @@ flowchart LR
 | [`rust`](./stacks/rust/) | A CLI or service | Single crate · clippy `-D warnings` · rustfmt · cargo test |
 | [`database-ts`](./stacks/database-ts/) | The database, as its own package | Drizzle + Turso · a Bun workspace package beside `backend-ts` · Vitest in workerd |
 
-Five of those six are chosen directly. **`database-ts` is not** — it is reached through
+Five are chosen directly. **`database-ts` is not** — it is reached through
 the `backend-ts` intake question *separate database package?*, and turns that project into
 a Bun workspace (`packages/api` + `packages/database`). A database package with no
 consumer has no gate and nothing to be typed against, so the kit will not scaffold one
@@ -130,7 +144,7 @@ and activates provider adapters only when those providers are selected.
 | --- | --- |
 | [`cloudflare-infra`](./conventions/cloudflare-infra/) | Development/production deploy ordering, Worker secret sync, and explicit tunnel ingress/DNS planning |
 | [`infisical-secrets`](./conventions/infisical-secrets/) | Machine-identity secret delivery to server-runtime targets with atomic local output |
-| [`local-dev`](./conventions/local-dev/) | Manifest-driven service commands, fixed ports, health probes, and ownership-safe cleanup |
+| [`local-dev`](./conventions/local-dev/) | Manifest-driven commands, fixed ports, probes, and ownership-safe cleanup; Rust requires an Axum service, not the CLI recipe |
 
 Each module also ships a project-copyable skill under [`skills/`](./skills/).
 Provider account mutations remain human or CI actions.
@@ -231,7 +245,7 @@ Adding a convention usually means adding a check here too.
 
 | Path | Purpose |
 | --- | --- |
-| [`SETUP.md`](./SETUP.md) | ★ **Entry point.** Router: prereq checks → intake → dispatch |
+| [`SETUP.md`](./SETUP.md) | CLI flags, defaults, replay behavior, and compatibility matrix |
 | [`CORE.md`](./CORE.md) | Stack-agnostic house rules every stack inherits — hard rules, platform defaults, the five layers |
 | [`DESIGN.md`](./DESIGN.md) | Stack-agnostic UI/UX language (CodaSignal "Signal") the theme tokens ship pre-filled with |
 | [`guardrails/`](./guardrails/) | `agent-guardrails` — the structural gate, one source, copied into every project as `scripts/guardrails/` |
@@ -249,10 +263,8 @@ When a convention changes, update `CORE.md` / `DESIGN.md` **or** the stack kit *
 templates together** — docs and templates stay in lockstep. Then:
 
 ```bash
-bash scripts/validate-templates.sh      # the same command CI runs
-bash guardrails/__tests__/run-fixtures.sh
-bash guardrails/__tests__/run-plugin.sh
-bash guardrails/__tests__/run-latency.sh
+bun install --frozen-lockfile
+bun run quality
 ```
 
 Specs, plans, and decision records live in [`docs/toolu/`](./docs/toolu/).
@@ -268,7 +280,15 @@ Each release:
 
 - tags `vX.Y.Z` and creates a [GitHub Release](https://github.com/Falconiere/toolu-conventions/releases)
 - prepends notes to [`CHANGELOG.md`](./CHANGELOG.md) and commits it back (`[skip ci]`)
-- does **not** publish to npm — this kit is not a registry package
+- publishes public package `@toolu/create` to npm with provenance
+
+One-time npm bootstrap:
+
+1. publish or claim the public `@toolu/create` package once with an npm account authorized for
+   the `@toolu` scope;
+2. configure `.github/workflows/release.yml` in npm as the trusted publisher for this repository;
+3. confirm a release publishes with OIDC provenance; and
+4. disable and remove legacy npm publish tokens from GitHub and npm automation.
 
 Pushing the changelog commit through `protect-main` needs the
 [`all-app-release`](https://github.com/apps/all-app-release) GitHub App (secrets

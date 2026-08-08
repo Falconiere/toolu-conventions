@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://toolu.dev/schemas/toolu.scaffold.schema.json",
+  "title": "Toolu scaffold manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generatorVersion",
+    "project",
+    "stack",
+    "integrations",
+    "operations",
+    "environments",
+    "staging",
+    "theme",
+    "runtime",
+    "recipes"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "generatorVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "displayName", "targetDirectory"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "targetDirectory": { "type": "string", "minLength": 1 }
+      }
+    },
+    "stack": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id"],
+          "properties": { "id": { "const": "console" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "pages"],
+          "properties": {
+            "id": { "const": "marketing" },
+            "pages": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "pattern": "^(?:home|[a-z0-9]+(?:-[a-z0-9]+)*(?:/[a-z0-9]+(?:-[a-z0-9]+)*)*)$"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "persistence", "workspace"],
+          "properties": {
+            "id": { "const": "backend-ts" },
+            "persistence": { "const": "turso" },
+            "workspace": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id"],
+          "properties": { "id": { "const": "expo" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "mode"],
+          "properties": {
+            "id": { "const": "rust" },
+            "mode": { "enum": ["cli", "service"] }
+          }
+        }
+      ]
+    },
+    "integrations": { "type": "array", "items": { "type": "string" } },
+    "operations": {
+      "type": "array",
+      "items": { "enum": ["cloudflare", "infisical", "local-dev"] }
+    },
+    "environments": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "enum": ["local", "development", "staging", "production"] }
+    },
+    "staging": { "type": "boolean" },
+    "theme": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "none" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "preset"],
+          "properties": {
+            "kind": { "const": "preset" },
+            "preset": { "enum": ["jade", "blueprint", "ion", "chalk"] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "source", "files"],
+          "properties": {
+            "kind": { "const": "import" },
+            "source": { "type": "string", "minLength": 1 },
+            "files": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "target", "sha256"],
+                "properties": {
+                  "path": { "type": "string", "minLength": 1 },
+                  "target": { "enum": ["web", "native"] },
+                  "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["port"],
+      "properties": {
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "domain": { "type": "string" },
+        "consoleUrl": { "type": "string", "format": "uri" }
+      }
+    },
+    "recipes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

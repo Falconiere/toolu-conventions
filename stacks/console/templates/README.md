@@ -1,6 +1,6 @@
-# {{APP_NAME}}
+# {{TOOLU_DISPLAY_NAME}}
 
-{{ONE_PARAGRAPH_DESCRIPTION}} — a React + Vite console app with TanStack Router,
+{{TOOLU_DESCRIPTION}} — a React + Vite console app with TanStack Router,
 deployed to Cloudflare Workers.
 
 > **New here (human or agent)?** Read [`CLAUDE.md`](./CLAUDE.md) first — it's the
@@ -43,7 +43,7 @@ Every `src/*` folder has a `README.md` describing its contents.
 | Env | When |
 | --- | --- |
 | development | local (`bun run dev`) |
-{{STAGING_ROW}}
+{{TOOLU_STAGING_ROW}}
 | production | deployed Worker |
 
 Config is read from `VITE_*` env vars and validated in `src/constants/env.ts`.

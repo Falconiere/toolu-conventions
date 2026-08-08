@@ -1,5 +1,11 @@
 # SETUP — New backend-ts Service (Hono on Cloudflare Workers)
 
+> **Canonical path:** `npx @toolu/create@latest <target> --stack backend-ts --name <name>`.
+> Turso is always selected. Optional overlays are auth, structured logging,
+> Drizzle, and a database package; `database-package` requires Drizzle and turns
+> the output into the owned API/database Bun workspace. All three operations
+> modules are compatible.
+
 **You are an AI coding agent scaffolding a Hono service that runs on Cloudflare
 Workers.** Follow this guide top to bottom in an empty project directory. Work
 the phases in order: Phase 0 gathers inputs, after that prefer acting over

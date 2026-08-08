@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "{{PROJECT_NAME}}",
+  "name": "{{TOOLU_PROJECT_NAME}}",
   "main": "./src/index.ts",
   // Pin to the date you scaffolded on. Bumping it opts into newer runtime
   // behaviour — do it deliberately, not as a drive-by.
@@ -25,7 +25,7 @@
   // (`wrangler secret put TURSO_AUTH_TOKEN --env staging`).
   // "env": {
   //   "staging": {
-  //     "name": "{{PROJECT_NAME}}-staging",
+  //     "name": "{{TOOLU_PROJECT_NAME}}-staging",
   //     "vars": { "APP_ENV": "staging" }
   //   }
   // },

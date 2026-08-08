@@ -19,6 +19,7 @@
     "android",
     "ios",
     "dist",
+    "scripts/guardrails/oxlint-plugin",
     "assets",
     "babel.config.js",
     "metro.config.js"

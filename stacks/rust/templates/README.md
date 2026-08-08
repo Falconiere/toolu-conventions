@@ -1,4 +1,4 @@
-# project-name
+# {{TOOLU_DISPLAY_NAME}}
 
 <One-sentence description of what this crate does.>
 

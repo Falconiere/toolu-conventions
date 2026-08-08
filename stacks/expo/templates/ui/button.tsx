@@ -2,6 +2,7 @@
 import { ActivityIndicator, Pressable, type PressableProps, StyleSheet, View } from 'react-native';
 import { Text } from '@/ui/text';
 import { colors, type ColorToken } from '@/ui/theme/colors';
+import { pressedOpacity } from '@/ui/theme/motion';
 import { borderWidth, layout, radii, spacing } from '@/ui/theme/spacing';
 
 type Variant = 'primary' | 'secondary' | 'destructive' | 'bracket';
@@ -105,6 +106,7 @@ export function Button({
         { height: HEIGHT[size], backgroundColor: FILL[variant] },
         border !== undefined && { borderWidth: borderWidth.hairline, borderColor: border },
         pressed && { backgroundColor: PRESSED_FILL[variant] },
+        pressed && { opacity: pressedOpacity },
         pressed && border !== undefined && { borderColor: PRESSED_BORDER[variant] },
         fullWidth && styles.fullWidth,
         isDisabled && styles.disabled,

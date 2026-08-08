@@ -4,13 +4,11 @@ import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import { createTanstackQueryUtils } from '@orpc/tanstack-query';
 import type { RouterClient } from '@orpc/server';
-import type { AppRouter } from '@acme/api-contract';
+import type { AppRouter } from '@/types/api-contract';
 import { BASE_API_URL } from '@/constants/env';
 
-// `AppRouter` is a TYPE-ONLY import: it is erased at build time, so nothing from
-// the server ends up in this bundle. Where it comes from depends on your layout —
-// a workspace package in a monorepo, or a published contract package across
-// repos. Point the import at yours; the rest of this file does not change.
+// Replace the local starter contract with the deployed API's AppRouter type.
+// This is a TYPE-ONLY import, so no server code enters the browser bundle.
 
 const link = new RPCLink({
   url: `${BASE_API_URL}/rpc`,

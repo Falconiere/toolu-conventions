@@ -4,7 +4,7 @@
   // which is what keeps them running in the same runtime as production rather
   // than in Node. Verified: the pool does not require a `main` entry.
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "<project-name>-database",
+  "name": "{{TOOLU_PROJECT_NAME}}-database",
   "compatibility_date": "2026-08-01",
   "compatibility_flags": ["nodejs_compat"]
 }

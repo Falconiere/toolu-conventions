@@ -8,5 +8,6 @@
     "drizzle.config.ts"
   ],
   "project": ["src/**/*.ts"],
-  "ignoreBinaries": ["wrangler", "drizzle-kit"]
+  "ignoreDependencies": ["cloudflare", "cloudflare:test", "wrangler"],
+  "ignoreExportsUsedInFile": true
 }

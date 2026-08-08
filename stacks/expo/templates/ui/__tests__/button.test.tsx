@@ -3,30 +3,30 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Button } from '@/ui/button';
 
-// react-native-testing-library v14 has an async API: await render / fireEvent.
 // Render a primitive, query by role/text, assert real behavior (not tautologies
-// like `expect(x).toBeDefined()`).
+// like `expect(x).toBeDefined()`). The SDK 53-compatible testing library uses a
+// synchronous render and event API.
 
 describe('Button', () => {
-  it('renders its label', async () => {
-    await render(<Button label="Save" onPress={() => {}} />);
+  it('renders its label', () => {
+    render(<Button label="Save" onPress={() => {}} />);
     expect(screen.getByText('Save')).toBeTruthy();
   });
 
-  it('fires onPress when tapped', async () => {
+  it('fires onPress when tapped', () => {
     const onPress = jest.fn();
-    await render(<Button label="Save" onPress={onPress} />);
+    render(<Button label="Save" onPress={onPress} />);
 
-    await fireEvent.press(screen.getByRole('button'));
+    fireEvent.press(screen.getByRole('button'));
 
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('does not fire onPress while loading', async () => {
+  it('does not fire onPress while loading', () => {
     const onPress = jest.fn();
-    await render(<Button label="Save" loading onPress={onPress} />);
+    render(<Button label="Save" loading onPress={onPress} />);
 
-    await fireEvent.press(screen.getByRole('button'));
+    fireEvent.press(screen.getByRole('button'));
 
     expect(onPress).not.toHaveBeenCalled();
   });

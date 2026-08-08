@@ -3,6 +3,7 @@
 import { RPCHandler } from '@orpc/server/fetch';
 import { Hono } from 'hono';
 import { router } from '@/rpc/router';
+import { createDatabase } from '@/services/database-service';
 
 // The handler is stateless and holds no config, so building it once per isolate
 // is correct — the per-request values go in `context` below, never in here.
@@ -24,6 +25,11 @@ export const app = new Hono<{ Bindings: Env }>();
 // this one, webhooks, and auth callbacks stay in src/routes/; everything the
 // product's own clients call goes through oRPC.
 app.get('/health', (c) => c.json({ status: 'ok' }));
+
+app.get('/database/health', async (c) => {
+  await (await createDatabase().prepare('select 1')).get();
+  return c.json({ status: 'ok' });
+});
 
 // The typed API surface. Everything under /rpc is an oRPC procedure from
 // src/rpc/router.ts, validated in and out by its Zod schemas. `matched` is false

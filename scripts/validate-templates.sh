@@ -103,7 +103,7 @@ for wf in .github/workflows/ci.yml .github/workflows/code-review.yml .github/wor
 done
 
 # --- Release contract: semantic-release on main, CHANGELOG committed back,
-#     never published to npm (this kit has no package consumers on a registry).
+#     and the public initializer published to npm with provenance.
 #     A missing or drifted config would cut the wrong artifact — or none — on
 #     the next merge to main, so the gate asserts the shape rather than the
 #     prose in README. ---
@@ -115,15 +115,16 @@ jq -e '
   and ([.plugins[] | if type == "string" then . else .[0] end]
       | index("@semantic-release/changelog") and index("@semantic-release/git")
         and index("@semantic-release/github") and index("@semantic-release/npm"))
-  and ([.plugins[] | select(type == "array" and .[0] == "@semantic-release/npm") | .[1].npmPublish]
-      | . == [false])
 ' .releaserc.json >/dev/null \
-  || bad ".releaserc.json drifted: need main + v\${version} + changelog/git/github + npmPublish:false"
+  || bad ".releaserc.json drifted: need main + v\${version} + changelog/git/github/npm"
 jq -e '
-  .private == true
+  .name == "@toolu/create"
+  and .private != true
+  and .publishConfig.access == "public"
+  and .publishConfig.provenance == true
   and (.devDependencies["semantic-release"] | type == "string" and test("^[0-9]+\\."))
 ' package.json >/dev/null \
-  || bad "package.json must be private and pin semantic-release to an exact major.minor.patch"
+  || bad "package.json must publish public @toolu/create with provenance and pin semantic-release"
 grep -q 'node_modules/semantic-release/bin/semantic-release.js' .github/workflows/release.yml \
   || bad "release.yml must invoke the local semantic-release bin via node (not bunx/npx)"
 grep -q 'node-version:' .github/workflows/release.yml \
@@ -320,9 +321,11 @@ depfree=(
   stacks/console/templates/theme/icons.ts
 )
 missing=0
+empty_type_roots=$(mktemp -d)
 for f in "${depfree[@]}"; do [ -f "$f" ] || { bad "dep-free template missing: $f"; missing=1; }; done
 if [ "$missing" -eq 0 ]; then
-  bunx tsc --strict --noEmit "${depfree[@]}" || bad "tsc --strict on dep-free templates"
+  bunx tsc --strict --noEmit --typeRoots "$empty_type_roots" "${depfree[@]}" \
+    || bad "tsc --strict on dep-free templates"
 fi
 
 # --- The HTTP client: dependency-free, but it needs the browser lib and a modern
@@ -338,6 +341,7 @@ else
     --useUnknownInCatchVariables --verbatimModuleSyntax \
     --target ES2022 --lib ES2022,DOM,DOM.Iterable \
     --module esnext --moduleResolution bundler \
+    --typeRoots "$empty_type_roots" \
     "$http_client" || bad "tsc --strict on $http_client"
   # Enforced by lint in a scaffold, but the templates lint non-type-aware here,
   # so check the two bans that make this file worth having.
@@ -450,12 +454,14 @@ jq -e --slurpfile s guardrails/workspace.schema.json \
   'has("packages") and (has("srcRoot") | not)' shared/workspace/guardrails.workspace.json >/dev/null 2>&1 \
   || bad "shared/workspace/guardrails.workspace.json must name packages and must NOT carry srcRoot — it governs no source tree of its own"
 
-# The kit's OWN ci.yml must run every guardrails suite. run-plugin.sh went a
-# long time unrun, which meant the house rules — the ones that fire while an
-# agent is still typing — were untested by the gate.
+# The kit's OWN ci.yml must run the aggregate quality gate, and that gate must
+# retain every guardrails suite. This allows CI to have one canonical entrypoint
+# without hiding a removed suite behind that indirection.
+grep -q 'bun run quality' .github/workflows/ci.yml \
+  || bad "the kit's ci.yml does not run the canonical quality gate"
 for suite in run-fixtures.sh run-plugin.sh run-latency.sh; do
-  grep -q "$suite" .github/workflows/ci.yml \
-    || bad "the kit's ci.yml does not run guardrails/__tests__/$suite — that suite is unverified by CI"
+  jq -er --arg suite "$suite" '.scripts.quality | contains($suite)' package.json >/dev/null \
+    || bad "package.json quality does not run guardrails/__tests__/$suite — that suite is unverified by CI"
 done
 
 # --- Every house/* rule the shared lint base references must be EXPORTED by the
@@ -828,7 +834,7 @@ exec </dev/null
 tmpcrate="$(mktemp -d)/skel"
 mkdir -p "$tmpcrate"
 cp -R stacks/rust/templates/src "$tmpcrate/src"
-sed 's/name = "project-name"/name = "skel-check"/' stacks/rust/templates/Cargo.toml > "$tmpcrate/Cargo.toml"
+sed 's/name = "{{TOOLU_PROJECT_NAME}}"/name = "skel-check"/' stacks/rust/templates/Cargo.toml > "$tmpcrate/Cargo.toml"
 cp stacks/rust/templates/rustfmt.toml "$tmpcrate/rustfmt.toml"
 ( cd "$tmpcrate" \
   && CARGO_NET_OFFLINE=true cargo fmt --check \

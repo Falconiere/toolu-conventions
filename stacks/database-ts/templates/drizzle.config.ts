@@ -7,6 +7,10 @@ import { defineConfig } from 'drizzle-kit';
 // offers to drop them. Keep this list in step with the auth schema if you
 // change providers.
 const AUTH_TABLES = ['!user', '!session', '!account', '!verification'];
+// A syntactically valid, unreachable default lets type-checkers and Knip load
+// this configuration. Real migration commands still require TURSO_URL.
+const databaseUrl = process.env.TURSO_URL ?? 'libsql://configuration-required.invalid';
+const authToken = process.env.TURSO_AUTH_TOKEN;
 
 export default defineConfig({
   dialect: 'turso',
@@ -17,7 +21,7 @@ export default defineConfig({
   // deep with a parse error; an absent one makes it say the credential is
   // missing, which is the thing that is actually wrong.
   dbCredentials: {
-    url: process.env.TURSO_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN,
+    url: databaseUrl,
+    ...(authToken === undefined ? {} : { authToken }),
   },
 });

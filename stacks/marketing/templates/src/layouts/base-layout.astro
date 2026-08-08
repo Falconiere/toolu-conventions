@@ -21,7 +21,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 ---
 
 <!doctype html>
-<html lang="en" data-signal={signal}>
+<html lang="en" data-signal={signal ?? '{{TOOLU_THEME_PRESET}}'}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
