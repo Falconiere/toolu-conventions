@@ -579,10 +579,10 @@ done
 
 # --- The documented check count must match the checks that exist. Adding a
 #     check is a two-file edit nobody remembers, so the number went stale the
-#     first time it happened: secret-content.sh landed as the 13th while both
-#     READMEs still advertised 12. Only the "# N checks" tree comments are
+#     first time it happened: secret-content.sh landed while both READMEs still
+#     advertised the previous count. Only the "# N checks" tree comments are
 #     asserted here — the prose that spells the number in words ("all
-#     thirteen") is not, so keep those in step by hand when this fires.
+#     number in words is not, so keep those in step by hand when this fires.
 #
 #     Anchored to the tree-diagram line, not a bare substring: an unrelated
 #     sentence elsewhere in the doc that happens to contain the right number

@@ -53,7 +53,7 @@ DIRTY=$(bash "$HERE/lib/mkrepo.sh" violating)
 BROKEN_RULE=''
 trap 'rm -rf "$CLEAN" "$DIRTY" "${SCRATCH:-}"; rm -f "${BROKEN_RULE:-}"' EXIT
 
-ALL_CHECKS='folder-tree folder-readmes file-size colocated-tests test-tree no-barrels filename-case banned-deps shadow-configs required-files secrets secret-content patterns'
+ALL_CHECKS='folder-tree folder-readmes file-size colocated-tests test-tree no-barrels filename-case banned-deps shadow-configs required-files secrets secret-content patterns lint-suppressions'
 
 echo 'guardrails fixtures'
 
@@ -238,6 +238,75 @@ if tagged patterns; then
   [ "$(count_check "$out" patterns)" -eq 0 ] \
     && ok 'AC-11 patterns: silent on a clean tree' \
     || bad 'AC-11 patterns must be silent on the clean fixture' "$out"
+fi
+
+# ---------------------------------------------------------------- AC-23
+if tagged lint-suppressions; then
+  gr_in "$DIRTY"; out=$OUT
+  if [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && printf '%s' "$out" | grep -q 'suppressed-unused\.ts'; then
+    ok 'AC-23 lint-suppressions rejects a no-unused-vars directive'
+  else
+    bad 'AC-23 an unused-variable suppression must fail the repo gate' "$out"
+  fi
+
+  gr_in "$DIRTY" --file src/utilities/suppressed-unused.ts; out=$OUT
+  if [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ]; then
+    ok 'AC-23 lint-suppressions reports in --file mode too'
+  else
+    bad 'AC-23 the edit hook must catch an unused-variable suppression' "exit=$STATUS out=$out"
+  fi
+
+  SC=$(bash "$HERE/lib/mkrepo.sh" clean)
+  printf '// Documentation: oxlint-disable-next-line eslint/no-unused-vars is forbidden.\n' \
+    > "$SC/src/utilities/suppression-notes.ts"
+  gr_in "$SC" --file src/utilities/suppression-notes.ts; out=$OUT
+  [ "$STATUS" -eq 0 ] && [ "$(count_check "$out" lint-suppressions)" -eq 0 ] \
+    && ok 'AC-23 prose that names a directive is not mistaken for one' \
+    || bad 'AC-23 only active lint directives may be rejected' "exit=$STATUS out=$out"
+
+  printf '/* oxlint-disable */\nexport const live = 1;\n' \
+    > "$SC/src/utilities/blanket-disable.ts"
+  gr_in "$SC" --file src/utilities/blanket-disable.ts; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a blanket lint disable is rejected' \
+    || bad 'AC-23 blanket lint disables must fail' "exit=$STATUS out=$out"
+
+  printf '// oxlint-disable-next-line no-console -- intentional test probe\nconsole.log("probe");\n' \
+    > "$SC/src/utilities/scoped-disable.ts"
+  gr_in "$SC" --file src/utilities/scoped-disable.ts; out=$OUT
+  [ "$STATUS" -eq 0 ] && [ "$(count_check "$out" lint-suppressions)" -eq 0 ] \
+    && ok 'AC-23 a scoped disable for another rule remains available' \
+    || bad 'AC-23 unrelated scoped lint directives must remain available' "exit=$STATUS out=$out"
+
+  printf '// eslint-disable-next-line no-console, @typescript-eslint/no-unused-vars\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/aliased-unused-disable.ts"
+  gr_in "$SC" --file src/utilities/aliased-unused-disable.ts; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 an aliased no-unused-vars directive in a rule list is rejected' \
+    || bad 'AC-23 no-unused-vars aliases must not bypass the check' "exit=$STATUS out=$out"
+
+  printf 'const hidden = 1; // eslint-disable-line no-unused-vars\n' \
+    > "$SC/src/utilities/trailing-unused-disable.ts"
+  gr_in "$SC" --file src/utilities/trailing-unused-disable.ts; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a trailing disable-line directive is rejected' \
+    || bad 'AC-23 trailing unused-variable directives must not bypass the check' "exit=$STATUS out=$out"
+
+  printf '#[allow(dead_code)]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/allow-dead-code.rs"
+  gr_in "$SC" --file src/utilities/allow-dead-code.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 Rust item-level allow(dead_code) is rejected' \
+    || bad 'AC-23 Rust item-level dead-code allowances must fail' "exit=$STATUS out=$out"
+
+  printf '#![allow(dead_code)]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/allow-dead-code-crate.rs"
+  gr_in "$SC" --file src/utilities/allow-dead-code-crate.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 Rust crate-level allow(dead_code) is rejected' \
+    || bad 'AC-23 Rust crate-level dead-code allowances must fail' "exit=$STATUS out=$out"
+  rm -rf "$SC"
 fi
 
 # ---------------------------------------------------------------- AC-16
@@ -656,8 +725,8 @@ fi
 # check id it should not have.
 if [ -z "$ONLY" ]; then
   listed=$(bash "$GR" --list | wc -l | tr -d ' ')
-  [ "$listed" -eq 13 ] && ok 'AC-9  --list still reports exactly 13 checks' \
-    || bad "AC-9  expected 13 check ids, got $listed"
+  [ "$listed" -eq 14 ] && ok 'AC-9  --list still reports exactly 14 checks' \
+    || bad "AC-9  expected 14 check ids, got $listed"
 fi
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"

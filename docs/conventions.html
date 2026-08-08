@@ -886,7 +886,7 @@
                 does not count.
               </p>
               <p class="detail">
-                TypeScript (console, marketing, backend-ts, expo): sibling
+                TypeScript (console, marketing, backend-ts, database-ts, expo): sibling
                 <code>__tests__/</code>, named after the module. Rust: sibling
                 <code>tests/</code> (same shape, different folder name) —
                 <strong>never</strong> in the same file as the logic. Keep test
@@ -985,9 +985,9 @@ type Shift = z.infer&lt;typeof Shift&gt;;</pre>
             <li>
               <div class="num">06</div>
               <h3 class="subhead">No debug leftovers, no silent rot</h3>
-              <p class="body">Committed code does not leave print-debugging behind. Unused files and copy-paste clones are treated as failures, not as “cleanup later.”</p>
+              <p class="body">Committed code does not leave print-debugging behind. Unused locals, parameters, files, exports, and dependencies—and copy-paste clones—are treated as failures, not as “cleanup later.”</p>
               
-              <p class="detail">No <code>console.log</code> / <code>debugger</code> in committed TS; prefer <code>console.warn</code> / <code>console.error</code>. Gate includes knip (unused) and jscpd at threshold 0 (duplication).</p>
+              <p class="detail">No <code>console.log</code> / <code>debugger</code> in committed TS; prefer <code>console.warn</code> / <code>console.error</code>. TypeScript and oxlint reject unused locals and parameters—including <code>_name</code>—while knip rejects unused files, exports, and dependencies. Rust denies <code>dead_code</code>. Guardrails reject directives that suppress those rules; jscpd rejects duplication at threshold 0.</p>
 
             </li>
           </ol>
@@ -1079,7 +1079,7 @@ type Shift = z.infer&lt;typeof Shift&gt;;</pre>
             </li>
             <li class="layer">
               <h3 class="subhead">One gate command</h3>
-              <p>Before every push: a single check command that type-checks, lints, formats, validates structure, hunts dead code and copy-paste, and runs tests. CI mirrors those steps by name. Structure is <strong>agent-guardrails</strong> — one config-driven module, copied into every project, enforcing what a linter cannot see: the folder tree and the shape inside each domain, READMEs, barrels, colocated tests, banned dependencies, required files, shadowing configs, committed secrets, and code patterns via ast-grep.</p>
+              <p>Before every push: a single check command that type-checks, lints, formats, validates structure, hunts dead code and copy-paste, and runs tests. CI mirrors those steps by name. Structure is <strong>agent-guardrails</strong> — one config-driven module, copied into every project, enforcing what a linter cannot see: the folder tree and the shape inside each domain, READMEs, barrels, colocated tests, banned dependencies, required files, shadowing configs, committed secrets, code patterns via ast-grep, and attempts to suppress dead-code enforcement.</p>
             </li>
             <li class="layer">
               <h3 class="subhead">AI code review on PRs</h3>

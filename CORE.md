@@ -217,7 +217,11 @@ two numbers drift apart, and how an `oxlint-disable` silences half a rule.
   `secrets.scanExempt` array in `guardrails.config.json` lists path globs the
   content scan skips, the same shape as `barrelExempt`; `scripts/guardrails/`
   itself is exempt unconditionally, since the kit's own fixtures plant fake
-  secrets on purpose.
+  secrets on purpose. Its `lint-suppressions` check separately protects the
+  enforcement boundary: it rejects blanket eslint/oxlint disables, scoped
+  `no-unused-vars` disables, and Rust `#[allow(dead_code)]` /
+  `#![allow(dead_code)]`. The linter/compiler still owns deciding what is dead;
+  this check owns the distinct fact that source may not silence that decision.
 
 Which side owns what is **declared**, not implied: `ownedByLinter` in
 `guardrails.config.json` lists the checks the linter enforces, and the bash

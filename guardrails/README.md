@@ -3,7 +3,8 @@
 The kit's structural gate. One module, copied verbatim into every generated project,
 enforcing the rules a linter structurally cannot see: the folder tree, per-domain shape,
 colocated tests, barrels, banned dependencies, required files, committed secrets, and
-contextual code patterns.
+contextual code patterns. It also protects lint integrity by rejecting source directives
+that disable dead-code enforcement.
 
 Anything oxlint / oxfmt / clippy / rustfmt already enforces stays with them. Two enforcers
 of one rule is how ceilings drift apart.
@@ -54,7 +55,7 @@ guardrails/
 ├── run.sh              # entry point — repo · --file · --hook · --stop modes
 ├── lib/                # config.sh (load + validate), report.sh (output, exit codes),
 │                       #   workspace.sh (monorepo dispatch)
-├── checks/             # 13 checks, one file each
+├── checks/             # 14 checks, one file each
 ├── oxlint-plugin/      # house rules that run inside oxlint, as the file is written
 ├── patterns/rust/      # ast-grep rules for what clippy doesn't cover
 ├── schema.json         # the guardrails.config.json contract
@@ -112,19 +113,20 @@ file-addressable check at a workspace root to run against it regardless.
 
 ## One rule, one enforcer
 
-Everything a linter *can* see runs inside **oxlint** via the house plugin, so it fires as
-the file is written rather than at commit time. Everything else runs here.
+Rules a linter can own run inside **oxlint** via the house plugin, so they fire as the
+file is written rather than at commit time. Everything else runs here; the one deliberate
+cross-boundary integrity check is described below.
 
 `ownedByLinter` in `guardrails.config.json` declares the split, and `gr_selected()` in
 `run.sh` skips whatever the linter owns. A check id is the unit of ownership, which is why
 `folder-readmes` is split out of `folder-tree` and `test-tree` out of `colocated-tests`: an
 id may not straddle what a linter can see and what it cannot.
 
-| | TS stacks (`console` · `marketing` · `backend-ts` · `expo`) | `rust` |
+| | TS stacks (`console` · `marketing` · `backend-ts` · `database-ts` · `expo`) | `rust` |
 | --- | --- | --- |
 | `ownedByLinter` | `folder-tree` · `colocated-tests` · `no-barrels` · `filename-case` · `patterns` | *(empty)* |
 | Runs in oxlint | those five — three as house rules (`house/folder-tree`, `house/colocated-tests`, `house/no-barrels`), `filename-case` as the built-in `unicorn/filename-case`, and `patterns` as `house/no-bare-fetch` + `house/no-hardcoded-hex` + `house/no-module-scope-database` | nothing — oxlint cannot parse Rust |
-| Runs here | the remaining eight | all thirteen |
+| Runs here | the remaining nine | all fourteen |
 | Needs ast-grep | no — pattern rules run in oxlint | **yes** (`cargo install ast-grep --locked`) |
 
 Two of the five are not one-rule-per-id, which is why `validate-templates.sh` special-cases
@@ -135,18 +137,24 @@ rules at once. The plugin exports six rules — `folder-tree`, `colocated-tests`
 different set from the five in the `ownedByLinter` list above; the counts are not meant to
 match, and reading one as the other is the mistake this paragraph exists to prevent.
 
+`lint-suppressions` is deliberately independent of that ownership split. TypeScript/oxlint
+and Cargo/clippy decide whether a declaration is unused; this check only prevents source
+from silencing those decisions with a blanket disable, a `no-unused-vars` directive, or
+`#[allow(dead_code)]` / `#![allow(dead_code)]`. A scoped disable for an unrelated rule is
+still available.
+
 ## What differs per stack
 
 Only `guardrails.config.json`. The module itself is identical everywhere:
 
-| | `console` | `marketing` | `backend-ts` | `expo` | `rust` |
-| --- | --- | --- | --- | --- | --- |
-| `srcRoot` | `src` | `src` | `src` | `src` | `src` |
-| `src.topLevel` | app · ui · features · api · utilities · providers · constants · types | pages · layouts · sections · ui · content · utilities · constants · types | rpc · routes · services · utilities · constants · types | ui · features · api · utilities · providers · constants · types | *(not tree-checked)* |
-| Tests | `__tests__/` colocated | `__tests__/` colocated | `__tests__/` colocated | `__tests__/` colocated | sibling `tests/` |
-| File / function ceiling | 300 / 50 | 300 / 50 | 300 / 50 | 300 / 50 | 500 / 100 |
-| Banned deps | axios · yup · joi · valibot · superstruct · ajv | same | same | same | *(none listed)* |
-| Also carries | — | `requiredFiles` | `requiredFiles` | — | `filenameCase` |
+| | `console` | `marketing` | `backend-ts` | `database-ts` | `expo` | `rust` |
+| --- | --- | --- | --- | --- | --- | --- |
+| `srcRoot` | `src` | `src` | `src` | `src` | `src` | `src` |
+| `src.topLevel` | app · ui · features · api · utilities · providers · constants · types | pages · layouts · sections · ui · content · utilities · constants · types | rpc · routes · services · utilities · constants · types | client · schema · constants · types | ui · features · api · utilities · providers · constants · types | *(not tree-checked)* |
+| Tests | `__tests__/` colocated | `__tests__/` colocated | `__tests__/` colocated | `__tests__/` colocated | `__tests__/` colocated | sibling `tests/` |
+| File / function ceiling | 300 / 50 | 300 / 50 | 300 / 50 | 300 / 50 | 300 / 50 | 500 / 100 |
+| Banned deps | axios · yup · joi · valibot · superstruct · ajv | same | same | same | same | *(none listed)* |
+| Also carries | — | `requiredFiles` | `requiredFiles` | workspace package | — | `filenameCase` |
 
 The ceilings are cross-checked against what oxlint and `clippy.toml` actually enforce, by
 `scripts/validate-templates.sh` — two numbers for one rule is how they part company.
