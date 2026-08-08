@@ -515,7 +515,7 @@
           </h1>
           <p class="lede">
             The written guide says what the kit enforces. This page shows it
-            happening: the scaffold run, the tree it produces, the thirteen
+            happening: the scaffold run, the tree it produces, the fourteen
             structure checks, the hooks that fire while an agent types, the CI
             gate on a pull request, and the motion rules the UI itself obeys.
           </p>
@@ -672,7 +672,7 @@
         <div class="wrap">
           <p class="marker">— §03 · agent-guardrails</p>
           <h2 id="guardrails-title" class="display">
-            Thirteen checks,
+            Fourteen checks,
             <span class="line-2">one owner each.</span>
           </h2>
           <p class="body">
@@ -682,13 +682,14 @@
             structure — the tree, colocated tests, barrels, banned dependencies,
             required files, shadowing configs, committed secrets — both tracked
             secret files and credential shapes inside tracked content — and contextual
-            code patterns via ast-grep. Anything oxlint, oxfmt, clippy or rustfmt
+            code patterns via ast-grep, plus directives that suppress dead-code
+            enforcement. Anything oxlint, oxfmt, clippy or rustfmt
             already enforces stays with them: two enforcers of one rule is how
             ceilings drift apart. That is why half the run below stands down —
             on a TypeScript stack those ids are declared
             <code class="code">ownedByLinter</code> and oxlint reports them
             instead. On Rust, where oxlint cannot parse the source at all,
-            every one of the thirteen runs here.
+            every one of the fourteen runs here.
           </p>
 
           <figure class="viz runner" data-anim>
@@ -703,14 +704,15 @@
                 <li style="--i: 2" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">colocated-tests</span><span class="why">ownedByLinter — oxlint plugin rule</span></li>
                 <li style="--i: 3" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">no-barrels</span><span class="why">ownedByLinter — oxlint plugin rule</span></li>
                 <li style="--i: 4" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">filename-case</span><span class="why">ownedByLinter — unicorn/filename-case</span></li>
-                <li style="--i: 5" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">patterns</span><span class="why">ownedByLinter — house/no-bare-fetch · no-hardcoded-hex</span></li>
-                <li style="--i: 6" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">folder-readmes</span><span class="why">the five domains requireReadme names · every feature</span></li>
-                <li style="--i: 7" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">test-tree</span><span class="why">tests live in __tests__, next to the code</span></li>
-                <li style="--i: 8" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">banned-deps</span><span class="why">no axios · no second validator</span></li>
-                <li style="--i: 9" data-state="fail"><span class="glyph"><span class="vh">failed</span></span><span class="id">shadow-configs</span><span class="why">vitest.config.ts found — use vite.config.ts</span></li>
-                <li style="--i: 10" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">required-files</span><span class="why">nothing declared here — marketing pins src/pages/404.astro</span></li>
-                <li style="--i: 11" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">secrets</span><span class="why">.env is never tracked</span></li>
-                <li style="--i: 12" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">secret-content</span><span class="why">no credential shapes in tracked files — keys live in .dev.vars</span></li>
+                <li style="--i: 5" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">secret-content</span><span class="why">no credential shapes in tracked files — keys live in .dev.vars</span></li>
+                <li style="--i: 6" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">lint-suppressions</span><span class="why">dead code is deleted or wired — never hidden with a directive</span></li>
+                <li style="--i: 7" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">patterns</span><span class="why">ownedByLinter — house/no-bare-fetch · no-hardcoded-hex</span></li>
+                <li style="--i: 8" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">folder-readmes</span><span class="why">the five domains requireReadme names · every feature</span></li>
+                <li style="--i: 9" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">test-tree</span><span class="why">tests live in __tests__, next to the code</span></li>
+                <li style="--i: 10" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">banned-deps</span><span class="why">no axios · no second validator</span></li>
+                <li style="--i: 11" data-state="fail"><span class="glyph"><span class="vh">failed</span></span><span class="id">shadow-configs</span><span class="why">vitest.config.ts found — use vite.config.ts</span></li>
+                <li style="--i: 12" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">required-files</span><span class="why">nothing declared here — marketing pins src/pages/404.astro</span></li>
+                <li style="--i: 13" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">secrets</span><span class="why">.env is never tracked</span></li>
               </ol>
             </div>
             <div class="viz-foot">

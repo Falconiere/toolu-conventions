@@ -115,7 +115,7 @@ One answer per job, so no project re-litigates them:
 | Forms | TanStack Form (`@tanstack/react-form`) + Zod via Standard Schema |
 | HTTP for everything else | the kit's own `src/utilities/http.ts` over `fetch` — **axios is banned**, in lint *and* in the structure check |
 | Package manager · Lint/format · Hooks | bun · oxlint + oxfmt · Lefthook |
-| Gate extras | knip (unused files/exports/deps) + jscpd (copy-paste) |
+| Dead code + gate extras | TypeScript/oxlint (unused locals/parameters) + knip (unused files/exports/deps) + jscpd (copy-paste) |
 | Structure gate | oxlint house plugin + [`agent-guardrails`](#agent-guardrails) |
 
 These are **not** intake questions. See [`CORE.md` → Platform defaults](./CORE.md).
@@ -153,8 +153,9 @@ are decorative — which is why they're on the generated checklist.
 
 ### agent-guardrails
 
-[`guardrails/`](./guardrails/) is the kit's structural gate: **one config-driven module**,
-copied verbatim into every project, that enforces what a linter structurally cannot see.
+[`guardrails/`](./guardrails/) is the kit's structural and enforcement-integrity gate:
+**one config-driven module**, copied verbatim into every project, that enforces what a
+linter cannot see and prevents source from disabling the dead-code rules.
 
 > **Two paths, one module.** `guardrails/` is the source, here in the kit. A scaffold copies
 > it to **`scripts/guardrails/`** in the generated project — the path
@@ -166,8 +167,8 @@ copied verbatim into every project, that enforces what a linter structurally can
 guardrails/               # in a generated project: scripts/guardrails/
 ├── run.sh                # entry point — repo · --file · --hook · --stop modes
 ├── lib/                  # config load + validate, output + exit codes
-├── checks/               # 13 checks: folder-tree, secrets, secret-content, banned-deps, …
-├── oxlint-plugin/        # 5 house rules that run inside oxlint, as the file is written
+├── checks/               # 14 checks: folder-tree, lint-suppressions, secrets, banned-deps, …
+├── oxlint-plugin/        # 6 house rules that run inside oxlint, as the file is written
 ├── patterns/rust/        # ast-grep rules for what clippy doesn't cover
 ├── schema.json           # guardrails.config.json contract
 └── __tests__/            # fixtures + plugin + latency suites — kit only, never shipped
@@ -179,7 +180,9 @@ Four properties are worth knowing:
   shape, barrels, colocated tests, bare `fetch`, hardcoded colours) runs inside **oxlint**
   via the house plugin, so it fires as the file is written. `ownedByLinter` in
   `guardrails.config.json` declares the split, and the bash module skips whatever the
-  linter owns. Two enforcers of one rule is how ceilings drift apart.
+  linter owns. Two enforcers of one rule is how ceilings drift apart. The
+  `lint-suppressions` check owns a different fact: source may not turn off blanket linting,
+  `no-unused-vars`, or Rust `dead_code`; it does not rediscover whether code is unused.
 - **Stack differences are data, not code** — `guardrails.config.json`, validated by
   `schema.json`. It replaced five hand-written per-stack scripts that had already drifted.
 - **One copy, not six.** Each stack used to ship its own byte-identical mirror of the module
