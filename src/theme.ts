@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { realpath, readFile, stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { StackId } from "./contracts";
 import type { ScaffoldManifest } from "./manifest";
 
@@ -46,6 +46,22 @@ async function sha256(path: string): Promise<string> {
     .digest("hex");
 }
 
+async function resolveThemeFile(source: string, path: string): Promise<string> {
+  if (isAbsolute(path)) throw new ThemeImportError(`theme file path escapes its source: ${path}`);
+  const sourceRoot = await realpath(source);
+  const candidate = resolve(sourceRoot, path);
+  const lexicalRelative = relative(sourceRoot, candidate);
+  if (lexicalRelative === ".." || lexicalRelative.startsWith(`..${sep}`)) {
+    throw new ThemeImportError(`theme file path escapes its source: ${path}`);
+  }
+  const file = await realpath(candidate);
+  const physicalRelative = relative(sourceRoot, file);
+  if (physicalRelative === ".." || physicalRelative.startsWith(`..${sep}`)) {
+    throw new ThemeImportError(`theme file path escapes its source: ${path}`);
+  }
+  return file;
+}
+
 export async function resolveImportedTheme(
   source: string,
   stack: StackId,
@@ -56,7 +72,7 @@ export async function resolveImportedTheme(
     expected.files.map(async (path) => ({
       path,
       target: expected.target,
-      sha256: await sha256(join(directory, path)),
+      sha256: await sha256(await resolveThemeFile(directory, path)),
     })),
   );
   return { kind: "import", source: directory, files };
@@ -66,11 +82,21 @@ export async function verifyImportedTheme(
   theme: Extract<ScaffoldManifest["theme"], { kind: "import" }>,
 ): Promise<void> {
   for (const file of theme.files) {
-    const actual = await sha256(join(theme.source, file.path));
-    if (actual !== file.sha256) {
-      throw new ThemeImportError(
-        `theme file hash mismatch for ${file.path}: expected ${file.sha256}, received ${actual}`,
-      );
-    }
+    await readVerifiedImportedThemeFile(theme, file);
   }
+}
+
+export async function readVerifiedImportedThemeFile(
+  theme: Extract<ScaffoldManifest["theme"], { kind: "import" }>,
+  file: Extract<ScaffoldManifest["theme"], { kind: "import" }>["files"][number],
+): Promise<string> {
+  const path = await resolveThemeFile(theme.source, file.path);
+  const content = await readFile(path);
+  const actual = createHash("sha256").update(content).digest("hex");
+  if (actual !== file.sha256) {
+    throw new ThemeImportError(
+      `theme file hash mismatch for ${file.path}: expected ${file.sha256}, received ${actual}`,
+    );
+  }
+  return content.toString("utf8");
 }

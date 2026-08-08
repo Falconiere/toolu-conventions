@@ -45,7 +45,7 @@ function takeValue(
   option: string,
 ) {
   const value = inlineValue ?? argv[index + 1];
-  if (value === undefined || value.startsWith("--")) {
+  if (value === undefined || (inlineValue === undefined && value.startsWith("--"))) {
     throw new InvalidArgumentsError(`${option} requires a value`);
   }
   return { value, consumed: inlineValue === undefined ? 2 : 1 };
@@ -95,7 +95,11 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     if (option === "--port") {
       const { value, consumed } = takeValue(argv, index, inlineValue, option);
       if (!/^\d+$/.test(value)) throw new InvalidArgumentsError("--port must be an integer");
-      parsed.port = Number(value);
+      const port = Number(value);
+      if (port < 1 || port > 65535) {
+        throw new InvalidArgumentsError("--port must be between 1 and 65535");
+      }
+      parsed.port = port;
       index += consumed;
       continue;
     }

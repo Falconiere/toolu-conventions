@@ -6,9 +6,9 @@ export class PromptCancelledError extends Error {
   override name = "PromptCancelledError";
 }
 
-function accepted<T>(value: T | symbol): T {
-  if (clack.isCancel(value)) throw new PromptCancelledError("Project creation cancelled.");
-  return value as T;
+function accepted<T extends boolean | string | string[]>(value: T | symbol): T {
+  if (typeof value === "symbol") throw new PromptCancelledError("Project creation cancelled.");
+  return value;
 }
 
 function operationChoices(flags: ResolutionFlags): readonly string[] {
@@ -58,7 +58,8 @@ export async function collectInteractiveFlags(initial: ResolutionFlags): Promise
     }),
   );
   if (flags.integrations === undefined) {
-    const stack = flags.stack as keyof typeof INTEGRATIONS;
+    const stack = STACKS.find((candidate) => candidate === flags.stack);
+    if (stack === undefined) throw new Error(`Unsupported stack: ${flags.stack ?? "missing"}`);
     flags.integrations = accepted<string[]>(
       await clack.multiselect<string>({
         message: "Select integrations",

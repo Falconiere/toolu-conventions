@@ -2,13 +2,27 @@ import { z } from "zod";
 import { INTEGRATIONS, OPERATIONS, STACKS, THEME_PRESETS } from "./contracts";
 
 const Sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
+const ThemeFilePathSchema = z.enum([
+  "palette.css",
+  "scale.css",
+  "colors.ts",
+  "icons.ts",
+  "motion.ts",
+  "spacing.ts",
+  "typography.ts",
+]);
 const PageSchema = z
   .string()
   .regex(/^(?:home|[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*)$/);
 
 const StackSchema = z.discriminatedUnion("id", [
   z.object({ id: z.literal("console") }).strict(),
-  z.object({ id: z.literal("marketing"), pages: z.array(PageSchema).min(1) }).strict(),
+  z
+    .object({
+      id: z.literal("marketing"),
+      pages: z.array(PageSchema).min(1).refine(uniqueValues, "pages must be unique"),
+    })
+    .strict(),
   z
     .object({
       id: z.literal("backend-ts"),
@@ -31,7 +45,7 @@ const ThemeSchema = z.discriminatedUnion("kind", [
         .array(
           z
             .object({
-              path: z.string().min(1),
+              path: ThemeFilePathSchema,
               target: z.enum(["web", "native"]),
               sha256: Sha256Schema,
             })
@@ -42,7 +56,11 @@ const ThemeSchema = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 
-export const ScaffoldManifestSchema = z
+function uniqueValues(values: readonly string[]): boolean {
+  return new Set(values).size === values.length;
+}
+
+const ScaffoldManifestObject = z
   .object({
     schemaVersion: z.literal(1),
     generatorVersion: z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/),
@@ -54,9 +72,18 @@ export const ScaffoldManifestSchema = z
       })
       .strict(),
     stack: StackSchema,
-    integrations: z.array(z.string()).default([]),
-    operations: z.array(z.enum(OPERATIONS)).default([]),
-    environments: z.array(z.enum(["local", "development", "staging", "production"])).min(2),
+    integrations: z
+      .array(z.string())
+      .refine(uniqueValues, "integrations must be unique")
+      .default([]),
+    operations: z
+      .array(z.enum(OPERATIONS))
+      .refine(uniqueValues, "operations must be unique")
+      .default([]),
+    environments: z
+      .array(z.enum(["local", "development", "staging", "production"]))
+      .min(2)
+      .refine(uniqueValues, "environments must be unique"),
     staging: z.boolean(),
     theme: ThemeSchema,
     runtime: z
@@ -66,26 +93,40 @@ export const ScaffoldManifestSchema = z
         consoleUrl: z.string().url().optional(),
       })
       .strict(),
-    recipes: z.array(z.string().min(1)).min(1),
+    recipes: z.array(z.string().min(1)).min(1).refine(uniqueValues, "recipes must be unique"),
   })
-  .strict()
-  .superRefine((manifest, context) => {
-    const allowed = new Set<string>(INTEGRATIONS[manifest.stack.id]);
-    for (const integration of manifest.integrations) {
-      if (!allowed.has(integration)) {
-        context.addIssue({
-          code: "custom",
-          path: ["integrations"],
-          message: `${integration} is not compatible with ${manifest.stack.id}`,
-        });
-      }
+  .strict();
+
+export const ScaffoldConfigurationSchema = ScaffoldManifestObject.partial();
+
+export const ScaffoldManifestSchema = ScaffoldManifestObject.superRefine((manifest, context) => {
+  const allowed = new Set<string>(INTEGRATIONS[manifest.stack.id]);
+  for (const integration of manifest.integrations) {
+    if (!allowed.has(integration)) {
+      context.addIssue({
+        code: "custom",
+        path: ["integrations"],
+        message: `${integration} is not compatible with ${manifest.stack.id}`,
+      });
     }
-    if (!STACKS.includes(manifest.stack.id)) {
-      context.addIssue({ code: "custom", path: ["stack"], message: "unsupported stack" });
-    }
-  });
+  }
+  if (!STACKS.includes(manifest.stack.id)) {
+    context.addIssue({ code: "custom", path: ["stack"], message: "unsupported stack" });
+  }
+  if (
+    manifest.staging &&
+    manifest.operations.some((operation) => operation === "cloudflare" || operation === "infisical")
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["staging"],
+      message: "staging cannot be combined with provider operations",
+    });
+  }
+});
 
 export type ScaffoldManifest = z.infer<typeof ScaffoldManifestSchema>;
+export type ScaffoldConfiguration = z.infer<typeof ScaffoldConfigurationSchema>;
 
 export class ManifestCompatibilityError extends Error {
   override name = "ManifestCompatibilityError";
@@ -94,6 +135,8 @@ export class ManifestCompatibilityError extends Error {
 function versionLine(version: string): string {
   const match = /^(\d+)\.(\d+)\.(\d+)/.exec(version);
   if (match === null) throw new ManifestCompatibilityError(`invalid generator version: ${version}`);
+  // Before 1.0, minor releases may break replay compatibility. Stable releases
+  // follow semver and retain compatibility across one major line.
   return match[1] === "0" ? `${match[1]}.${match[2]}` : (match[1] ?? "");
 }
 
@@ -110,4 +153,8 @@ export function assertGeneratorCompatibility(
 
 export function parseManifest(input: unknown): ScaffoldManifest {
   return ScaffoldManifestSchema.parse(input);
+}
+
+export function parseScaffoldConfiguration(input: unknown): ScaffoldConfiguration {
+  return ScaffoldConfigurationSchema.parse(input);
 }

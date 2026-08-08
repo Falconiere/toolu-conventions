@@ -106,6 +106,21 @@ describe("built create-toolu CLI", () => {
     ).toEqual(manifest);
   });
 
+  test("rejects unknown fields in replay configuration before generation", async () => {
+    const manifest = resolveConfiguration({
+      generatorVersion: "0.6.0",
+      flags: { targetDirectory: "invalid-replay", name: "invalid-replay", stack: "rust" },
+    });
+    const config = join(temporary, "invalid-replay.json");
+    await writeFile(config, `${JSON.stringify({ ...manifest, unexpected: true }, null, 2)}\n`);
+
+    const result = invoke(["--config", config]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr.toString()).toContain("Unrecognized key");
+    expect(await Bun.file(join(temporary, "invalid-replay")).exists()).toBe(false);
+  });
+
   test("rejects a replay when an imported theme hash has changed", async () => {
     const themeDirectory = join(temporary, "replay-theme");
     await mkdir(themeDirectory);
