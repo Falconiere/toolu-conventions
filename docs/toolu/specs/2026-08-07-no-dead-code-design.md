@@ -98,7 +98,8 @@ configuration text:
   completed-regex division are not mistaken for regex literals, even across
   block-comment trivia. Regex consequents after `if`, `while`, `for`, or `with`
   conditions and after `do` or `else` remain regexes in both normal scanning
-  and generic-arrow defaults; member calls such as `object.if()` remain values.
+  and generic-arrow defaults; member calls such as `object.if()` or
+  `this.#if()` remain values.
 - Clean fixtures and the freshly materialized templates continue to pass.
 - Template validation asserts that all TypeScript stacks retain
   `noUnusedLocals`, `noUnusedParameters`, the canonical Oxlint base, and Knip in

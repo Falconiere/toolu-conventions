@@ -545,6 +545,13 @@ if tagged lint-suppressions; then
     && ok 'AC-23 a member named if does not create control context' \
     || bad 'AC-23 property calls must keep following division visible' "exit=$STATUS out=$out"
 
+  printf 'export class Counter {\n  #if(value: number) { return value; }\n  ratio(value: number) { return this.#if(value) / 2 /* oxlint-disable */; }\n}\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/private-if-division-active-disable.ts"
+  gr_in "$SC" --file src/utilities/private-if-division-active-disable.ts; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a private member named if does not create control context' \
+    || bad 'AC-23 private member calls must keep following division visible' "exit=$STATUS out=$out"
+
   printf 'export const matches = <T,>(\n  value: T,\n  pattern = /[)]/,\n) => pattern.test(String(value));\nconst hidden = 1;// oxlint-disable-line no-unused-vars\n' \
     > "$SC/src/utilities/tsx-generic-regex-active-disable.tsx"
   gr_in "$SC" --file src/utilities/tsx-generic-regex-active-disable.tsx; out=$OUT
@@ -595,7 +602,7 @@ if tagged lint-suppressions; then
     || bad 'AC-23 Rust strings must not be mistaken for attributes' "exit=$STATUS out=$out"
 
   gr_in "$SC" --only lint-suppressions; out=$OUT
-  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 41 ] \
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 42 ] \
     && ! printf '%s\n' "$out" | grep -q 'template-documentation\|raw-string-documentation\|jsx-documentation\|jsx-arrow-documentation' \
     && ok 'AC-23 repo candidate scan reaches every active suppression form' \
     || bad 'AC-23 repo mode must find active forms without flagging strings' "exit=$STATUS out=$out"
