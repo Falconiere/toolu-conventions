@@ -70,6 +70,7 @@ measure_once() {
   shift
   start=$(now_ms)
   (cd "$dir" && bash "$GR" "$@" >/dev/null 2>&1)
+  GR_LATENCY_STATUS=$?
   GR_LATENCY_ELAPSED=$(( $(now_ms) - start ))
 }
 
@@ -80,15 +81,27 @@ measure_in() {
   shift 3
   measure_once "$dir" "$@"
   elapsed=$GR_LATENCY_ELAPSED
+  status=$GR_LATENCY_STATUS
   samples=$elapsed
+  if [ "$status" -ne 0 ]; then
+    printf '  FAIL  %-12s guardrail exited %s (sample %sms)\n' "$label" "$status" "$elapsed"
+    fail=1
+    return
+  fi
   if [ "$elapsed" -gt "$budget" ]; then
     # Shared CI hosts occasionally pause every process long enough to turn an
     # otherwise healthy 150ms file check into 300ms. Retry only a failed sample
     # and judge the median: one scheduling outlier cannot fail the gate, while
     # two over-budget measurements still expose a real regression.
-    measure_once "$dir" "$@"; second=$GR_LATENCY_ELAPSED
-    measure_once "$dir" "$@"; third=$GR_LATENCY_ELAPSED
+    measure_once "$dir" "$@"; second=$GR_LATENCY_ELAPSED; second_status=$GR_LATENCY_STATUS
+    measure_once "$dir" "$@"; third=$GR_LATENCY_ELAPSED; third_status=$GR_LATENCY_STATUS
     samples="$elapsed,$second,$third"
+    if [ "$second_status" -ne 0 ] || [ "$third_status" -ne 0 ]; then
+      printf '  FAIL  %-12s guardrail retry exited %s/%s (samples %s)\n' \
+        "$label" "$second_status" "$third_status" "$samples"
+      fail=1
+      return
+    fi
     if [ "$elapsed" -gt "$second" ]; then swap=$elapsed; elapsed=$second; second=$swap; fi
     if [ "$second" -gt "$third" ]; then swap=$second; second=$third; third=$swap; fi
     if [ "$elapsed" -gt "$second" ]; then swap=$elapsed; elapsed=$second; second=$swap; fi

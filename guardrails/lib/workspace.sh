@@ -60,7 +60,12 @@ gr_ws_exec() {
 # gr_ws_worst <current> <incoming> — 3 beats everything (a broken guard rail
 # must never be mistakable for a clean run), then 2, then 1.
 gr_ws_worst() {
-  case "$1:$2" in
+  local left right
+  left=$1
+  right=$2
+  case "$left" in 0|1|2|3) ;; *) left=3 ;; esac
+  case "$right" in 0|1|2|3) ;; *) right=3 ;; esac
+  case "$left:$right" in
     3:*|*:3) printf '3' ;;
     2:*|*:2) printf '2' ;;
     1:*|*:1) printf '1' ;;

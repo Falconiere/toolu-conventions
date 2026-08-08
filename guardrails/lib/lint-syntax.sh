@@ -14,6 +14,8 @@ gr_ls_script_syntax_reset() {
   GR_LS_JS_TAG_LAST=''
   GR_LS_JS_REGEX_CLASS=0
   GR_LS_JS_CODE_CONTEXT=''
+  GR_LS_JS_PAREN_STACK=''
+  GR_LS_JS_AFTER_CONTROL=0
   case ${1-} in *.tsx|*.jsx|*.astro) GR_LS_JS_JSX_ENABLED=1 ;; *) GR_LS_JS_JSX_ENABLED=0 ;; esac
 }
 
@@ -29,6 +31,38 @@ gr_ls_js_pop_brace() {
   GR_LS_JS_BRACE_STACK=${GR_LS_JS_BRACE_STACK#*;}
   GR_LS_JS_STATE=${frame%%,*}
   GR_LS_JS_BRACE_DEPTH=${frame#*,}
+}
+
+gr_ls_js_is_control_paren() {
+  local prefix keyword before last
+  prefix=$1
+  prefix=${prefix%"${prefix##*[![:space:]]}"}
+  for keyword in if while for with; do
+    case "$prefix" in
+      *"$keyword")
+        before=${prefix%"$keyword"}
+        last=${before: -1}
+        [[ $last =~ [[:alnum:]_$] ]] || return 0
+        ;;
+    esac
+  done
+  return 1
+}
+
+gr_ls_js_push_paren() {
+  local kind
+  gr_ls_js_is_control_paren "$1" && kind=control || kind=value
+  GR_LS_JS_PAREN_STACK="$kind;$GR_LS_JS_PAREN_STACK"
+  GR_LS_JS_AFTER_CONTROL=0
+}
+
+gr_ls_js_pop_paren() {
+  local kind
+  kind=${GR_LS_JS_PAREN_STACK%%;*}
+  if [ -n "$GR_LS_JS_PAREN_STACK" ]; then
+    GR_LS_JS_PAREN_STACK=${GR_LS_JS_PAREN_STACK#*;}
+  fi
+  [ "$kind" = control ] && GR_LS_JS_AFTER_CONTROL=1 || GR_LS_JS_AFTER_CONTROL=0
 }
 
 gr_ls_js_skip_trivia() {
@@ -55,7 +89,7 @@ gr_ls_js_skip_trivia() {
 }
 
 gr_ls_js_is_generic_arrow() {
-  local line i length char next previous after quote angle paren mode regex_class regex_context
+  local line i length char next previous after quote angle paren mode regex_class regex_context control_stack control_kind after_control
   line=$1
   i=$(( $2 + 1 ))
   length=${#line}
@@ -125,6 +159,8 @@ gr_ls_js_is_generic_arrow() {
   mode=code
   regex_class=0
   regex_context='('
+  control_stack='value;'
+  after_control=0
   i=$((i + 1))
   while [ "$i" -lt "$length" ] && [ "$paren" -gt 0 ]; do
     char=${line:i:1}
@@ -134,16 +170,32 @@ gr_ls_js_is_generic_arrow() {
         if [ "$char$next" = '//' ]; then mode=line_comment
         elif [ "$char$next" = '/*' ]; then mode=block_comment
         elif [ "$char" = / ] \
-          && gr_ls_js_starts_regex "${regex_context}/${next}" "${#regex_context}"; then
+          && { [ "$after_control" -eq 1 ] \
+            || gr_ls_js_starts_regex "${regex_context}/${next}" "${#regex_context}"; }; then
           mode=regex
           regex_class=0
           regex_context=${regex_context}v
+          after_control=0
         else
           case "$char" in
-            "'"|'"'|\`) quote=$char; mode=quote; regex_context=${regex_context}v ;;
-            '(') paren=$((paren + 1)); regex_context=${regex_context}${char} ;;
-            ')') paren=$((paren - 1)); regex_context=${regex_context}${char} ;;
-            *) regex_context=${regex_context}${char} ;;
+            "'"|'"'|\`)
+              quote=$char; mode=quote; regex_context=${regex_context}v; after_control=0
+              ;;
+            '(')
+              gr_ls_js_is_control_paren "$regex_context" && control_kind=control || control_kind=value
+              control_stack="$control_kind;$control_stack"
+              paren=$((paren + 1)); regex_context=${regex_context}${char}; after_control=0
+              ;;
+            ')')
+              control_kind=${control_stack%%;*}
+              control_stack=${control_stack#*;}
+              paren=$((paren - 1)); regex_context=${regex_context}${char}
+              [ "$control_kind" = control ] && after_control=1 || after_control=0
+              ;;
+            *)
+              regex_context=${regex_context}${char}
+              [ -z "${char//[[:space:]]/}" ] || after_control=0
+              ;;
           esac
         fi
         ;;
@@ -266,14 +318,17 @@ gr_ls_script_syntax_line() {
           i=$((i + 2))
         elif [ "$char" = / ] \
           && regex_probe="${context}/${next}" \
-          && gr_ls_js_starts_regex "$regex_probe" "${#context}"; then
+          && { [ "$GR_LS_JS_AFTER_CONTROL" -eq 1 ] \
+            || gr_ls_js_starts_regex "$regex_probe" "${#context}"; }; then
           output="${output} "
           GR_LS_JS_STATE=regex
           GR_LS_JS_REGEX_CLASS=0
+          GR_LS_JS_AFTER_CONTROL=0
           context=${context}v
           i=$((i + 1))
         elif [ "$char" = '<' ] && gr_ls_js_starts_jsx "$line" "$i"; then
           output="${output} "
+          GR_LS_JS_AFTER_CONTROL=0
           context=${context}v
           i=$((i + 1))
           if [ "$next" = / ]; then
@@ -285,25 +340,44 @@ gr_ls_script_syntax_line() {
           fi
         else
           case "$char" in
-            "'") output="${output} "; context=${context}v; GR_LS_JS_STATE=single; i=$((i + 1)) ;;
-            '"') output="${output} "; context=${context}v; GR_LS_JS_STATE=double; i=$((i + 1)) ;;
-            \`) output="${output} "; context=${context}v; GR_LS_JS_STATE=template; i=$((i + 1)) ;;
+            "'") output="${output} "; context=${context}v; GR_LS_JS_AFTER_CONTROL=0; GR_LS_JS_STATE=single; i=$((i + 1)) ;;
+            '"') output="${output} "; context=${context}v; GR_LS_JS_AFTER_CONTROL=0; GR_LS_JS_STATE=double; i=$((i + 1)) ;;
+            \`) output="${output} "; context=${context}v; GR_LS_JS_AFTER_CONTROL=0; GR_LS_JS_STATE=template; i=$((i + 1)) ;;
+            '(')
+              gr_ls_js_push_paren "$context"
+              output=${output}${char}
+              context=${context}${char}
+              i=$((i + 1))
+              ;;
+            ')')
+              output=${output}${char}
+              context=${context}${char}
+              gr_ls_js_pop_paren
+              i=$((i + 1))
+              ;;
             '{')
               [ "$GR_LS_JS_BRACE_DEPTH" -gt 0 ] && GR_LS_JS_BRACE_DEPTH=$((GR_LS_JS_BRACE_DEPTH + 1))
               output=${output}${char}
               context=${context}${char}
+              GR_LS_JS_AFTER_CONTROL=0
               i=$((i + 1))
               ;;
             '}')
               output=${output}${char}
               context=${context}${char}
+              GR_LS_JS_AFTER_CONTROL=0
               i=$((i + 1))
               if [ "$GR_LS_JS_BRACE_DEPTH" -gt 0 ]; then
                 GR_LS_JS_BRACE_DEPTH=$((GR_LS_JS_BRACE_DEPTH - 1))
                 [ "$GR_LS_JS_BRACE_DEPTH" -eq 0 ] && gr_ls_js_pop_brace
               fi
               ;;
-            *) output=${output}${char}; context=${context}${char}; i=$((i + 1)) ;;
+            *)
+              output=${output}${char}
+              context=${context}${char}
+              [ -z "${char//[[:space:]]/}" ] || GR_LS_JS_AFTER_CONTROL=0
+              i=$((i + 1))
+              ;;
           esac
         fi
         ;;
