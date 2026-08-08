@@ -14,8 +14,6 @@
 # just prose, and a Rust attribute-like string in TypeScript is not an
 # attribute; applying all patterns to all languages would invent violations.
 
-. "$GR_DIR/lib/lint-syntax.sh"
-
 GR_LS_LINE_BLANKET='//[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]*(--[^[:cntrl:]]*)?$'
 GR_LS_LINE_UNUSED='//[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]+([^,[:space:]]+[[:space:]]*,[[:space:]]*)*((eslint|typescript|@typescript-eslint)/)?no-unused-vars([[:space:],]|$)'
 GR_LS_BLOCK_START='/\*[[:space:]]*(oxlint|eslint)-disable'
@@ -25,6 +23,12 @@ GR_LS_RUST_DIRECT='^#!?\[(r#)?(allow|warn|expect)\(([^,)]*,)*(r#)?(dead_code|unu
 GR_LS_RUST_CFG_ATTR='^#!?\[(r#)?cfg_attr\(.*,(r#)?(allow|warn|expect)\(([^,)]*,)*(r#)?(dead_code|unused)(,[^)]*)?\).*\)\]'
 GR_LS_SCRIPT_CANDIDATE='(oxlint|eslint)-disable'
 GR_LS_RUST_CANDIDATE='(^|[^[:alnum:]_])(allow|warn|expect)([^[:alnum:]_]|$)'
+
+gr_ls_load_syntax() {
+  [ "${GR_LS_SYNTAX_LOADED-0}" -eq 1 ] && return 0
+  . "$GR_DIR/lib/lint-syntax.sh"
+  GR_LS_SYNTAX_LOADED=1
+}
 
 gr_ls_block_forbidden() {
   [[ $1 =~ $GR_LS_BLOCK_BLANKET ]] || [[ $1 =~ $GR_LS_BLOCK_UNUSED ]]
@@ -122,7 +126,7 @@ gr_ls_rust_forbidden() {
 # workspace dispatch has already re-execed the package guardrail. Repo mode
 # still uses one batched grep for the whole tree below.
 gr_ls_scan() {
-  local path kind status
+  local path kind status content
   path=$1
   case "$path" in
     *.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs|*.astro) kind=script ;;
@@ -131,6 +135,14 @@ gr_ls_scan() {
   esac
   [ -f "$path" ] || return 0
   [ -r "$path" ] || gr_fatal "lint-suppressions cannot read $path"
+
+  content=$(< "$path") || gr_fatal "lint-suppressions cannot read $path"
+  if [ "$kind" = 'script' ]; then
+    [[ $content =~ $GR_LS_SCRIPT_CANDIDATE ]] || return 0
+  else
+    [[ $content =~ $GR_LS_RUST_CANDIDATE ]] || return 0
+  fi
+  gr_ls_load_syntax
 
   if [ "$kind" = 'script' ]; then
     gr_ls_script_forbidden "$path"

@@ -12,6 +12,7 @@ gr_ls_script_syntax_reset() {
   GR_LS_JS_JSX_STACK=''
   GR_LS_JS_TAG_KIND=''
   GR_LS_JS_TAG_LAST=''
+  GR_LS_JS_REGEX_CLASS=0
   case ${1-} in *.tsx|*.jsx|*.astro) GR_LS_JS_JSX_ENABLED=1 ;; *) GR_LS_JS_JSX_ENABLED=0 ;; esac
 }
 
@@ -29,24 +30,91 @@ gr_ls_js_pop_brace() {
   GR_LS_JS_BRACE_DEPTH=${frame#*,}
 }
 
-# A `<name` token is JSX only at an expression boundary. This also avoids
-# mistaking TSX generic arrows (`<T,>` / `<T extends ...>`) for elements.
+gr_ls_js_is_generic_arrow() {
+  local line i length char previous quote angle paren
+  line=$1
+  i=$(( $2 + 1 ))
+  length=${#line}
+  quote=''
+  angle=1
+  while [ "$i" -lt "$length" ] && [ "$angle" -gt 0 ]; do
+    char=${line:i:1}
+    previous=${line:i-1:1}
+    if [ -n "$quote" ]; then
+      if [ "$char" = '\\' ]; then i=$((i + 1)); elif [ "$char" = "$quote" ]; then quote=''; fi
+    else
+      case "$char" in
+        "'"|'"'|\`) quote=$char ;;
+        '<') angle=$((angle + 1)) ;;
+        '>') [ "$previous" = '=' ] || angle=$((angle - 1)) ;;
+      esac
+    fi
+    i=$((i + 1))
+  done
+  [ "$angle" -eq 0 ] || return 1
+  while [ "$i" -lt "$length" ]; do
+    char=${line:i:1}
+    [ -z "${char//[[:space:]]/}" ] || break
+    i=$((i + 1))
+  done
+  [ "${line:i:1}" = '(' ] || return 1
+  paren=1
+  quote=''
+  i=$((i + 1))
+  while [ "$i" -lt "$length" ] && [ "$paren" -gt 0 ]; do
+    char=${line:i:1}
+    if [ -n "$quote" ]; then
+      if [ "$char" = '\\' ]; then i=$((i + 1)); elif [ "$char" = "$quote" ]; then quote=''; fi
+    else
+      case "$char" in
+        "'"|'"'|\`) quote=$char ;;
+        '(') paren=$((paren + 1)) ;;
+        ')') paren=$((paren - 1)) ;;
+      esac
+    fi
+    i=$((i + 1))
+  done
+  [ "$paren" -eq 0 ] || return 1
+  while [ "$i" -lt "$length" ]; do
+    char=${line:i:1}
+    [ -z "${char//[[:space:]]/}" ] || break
+    i=$((i + 1))
+  done
+  [ "${line:i:2}" = '=>' ]
+}
+
+# A `<name` token is JSX only at an expression boundary. Looking through the
+# closing `>` and parameter list distinguishes every single-line generic-arrow
+# spelling from an element, including const and defaulted type parameters.
 gr_ls_js_starts_jsx() {
-  local line offset next prefix candidate
+  local line offset next prefix
   [ "$GR_LS_JS_JSX_ENABLED" -eq 1 ] || return 1
   line=$1
   offset=$2
   next=${line:offset+1:1}
   case "$next" in /|'>'|[[:alpha:]_]) ;; *) return 1 ;; esac
-  candidate=${line:offset+1}
-  candidate=${candidate%%>*}
-  if [[ $candidate =~ ^[[:alpha:]_][[:alnum:]_]*[[:space:]]*(,|extends([[:space:]]|$)) ]]; then
-    return 1
-  fi
+  gr_ls_js_is_generic_arrow "$line" "$offset" && return 1
   prefix=${line:0:offset}
   prefix=${prefix%"${prefix##*[![:space:]]}"}
   case "$prefix" in
     ''|*'=>'|*'return'|*'default'|*'yield'|*'await'|*'throw'|*'='|*'('|*'['|*'{'|*','|*':'|*'?'|*';'|*'!'|*'~'|*'+'|*'-'|*'*'|*'/'|*'%'|*'&'|*'|'|*'^') return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Division follows a completed value; a regex literal follows an expression
+# boundary. This is the same lexical distinction JavaScript parsers make, kept
+# deliberately conservative so ordinary `a / b` remains code.
+gr_ls_js_starts_regex() {
+  local line offset next prefix
+  line=$1
+  offset=$2
+  next=${line:offset+1:1}
+  [ "$next" != '=' ] || return 1
+  prefix=${line:0:offset}
+  prefix=${prefix%"${prefix##*[![:space:]]}"}
+  case "$prefix" in
+    ''|*'=>'|*'return'|*'case'|*'delete'|*'void'|*'typeof'|*'yield'|*'await'|*'throw'|*'='|*'('|*'['|*'{'|*','|*':'|*'?'|*';'|*'!'|*'~'|*'+'|*'-'|*'*'|*'/'|*'%'|*'&'|*'|'|*'^') return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -88,6 +156,11 @@ gr_ls_script_syntax_line() {
           output=${output}'/*'
           GR_LS_JS_STATE=block
           i=$((i + 2))
+        elif [ "$char" = / ] && gr_ls_js_starts_regex "$line" "$i"; then
+          output="${output} "
+          GR_LS_JS_STATE=regex
+          GR_LS_JS_REGEX_CLASS=0
+          i=$((i + 1))
         elif [ "$char" = '<' ] && gr_ls_js_starts_jsx "$line" "$i"; then
           output="${output} "
           i=$((i + 1))
@@ -127,6 +200,20 @@ gr_ls_script_syntax_line() {
           output=${output}${next}
           GR_LS_JS_STATE=code
           i=$((i + 1))
+        fi
+        ;;
+      regex)
+        output="${output} "
+        i=$((i + 1))
+        if [ "$char" = '\\' ] && [ "$i" -lt "$length" ]; then
+          output="${output} "
+          i=$((i + 1))
+        elif [ "$GR_LS_JS_REGEX_CLASS" -eq 1 ]; then
+          [ "$char" = ']' ] && GR_LS_JS_REGEX_CLASS=0
+        elif [ "$char" = '[' ]; then
+          GR_LS_JS_REGEX_CLASS=1
+        elif [ "$char" = / ]; then
+          GR_LS_JS_STATE=code
         fi
         ;;
       single|double)
@@ -201,6 +288,9 @@ gr_ls_script_syntax_line() {
         ;;
     esac
   done
+  # JavaScript regex literals cannot cross a physical newline. Recover code
+  # state on malformed input so one bad line cannot hide later directives.
+  [ "$GR_LS_JS_STATE" = regex ] && GR_LS_JS_STATE=code
   GR_LS_SANITIZED=$output
 }
 

@@ -245,7 +245,8 @@ In run-fixtures.sh add lint-suppressions to ALL_CHECKS and assert:
 - scratch active blanket line and inline block disables report;
 - scratch Rust item/crate direct, cfg_attr, multiline, comment-formatted, and raw-identifier allow(dead_code) each report;
 - Rust allow(unused), warn(dead_code), expect(dead_code), and conditional expect(unused) each report because they also neutralize dead_code;
-- directive/attribute text inside TypeScript strings, rendered JSX text, and Rust comments/strings/character literals stays silent, while a real JSX expression comment reports;
+- directive/attribute text inside TypeScript strings, rendered JSX text, and Rust comments/strings/character literals stays silent, while real JSX/template expression comments report even after brace-bearing regex literals;
+- standard, const, and defaulted TSX generic arrows remain code context, division is not mistaken for a regex, and later directives report;
 - // Explain oxlint-disable eslint/no-unused-vars here. stays silent;
 - --list now returns 14.
 
@@ -263,7 +264,9 @@ Create lint-suppressions.sh with these boundaries:
 
 - Lex TypeScript/JavaScript strings, template literals, and rendered JSX text
   before parsing real line comments and single- or multiline block comments.
-  Keep JSX expression comments visible. Reject blanket
+  Keep JSX/template expression comments visible by lexing regex escapes and
+  character classes without confusing division. Disambiguate TSX generic arrows
+  through the closing type parameters, value parameters, and `=>`. Reject blanket
   eslint/oxlint disables and rule lists containing any supported
   `no-unused-vars` alias, including an inline block followed by code.
 - Lex Rust comments, normal/raw strings, character/byte literals, and lifetimes

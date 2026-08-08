@@ -146,7 +146,9 @@ and multiline forms are covered, including comments inside a Rust attribute and
 Rust's equivalent raw-identifier spellings. The
 scanners distinguish executable syntax from TypeScript strings or rendered JSX
 text and from Rust comments, strings, or character literals, so documentation
-examples remain legal; a scoped disable for an unrelated rule is still available.
+examples remain legal. JSX/template expressions remain executable context even
+when regex literals contain braces, and TSX generic arrows are not mistaken for
+markup; a scoped disable for an unrelated rule is still available.
 
 ## What differs per stack
 
