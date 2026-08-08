@@ -3,7 +3,7 @@ import { join, posix, relative, resolve, sep } from "node:path";
 import { pinned, type KnownDependency } from "./dependencies";
 import type { ScaffoldManifest } from "./manifest";
 import { assertNoReservedPlaceholders, renderTemplate } from "./render";
-import { verifyImportedTheme } from "./theme";
+import { readVerifiedImportedThemeFile } from "./theme";
 
 export interface PlannedFile {
   path: string;
@@ -11,7 +11,7 @@ export interface PlannedFile {
   mode?: number;
 }
 
-const GUARDRail_ITEMS = [
+const GUARDRAIL_ITEMS = [
   "run.sh",
   "lib",
   "checks",
@@ -119,10 +119,60 @@ function jsonContent(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function jsonObject(value: unknown, label: string): Record<string, unknown> {
+  if (!isJsonObject(value)) throw new Error(`${label} must be a JSON object`);
+  return value;
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return isJsonObject(value) && Object.values(value).every((entry) => typeof entry === "string");
+}
+
+function stringRecordProperty(
+  object: Record<string, unknown>,
+  property: string,
+): Record<string, string> {
+  const value = object[property];
+  if (!isStringRecord(value)) throw new Error(`${property} must contain only string values`);
+  return value;
+}
+
+function objectProperty(
+  object: Record<string, unknown>,
+  property: string,
+): Record<string, unknown> {
+  return jsonObject(object[property], property);
+}
+
+function objectArrayProperty(
+  object: Record<string, unknown>,
+  property: string,
+): Record<string, unknown>[] {
+  const value = object[property];
+  if (!Array.isArray(value) || !value.every(isJsonObject)) {
+    throw new Error(`${property} must be an array of JSON objects`);
+  }
+  return value;
+}
+
+function optionalStringArrayProperty(object: Record<string, unknown>, property: string): string[] {
+  const value = object[property];
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || !value.every((entry) => typeof entry === "string")) {
+    throw new Error(`${property} must be an array of strings`);
+  }
+  return value;
+}
+
 function parsePlannedJson(files: Map<string, PlannedFile>, path: string): Record<string, unknown> {
   const file = files.get(path);
   if (file === undefined) throw new Error(`planned JSON file is missing: ${path}`);
-  return JSON.parse(file.content) as Record<string, unknown>;
+  const parsed: unknown = JSON.parse(file.content);
+  return jsonObject(parsed, path);
 }
 
 function setPlannedJson(files: Map<string, PlannedFile>, path: string, value: unknown): void {
@@ -137,11 +187,11 @@ function addPackageDependencies(
 ): void {
   const packageFile = parsePlannedJson(files, packagePath);
   packageFile.dependencies = {
-    ...(packageFile.dependencies as Record<string, string> | undefined),
+    ...stringRecordProperty(packageFile, "dependencies"),
     ...pinned(dependencies),
   };
   packageFile.devDependencies = {
-    ...(packageFile.devDependencies as Record<string, string> | undefined),
+    ...stringRecordProperty(packageFile, "devDependencies"),
     ...pinned(devDependencies),
   };
   setPlannedJson(files, packagePath, packageFile);
@@ -454,7 +504,7 @@ async function addTree(
 }
 
 async function addGuardrails(files: Map<string, PlannedFile>, assetRoot: string): Promise<void> {
-  for (const item of GUARDRail_ITEMS) {
+  for (const item of GUARDRAIL_ITEMS) {
     const source = resolve(assetRoot, "guardrails", item);
     const details = await stat(source);
     if (details.isDirectory()) {
@@ -628,12 +678,11 @@ async function applyImportedTheme(
   manifest: ScaffoldManifest,
 ): Promise<void> {
   if (manifest.theme.kind !== "import") return;
-  await verifyImportedTheme(manifest.theme);
   for (const file of manifest.theme.files) {
-    const path = file.target === "web" ? `src/ui/theme/${file.path}` : `src/ui/theme/${file.path}`;
+    const path = `src/ui/theme/${file.path}`;
     files.set(path, {
       path,
-      content: await readFile(resolve(manifest.theme.source, file.path), "utf8"),
+      content: await readVerifiedImportedThemeFile(manifest.theme, file),
     });
   }
 }
@@ -717,7 +766,7 @@ function applyDeploymentConfiguration(
   }
   if (manifest.stack.id === "expo") {
     const eas = parsePlannedJson(files, "eas.json");
-    const build = eas.build as Record<string, unknown>;
+    const build = objectProperty(eas, "build");
     if (!manifest.staging) delete build.staging;
     setPlannedJson(files, "eas.json", eas);
     if (manifest.staging) {
@@ -784,7 +833,7 @@ async function planConsole(
       content: `/** Same-project Worker API. */\nimport { Hono } from 'hono';\n\nconst app = new Hono();\napp.get('/api/health', (context) => context.json({ status: 'ok' }));\n\nexport default app;\n`,
     });
     const lint = parsePlannedJson(files, ".oxlintrc.json");
-    const overrides = lint.overrides as Array<Record<string, unknown>>;
+    const overrides = objectArrayProperty(lint, "overrides");
     overrides.push({
       files: ["src/worker.ts"],
       rules: { "import/no-default-export": "off" },
@@ -924,7 +973,7 @@ async function planMarketing(
       content: "# Content\n\nEach child directory is a validated Astro content collection.\n",
     });
     const lint = parsePlannedJson(files, ".oxlintrc.json");
-    const overrides = lint.overrides as Array<Record<string, unknown>>;
+    const overrides = objectArrayProperty(lint, "overrides");
     overrides.push({
       files: ["src/content.config.ts"],
       rules: {
@@ -1024,7 +1073,7 @@ async function planBackend(
       content: `/** Writes one structured event per line. */\nexport function logEvent(event: string, fields: Readonly<Record<string, unknown>> = {}): void {\n  console.info(JSON.stringify({ event, ...fields }));\n}\n`,
     });
     const lint = parsePlannedJson(files, ".oxlintrc.json");
-    const overrides = lint.overrides as Array<Record<string, unknown>>;
+    const overrides = objectArrayProperty(lint, "overrides");
     overrides.push({ files: ["src/utilities/logger.ts"], rules: { "no-console": "off" } });
     setPlannedJson(files, ".oxlintrc.json", lint);
   }
@@ -1032,7 +1081,7 @@ async function planBackend(
     const workspace = manifest.stack.id === "backend-ts" && manifest.stack.workspace;
     if (!workspace) {
       const packageFile = parsePlannedJson(files, "package.json");
-      const dependencies = packageFile.dependencies as Record<string, string>;
+      const dependencies = stringRecordProperty(packageFile, "dependencies");
       delete dependencies["@tursodatabase/serverless"];
       Object.assign(dependencies, pinned(["@libsql/client"]));
       setPlannedJson(files, "package.json", packageFile);
@@ -1068,12 +1117,12 @@ async function planBackendWorkspace(
   const apiFiles = new Map<string, PlannedFile>();
   await planBackend(manifest, assetRoot, apiFiles);
   const apiPackage = parsePlannedJson(apiFiles, "package.json");
-  const apiDependencies = apiPackage.dependencies as Record<string, string>;
+  const apiDependencies = stringRecordProperty(apiPackage, "dependencies");
   delete apiDependencies["@tursodatabase/serverless"];
   apiDependencies[`@${manifest.project.name}/database`] = "workspace:*";
   delete apiDependencies["drizzle-orm"];
   apiPackage.name = `@${manifest.project.name}/api`;
-  const apiScripts = apiPackage.scripts as Record<string, string>;
+  const apiScripts = stringRecordProperty(apiPackage, "scripts");
   apiScripts["check:structure"] = "bash ../../scripts/guardrails/run.sh";
   apiScripts.fmt = "oxfmt --ignore-path ../../.oxfmtignore";
   apiScripts["fmt:check"] = "oxfmt --check --ignore-path ../../.oxfmtignore";
@@ -1105,7 +1154,7 @@ async function planBackendWorkspace(
   }
   const apiKnip = parsePlannedJson(files, "packages/api/knip.json");
   apiKnip.ignoreDependencies = [
-    ...((apiKnip.ignoreDependencies as string[] | undefined) ?? []),
+    ...optionalStringArrayProperty(apiKnip, "ignoreDependencies"),
     `@${manifest.project.name}/database`,
   ];
   setPlannedJson(files, "packages/api/knip.json", apiKnip);

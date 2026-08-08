@@ -1,6 +1,6 @@
-import type { ResolutionFlags, StackId, ThemePreset } from "./contracts";
+import { THEME_PRESETS, type ResolutionFlags, type StackId } from "./contracts";
 import { isStackId, validateCompatibility } from "./compatibility";
-import { parseManifest, type ScaffoldManifest } from "./manifest";
+import { parseManifest, type ScaffoldConfiguration, type ScaffoldManifest } from "./manifest";
 
 export class MissingInputsError extends Error {
   override name = "MissingInputsError";
@@ -13,12 +13,12 @@ export class MissingInputsError extends Error {
 export interface ResolveConfigurationOptions {
   generatorVersion: string;
   flags: ResolutionFlags;
-  config?: Partial<ScaffoldManifest>;
+  config?: ScaffoldConfiguration;
 }
 
 export function missingRequiredInputs(
   flags: ResolutionFlags,
-  config?: Partial<ScaffoldManifest>,
+  config?: ScaffoldConfiguration,
 ): string[] {
   const missing: string[] = [];
   if (flags.targetDirectory === undefined && config?.project?.targetDirectory === undefined)
@@ -74,23 +74,25 @@ function recipesFor(
 function themeFor(
   stack: StackId,
   flags: ResolutionFlags,
-  config?: Partial<ScaffoldManifest>,
+  config?: ScaffoldConfiguration,
 ): ScaffoldManifest["theme"] {
   const visualStack = stack === "console" || stack === "marketing" || stack === "expo";
   if (!visualStack) return { kind: "none" };
   if (flags.themeFrom !== undefined) {
     throw new CompatibilityErrorForSyncTheme();
   }
-  if (flags.theme !== undefined) return { kind: "preset", preset: flags.theme as ThemePreset };
+  if (flags.theme !== undefined) {
+    const preset = THEME_PRESETS.find((candidate) => candidate === flags.theme);
+    if (preset === undefined) throw new Error(`Unsupported theme preset: ${flags.theme}`);
+    return { kind: "preset", preset };
+  }
   if (config?.theme !== undefined && config.theme.kind !== "none") return config.theme;
   return { kind: "preset", preset: "jade" };
 }
 
 class CompatibilityErrorForSyncTheme extends Error {
   constructor() {
-    super(
-      "--theme-from must be resolved with resolveImportedTheme before configuration resolution",
-    );
+    super("--theme-from is resolved asynchronously by the CLI before project generation");
   }
 }
 

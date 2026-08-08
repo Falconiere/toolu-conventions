@@ -40,7 +40,7 @@ describe("compatibility rules", () => {
           pages: ["home", "pricing", "pricing"],
         },
       }),
-    ).toThrow("pages must not contain duplicates");
+    ).toThrow("pages must be unique");
   });
 
   test("accepts only the exact imported token surface for a visual stack", () => {
@@ -55,7 +55,7 @@ describe("compatibility rules", () => {
         source: "/tmp/theme",
         files: [
           { path: "palette.css", target: "web", sha256: "a".repeat(64) },
-          { path: "../scale.css", target: "web", sha256: "b".repeat(64) },
+          { path: "scale.css", target: "native", sha256: "b".repeat(64) },
         ],
       },
     });

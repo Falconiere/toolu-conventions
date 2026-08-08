@@ -289,6 +289,9 @@ export async function generateProject(options: GenerateProjectOptions): Promise<
         );
       }
     }
+    // The staging directory is deliberately a sibling of the target. That keeps
+    // this promotion on one filesystem, so rename is atomic and cannot fail with
+    // a cross-device EXDEV error.
     await rename(staging, safeTarget.target);
     return { targetDirectory: safeTarget.target, manifest: options.manifest, commands };
   } catch (error) {

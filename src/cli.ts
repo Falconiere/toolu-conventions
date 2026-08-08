@@ -11,7 +11,12 @@ import {
 } from "./configuration";
 import type { ResolutionFlags } from "./contracts";
 import { generateProject, GenerationFailure, redactDiagnostic } from "./engine";
-import { assertGeneratorCompatibility, type ScaffoldManifest } from "./manifest";
+import {
+  assertGeneratorCompatibility,
+  parseScaffoldConfiguration,
+  type ScaffoldConfiguration,
+  type ScaffoldManifest,
+} from "./manifest";
 import {
   collectInteractiveFlags,
   confirmInteractiveSummary,
@@ -48,20 +53,24 @@ Options:
 
 async function packageVersion(): Promise<string> {
   const packagePath = resolve(dirname(fileURLToPath(import.meta.url)), "../package.json");
-  const packageFile = JSON.parse(await readFile(packagePath, "utf8")) as { version?: unknown };
-  if (typeof packageFile.version !== "string") throw new Error("package version is missing");
+  const packageFile: unknown = JSON.parse(await readFile(packagePath, "utf8"));
+  if (
+    typeof packageFile !== "object" ||
+    packageFile === null ||
+    !("version" in packageFile) ||
+    typeof packageFile.version !== "string"
+  ) {
+    throw new Error("package version is missing");
+  }
   return packageFile.version;
 }
 
 async function loadConfiguration(
   path: string | undefined,
-): Promise<Partial<ScaffoldManifest> | undefined> {
+): Promise<ScaffoldConfiguration | undefined> {
   if (path === undefined) return undefined;
   const parsed: unknown = JSON.parse(await readFile(resolve(path), "utf8"));
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw new Error(`configuration must be a JSON object: ${path}`);
-  }
-  return parsed as Partial<ScaffoldManifest>;
+  return parseScaffoldConfiguration(parsed);
 }
 
 function resolutionFlags(parsed: ReturnType<typeof parseArgs>): ResolutionFlags {
@@ -84,7 +93,7 @@ function resolutionFlags(parsed: ReturnType<typeof parseArgs>): ResolutionFlags 
 
 async function resolveManifest(
   flags: ResolutionFlags,
-  config: Partial<ScaffoldManifest> | undefined,
+  config: ScaffoldConfiguration | undefined,
   generatorVersion: string,
 ): Promise<ScaffoldManifest> {
   if (typeof config?.generatorVersion === "string") {
