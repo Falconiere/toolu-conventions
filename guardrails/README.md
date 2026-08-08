@@ -154,8 +154,8 @@ postfix-expression, and completed-regex division as code even when block-comment
 trivia intervenes; a control-parenthesis stack keeps consequent regex statements
 in regex context. A
 token-boundary check extends that handling to `do` and `else` without confusing
-keyword-named property methods such as `object.if()`. A scoped disable for an
-unrelated rule is still available.
+public or private keyword-named property methods such as `object.if()` or
+`this.#if()`. A scoped disable for an unrelated rule is still available.
 
 ## What differs per stack
 

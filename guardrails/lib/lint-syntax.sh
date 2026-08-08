@@ -44,7 +44,7 @@ gr_ls_js_after_keyword() {
         before=${prefix%"$keyword"}
         before=${before%"${before##*[![:space:]]}"}
         last=${before: -1}
-        [[ $last =~ [[:alnum:]_$.] ]] || return 0
+        [[ $last =~ [[:alnum:]_$.#] ]] || return 0
         ;;
     esac
   done
