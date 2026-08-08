@@ -57,9 +57,10 @@ documentation that discusses them. A stateful lexical pass distinguishes real
 JavaScript comments from quoted/template or rendered JSX text and real Rust
 attributes from comments, normal/raw strings, and character literals. This
 includes regex literal escape/class state inside JSX and template expressions
-and full-source generic-arrow lookahead with regex/comment states, so braces,
+and full-source generic-arrow lookahead with regex/comment states. Control-header
+parentheses distinguish consequent regex statements from division, so braces,
 parentheses, multiline parameters, or TSX type parameters cannot corrupt the
-comment context. Regex detection uses comment-free lexical context to
+comment context. Regex detection otherwise uses comment-free lexical context to
 distinguish division after ordinary, postfix, and completed-regex expressions,
 including when block-comment trivia intervenes. This check cannot be implemented as another Oxlint rule
 because the same directive could disable that rule too.
@@ -77,7 +78,7 @@ configuration text:
 - A Rust probe containing an unused item fails under the shipped `deny` level,
   while the normal `--all-targets` test harness remains green.
 - Rust source containing direct, crate-level, conditional `cfg_attr`, multiline,
-  comment-formatted, or raw-identifier-spelled `allow(dead_code)` fails the
+  nested-bracket, comment-formatted, or raw-identifier-spelled `allow(dead_code)` fails the
   independent suppression guardrail. The same is true for `allow(unused)` and
   `warn`/`expect` attributes targeting `dead_code` or `unused`; attribute text in
   comments, strings, and character literals stays silent.
@@ -93,7 +94,8 @@ configuration text:
   regex classes, comments with `)`, or comment trivia around their parameter
   boundaries; ordinary, postfix, non-null, and
   completed-regex division are not mistaken for regex literals, even across
-  block-comment trivia.
+  block-comment trivia. Regex consequents after `if`, `while`, `for`, or `with`
+  conditions remain regexes in both normal scanning and generic-arrow defaults.
 - Clean fixtures and the freshly materialized templates continue to pass.
 - Template validation asserts that all TypeScript stacks retain
   `noUnusedLocals`, `noUnusedParameters`, the canonical Oxlint base, and Knip in

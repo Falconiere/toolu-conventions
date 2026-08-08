@@ -248,6 +248,8 @@ In run-fixtures.sh add lint-suppressions to ALL_CHECKS and assert:
 - directive/attribute text inside TypeScript strings, rendered JSX text, and Rust comments/strings/character literals stays silent, while real JSX/template expression comments report even after brace-bearing regex literals;
 - standard, const, and defaulted TSX generic arrows remain code context, division is not mistaken for a regex, and later directives report;
 - multiline generic parameters containing regex classes or comments, including trivia around parameter boundaries, remain code context; postfix increment/decrement, non-null, and completed-regex division keep later directives visible even when block-comment trivia intervenes;
+- regex consequents after control-header parentheses remain regex context in ordinary TSX and generic-arrow defaults;
+- multiline Rust attributes balance nested macro brackets before deciding the outer attribute has ended;
 - a missing or incomplete lexical helper exits through the controlled fatal path instead of running without enforcement;
 - // Explain oxlint-disable eslint/no-unused-vars here. stays silent;
 - --list now returns 14.
@@ -268,7 +270,9 @@ Create lint-suppressions.sh with these boundaries:
   before parsing real line comments and single- or multiline block comments.
   Keep JSX/template expression comments visible by lexing regex escapes and
   character classes without confusing ordinary or postfix-expression division,
-  including division separated from its left operand by block-comment trivia.
+  including division separated from its left operand by block-comment trivia;
+  track control-header parentheses so their consequent regex statements remain
+  regex context.
   Disambiguate TSX generic arrows across the full remaining source through the
   closing type parameters, regex/comment-aware value parameters, and `=>`. Reject blanket
   eslint/oxlint disables and rule lists containing any supported
@@ -277,7 +281,8 @@ Create lint-suppressions.sh with these boundaries:
   before parsing attributes as complete blocks. Reject
   direct item/crate and conditional `cfg_attr` forms of `allow`, `warn`, or
   `expect` when they target `dead_code` or its `unused` lint group, including
-  multiline forms, embedded comments, and equivalent raw-identifier spellings.
+  multiline forms, nested bracket-delimited macros, embedded comments, and
+  equivalent raw-identifier spellings.
 - Keep unrelated scoped lint disables and prose that merely names a directive
   silent.
 - File mode scans in Bash without child processes. Repo mode uses one NUL-safe
@@ -308,7 +313,9 @@ Expected: all pass; 14 ids; latency within budget.
 An over-budget latency sample is retried twice and the median of the three
 samples decides the gate, preserving the budget without failing on one shared-host pause.
 Workspace repo dispatch runs its isolated package checks concurrently so a
-workspace pays the slowest package's cost rather than summing independent work.
+workspace pays the slowest package's cost rather than summing independent work;
+every unexpected child status normalizes to fatal exit 3. A measured guardrail
+command must itself exit cleanly before its elapsed time can pass.
 
 - [ ] **Step 6: Update public/guardrail docs**
 

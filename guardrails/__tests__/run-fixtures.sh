@@ -377,6 +377,13 @@ if tagged lint-suppressions; then
     && ok 'AC-23 conditional expect(unused) cannot consume dead code' \
     || bad 'AC-23 conditional lint expectations must not bypass the policy' "exit=$STATUS out=$out"
 
+  printf '#![cfg_attr(\n  all(),\n  doc = concat!["x"],\n  allow(dead_code)\n)]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/nested-bracket-cfg-allow-dead-code.rs"
+  gr_in "$SC" --file src/utilities/nested-bracket-cfg-allow-dead-code.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 inner macro brackets cannot end cfg_attr collection' \
+    || bad 'AC-23 nested brackets must not hide cfg_attr allow(dead_code)' "exit=$STATUS out=$out"
+
   printf 'const QUOTE: char = '\''"'\'';\nconst BYTE: u8 = b'\''"'\'';\nfn borrow<'\''a>(value: &'\''a str) -> &'\''a str { value }\n#[allow(dead_code)]\nfn hidden() {}\n' \
     > "$SC/src/utilities/char-before-allow-dead-code.rs"
   gr_in "$SC" --file src/utilities/char-before-allow-dead-code.rs; out=$OUT
@@ -439,6 +446,13 @@ if tagged lint-suppressions; then
   [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
     && ok 'AC-23 regex braces cannot hide a JSX expression directive' \
     || bad 'AC-23 JSX regex literals must not corrupt expression depth' "exit=$STATUS out=$out"
+
+  printf 'export const Example = (ready: boolean, input: string) => <div>{(() => { if (ready) /}/.test(input); } /* oxlint-disable */)()}</div>;\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/jsx-control-regex-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/jsx-control-regex-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a regex consequent cannot corrupt JSX expression depth' \
+    || bad 'AC-23 regexes after control conditions must preserve JSX comments' "exit=$STATUS out=$out"
 
   printf 'export const example = `${/\\}/.test("}") /* oxlint-disable */}`;\nconst hidden = 1;\n' \
     > "$SC/src/utilities/template-regex-active-disable.ts"
@@ -531,6 +545,13 @@ if tagged lint-suppressions; then
     && ok 'AC-23 comments around generic parameters remain trivia' \
     || bad 'AC-23 generic boundary comments must not create JSX context' "exit=$STATUS out=$out"
 
+  printf 'export const pair = <T,>(ready: boolean, input: string, value: T, test = (() => { if (ready) /)/.test(input); })) => [value, test] as const;\nconst hidden = 1;// oxlint-disable-line no-unused-vars\n' \
+    > "$SC/src/utilities/tsx-generic-control-regex-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/tsx-generic-control-regex-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a control-consequent regex cannot end generic parameters' \
+    || bad 'AC-23 generic lookahead must parse regex after control conditions' "exit=$STATUS out=$out"
+
   printf 'pub const NORMAL: &str = "#[allow(dead_code)]";\n/*\n#[allow(dead_code)]\n*/\npub const EXAMPLE: &str = r#"\n#[allow(dead_code)]\n"#;\n' \
     > "$SC/src/utilities/raw-string-documentation.rs"
   gr_in "$SC" --file src/utilities/raw-string-documentation.rs; out=$OUT
@@ -539,7 +560,7 @@ if tagged lint-suppressions; then
     || bad 'AC-23 Rust strings must not be mistaken for attributes' "exit=$STATUS out=$out"
 
   gr_in "$SC" --only lint-suppressions; out=$OUT
-  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 33 ] \
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 36 ] \
     && ! printf '%s\n' "$out" | grep -q 'template-documentation\|raw-string-documentation\|jsx-documentation\|jsx-arrow-documentation' \
     && ok 'AC-23 repo candidate scan reaches every active suppression form' \
     || bad 'AC-23 repo mode must find active forms without flagging strings' "exit=$STATUS out=$out"
@@ -922,6 +943,12 @@ if [ -z "$ONLY" ]; then
   [ "$STATUS" -eq 3 ] && ok 'AC-2  a misconfigured package outranks a violating one (3 beats 1)' \
     || bad 'AC-2  3 must beat 1 when packages disagree' "exit=$STATUS out=$OUT"
   rm -rf "$WS"
+
+  OUT=$(bash -c '. "$1"; a=$(gr_ws_worst 0 137); b=$(gr_ws_worst 1 137); [ "$a:$b" = 3:3 ]' \
+    _ "$HERE/../lib/workspace.sh" 2>&1); STATUS=$?
+  [ "$STATUS" -eq 0 ] \
+    && ok 'AC-2  an abnormal workspace child exit maps to fatal status 3' \
+    || bad 'AC-2  workspace aggregation must fail closed on abnormal child exits' "exit=$STATUS out=$OUT"
 
   # In --file mode an unowned path is one of two very different things, and
   # conflating them breaks the commit hook. lefthook expands {staged_files}

@@ -97,27 +97,43 @@ gr_ls_rust_attr_forbidden() {
   [[ $compact =~ $GR_LS_RUST_DIRECT ]] || [[ $compact =~ $GR_LS_RUST_CFG_ATTR ]]
 }
 
+gr_ls_rust_bracket_depth() {
+  local line depth i char
+  line=$1
+  depth=$2
+  i=0
+  while [ "$i" -lt "${#line}" ]; do
+    char=${line:i:1}
+    [ "$char" = '[' ] && depth=$((depth + 1))
+    [ "$char" = ']' ] && depth=$((depth - 1))
+    i=$((i + 1))
+  done
+  GR_LS_RUST_ATTR_DEPTH=$depth
+}
+
 # gr_ls_rust_forbidden <path> — collect an attribute through its closing
 # bracket before matching. This covers rustfmt's one-line form and source that
 # spreads allow/cfg_attr over several lines without treating prose as syntax.
 gr_ls_rust_forbidden() {
-  local path line trimmed attr in_attr
+  local path line trimmed attr in_attr depth
   path=$1
   attr=''
   in_attr=0
+  depth=0
   gr_ls_rust_syntax_reset
   while IFS= read -r line || [ -n "$line" ]; do
     gr_ls_rust_syntax_line "$line"
     line=$GR_LS_SANITIZED
     if [ "$in_attr" -eq 1 ]; then
       attr="$attr $line"
-      case "$line" in
-        *']'*)
-          gr_ls_rust_attr_forbidden "$attr" && return 0
-          attr=''
-          in_attr=0
-          ;;
-      esac
+      gr_ls_rust_bracket_depth "$line" "$depth"
+      depth=$GR_LS_RUST_ATTR_DEPTH
+      if [ "$depth" -le 0 ]; then
+        gr_ls_rust_attr_forbidden "$attr" && return 0
+        attr=''
+        in_attr=0
+        depth=0
+      fi
       continue
     fi
 
@@ -125,9 +141,12 @@ gr_ls_rust_forbidden() {
     case "$trimmed" in
       '#['*|'#!['*)
         attr=$trimmed
-        if [[ $trimmed == *']'* ]]; then
+        gr_ls_rust_bracket_depth "$trimmed" 0
+        depth=$GR_LS_RUST_ATTR_DEPTH
+        if [ "$depth" -le 0 ]; then
           gr_ls_rust_attr_forbidden "$attr" && return 0
           attr=''
+          depth=0
         else
           in_attr=1
         fi

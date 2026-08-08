@@ -142,8 +142,8 @@ and Cargo/clippy decide whether a declaration is unused; this check only prevent
 from silencing those decisions with a blanket disable, a `no-unused-vars` directive, or
 Rust attributes that lower or consume `dead_code` directly or through the
 `unused` lint group. Direct, `cfg_attr`, single-line, inline-block, conditional,
-and multiline forms are covered, including comments inside a Rust attribute and
-Rust's equivalent raw-identifier spellings. The
+and multiline forms are covered, including nested macro brackets or comments
+inside a Rust attribute and Rust's equivalent raw-identifier spellings. The
 scanners distinguish executable syntax from TypeScript strings or rendered JSX
 text and from Rust comments, strings, or character literals, so documentation
 examples remain legal. JSX/template expressions remain executable context even
@@ -151,6 +151,7 @@ when regex literals contain braces, and TSX generic arrows are not mistaken for
 markup, including multiline parameter lists with regexes or comments around
 their boundaries. A comment-free lexical context keeps ordinary, postfix-expression, and
 completed-regex division as code even when block-comment trivia intervenes; a
+control-parenthesis stack keeps consequent regex statements in regex context. A
 scoped disable for an unrelated rule is still available.
 
 ## What differs per stack
@@ -207,3 +208,5 @@ on a generated 500-file / 20-feature tree rather than on the fixtures. An over-b
 is retried twice and judged by the median, so one shared-runner scheduling pause cannot make
 the gate flaky while a repeatable regression still fails. Workspace repo mode runs isolated
 package checks concurrently, so its wall time tracks the slowest package rather than their sum.
+Unexpected workspace-child exits are fatal, and a latency sample is eligible to pass only when
+the measured guardrail command itself exits successfully.
