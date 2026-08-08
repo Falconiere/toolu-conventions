@@ -141,7 +141,7 @@ jq '.options.typeAware = false | .jsPlugins = ["./oxlint-plugin/index.js"]' \
   "$ROOT/lint/base.oxlintrc.json" > "$TREE/.oxlintrc.json"
 printf 'const _unused = 1;\nexport const live = (_dead: string, used: string) => used;\n' \
   > "$TREE/src/utilities/unused.ts"
-unused_out=$(cd "$TREE" && $OXLINT -A no-underscore-dangle src/utilities/unused.ts 2>&1)
+unused_out=$(cd "$TREE" && $OXLINT src/utilities/unused.ts 2>&1)
 unused_status=$?
 unused_count=$(printf '%s\n' "$unused_out" | grep -c 'eslint(no-unused-vars)' || true)
 if [ "$unused_status" -ne 0 ] && [ "$unused_count" -eq 2 ]; then
