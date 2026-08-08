@@ -148,9 +148,10 @@ scanners distinguish executable syntax from TypeScript strings or rendered JSX
 text and from Rust comments, strings, or character literals, so documentation
 examples remain legal. JSX/template expressions remain executable context even
 when regex literals contain braces, and TSX generic arrows are not mistaken for
-markup, including multiline parameter lists with regexes or comments. Regex
-recognition keeps ordinary and postfix-expression division as code; a scoped
-disable for an unrelated rule is still available.
+markup, including multiline parameter lists with regexes or comments around
+their boundaries. A comment-free lexical context keeps ordinary, postfix-expression, and
+completed-regex division as code even when block-comment trivia intervenes; a
+scoped disable for an unrelated rule is still available.
 
 ## What differs per stack
 
@@ -202,4 +203,7 @@ bash guardrails/__tests__/run-latency.sh     # repo < 2000ms, --file < 250ms
 
 The first two also run inside `scripts/validate-templates.sh`, which CI runs on every PR.
 The latency suite is run by hand: a slow gate gets routed around, so the budget is measured
-on a generated 500-file / 20-feature tree rather than on the fixtures.
+on a generated 500-file / 20-feature tree rather than on the fixtures. An over-budget sample
+is retried twice and judged by the median, so one shared-runner scheduling pause cannot make
+the gate flaky while a repeatable regression still fails. Workspace repo mode runs isolated
+package checks concurrently, so its wall time tracks the slowest package rather than their sum.

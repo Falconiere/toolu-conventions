@@ -104,12 +104,21 @@ gr_ws_require_listed() {
 gr_ws_run_repo() {
   gr_ws_require_listed
   gr_ws_status=0
-  for gr_ws_pkg in $GR_WS_PACKAGES; do
-    gr_ws_exec "$gr_ws_pkg"
-    gr_ws_status=$(gr_ws_worst "$gr_ws_status" "$?")
-  done
+  # Root checks share this process, so finish them before starting children: a
+  # fatal root configuration error must not leave package checks running after
+  # the parent exits. Package checks themselves are isolated child processes
+  # and independent, so wall time should be the slowest package, not their sum.
   gr_ws_run_root
   [ "$GR_FAIL" -eq 0 ] || gr_ws_status=$(gr_ws_worst "$gr_ws_status" 1)
+  gr_ws_pids=''
+  for gr_ws_pkg in $GR_WS_PACKAGES; do
+    gr_ws_exec "$gr_ws_pkg" &
+    gr_ws_pids="$gr_ws_pids $!"
+  done
+  for gr_ws_pid in $gr_ws_pids; do
+    wait "$gr_ws_pid"
+    gr_ws_status=$(gr_ws_worst "$gr_ws_status" "$?")
+  done
   return "$gr_ws_status"
 }
 
