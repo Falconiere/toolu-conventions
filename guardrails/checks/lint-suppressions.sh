@@ -26,29 +26,34 @@ gr_ls_kind() {
   esac
 }
 
-# gr_ls_scan <path> — file/hook mode. grep status 1 is the sole clean result;
-# an unreadable source or grep failure means the scan did not happen and must
-# fail closed rather than blessing the edit.
+# gr_ls_scan <path> — file/hook mode. Read in Bash instead of launching grep:
+# this path runs after every edit, and one process per check is measurable once
+# workspace dispatch has already re-execed the package guardrail. Repo mode
+# still uses one batched grep for the whole tree below.
 gr_ls_scan() {
-  local path kind errfile errtext status
+  local path kind line matched
   path=$1
-  kind=$(gr_ls_kind "$path")
-  [ -n "$kind" ] || return 0
+  case "$path" in
+    *.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs|*.astro) kind=script ;;
+    *.rs) kind=rust ;;
+    *) return 0 ;;
+  esac
   [ -f "$path" ] || return 0
+  [ -r "$path" ] || gr_fatal "lint-suppressions cannot read $path"
 
-  errfile=$(mktemp)
-  if [ "$kind" = 'script' ]; then
-    grep -E -I -q -e "$GR_LS_BLANKET" -e "$GR_LS_UNUSED" -- "$path" 2>"$errfile"
-  else
-    grep -E -I -q -e "$GR_LS_RUST_UNUSED" -- "$path" 2>"$errfile"
-  fi
-  status=$?
-  errtext=$(cat "$errfile")
-  rm -f "$errfile"
-  if [ -n "$errtext" ] || [ "$status" -gt 1 ]; then
-    gr_fatal "lint-suppressions scan failed on $path: ${errtext:-grep exited $status}"
-  fi
-  [ "$status" -eq 0 ] || return 0
+  matched=0
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ "$kind" = 'script' ]; then
+      if [[ $line =~ $GR_LS_BLANKET ]] || [[ $line =~ $GR_LS_UNUSED ]]; then
+        matched=1
+        break
+      fi
+    elif [[ $line =~ $GR_LS_RUST_UNUSED ]]; then
+      matched=1
+      break
+    fi
+  done < "$path" || gr_fatal "lint-suppressions scan failed on $path"
+  [ "$matched" -eq 1 ] || return 0
   gr_violation lint-suppressions "$path" \
     'dead-code lint enforcement is disabled' \
     'delete the unused code or wire it into the program; do not suppress the lint'
