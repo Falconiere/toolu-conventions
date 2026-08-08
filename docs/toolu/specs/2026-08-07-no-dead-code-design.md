@@ -1,6 +1,6 @@
 # No Dead Code — Design
 
-**Date:** 2026-08-07  
+**Date:** 2026-08-07
 **Status:** Approved for implementation
 
 ## Goal
