@@ -184,9 +184,9 @@ two numbers drift apart, and how an `oxlint-disable` silences half a rule.
   `no-new-func`, and `no-script-url` on every stack, plus `react/no-danger` on
   the two React stacks (console, expo) — `dangerouslySetInnerHTML` needs an
   explicit inline disable, not a config change, to be used at all.
-  It also enforces `eslint/no-unused-vars` with an explicit empty options object,
-  which rejects every unused local and parameter, including names prefixed with
-  `_`; every TypeScript config also enables `noUnusedLocals` and
+  It also enforces `eslint/no-unused-vars` with `args: "all"`, which rejects
+  every unused local and parameter—including an unused parameter before a later
+  used one and names prefixed with `_`; every TypeScript config also enables `noUnusedLocals` and
   `noUnusedParameters` as a second compiler-level check.
 - **The rule set itself is shared, not five copies drifting apart.** It ships
   from the kit as `lint/base.oxlintrc.json` (+ `lint/base-react.oxlintrc.json`
@@ -219,8 +219,9 @@ two numbers drift apart, and how an `oxlint-disable` silences half a rule.
   itself is exempt unconditionally, since the kit's own fixtures plant fake
   secrets on purpose. Its `lint-suppressions` check separately protects the
   enforcement boundary: it rejects blanket eslint/oxlint disables, scoped
-  `no-unused-vars` disables, and Rust `#[allow(dead_code)]` /
-  `#![allow(dead_code)]`. The linter/compiler still owns deciding what is dead;
+  `no-unused-vars` disables, and Rust `allow(dead_code)` in direct or
+  `cfg_attr` attributes, including multiline forms. The linter/compiler still
+  owns deciding what is dead;
   this check owns the distinct fact that source may not silence that decision.
 
 Which side owns what is **declared**, not implied: `ownedByLinter` in
@@ -247,8 +248,8 @@ Two parts of the gate work together to keep the codebase from rotting quietly:
 
 - **Dead-code enforcement is layered by scope.** TypeScript's
   `noUnusedLocals`/`noUnusedParameters` and oxlint's `eslint/no-unused-vars`
-  reject unused locals and parameters; the oxlint rule uses an explicit empty
-  options object so `_name` is still dead code, not an escape hatch. **knip**
+  reject unused locals and parameters; the oxlint rule uses `args: "all"` so
+  earlier parameters and `_name` are still dead code, not escape hatches. **knip**
   (`knip.json`) handles the module graph and fails on an unused file, export, or
   dependency. The no-barrel rule is what makes knip accurate — with no re-export
   layer to hide behind, an export that nothing uses is genuinely dead. Delete or

@@ -18,8 +18,9 @@ Set `dead_code = "deny"` in the Rust template's `[lints.rust]` table. Rust's
 lint, but it is incompatible with `rustc --test`: Rust's generated test harness
 injects its own `allow(dead_code)`, so `cargo clippy --all-targets` fails before
 it reaches project code. The independent suppression guardrail therefore
-rejects source-authored `#[allow(dead_code)]` and `#![allow(dead_code)]` while
-Cargo's `deny` level rejects the dead item itself.
+rejects source-authored direct and `cfg_attr` `allow(dead_code)` attributes,
+including crate-level and multiline forms, while Cargo's `deny` level rejects
+the dead item itself.
 
 The existing `cargo clippy --all-targets -- -D warnings` gate remains in place
 for the rest of the warning surface.
@@ -37,10 +38,12 @@ code:
   issues that a per-file compiler or linter cannot see.
 
 Remove the `argsIgnorePattern` and `varsIgnorePattern` leading-underscore
-exemptions from the canonical Oxlint base and retain an empty options object.
-Oxlint's bare rule form supplies its own default `varsIgnorePattern: "^_"`; the
-empty object is what explicitly disables that intrinsic exemption. Propagate
-the byte-identical base to every TypeScript stack.
+exemptions from the canonical Oxlint base and set `args: "all"`. Oxlint's bare
+rule form supplies its own `varsIgnorePattern: "^_"`, while the otherwise
+default `args: "after-used"` skips an unused parameter before the last used
+parameter. The explicit options object removes the intrinsic name exemption and
+`args: "all"` closes the positional exemption. Propagate the byte-identical base
+to every TypeScript stack.
 
 Add an independent guardrail for source comments that disable the unused-code
 lint, including blanket Oxlint disable directives, and for Rust attributes that
@@ -60,8 +63,8 @@ configuration text:
 
 - A Rust probe containing an unused item fails under the shipped `deny` level,
   while the normal `--all-targets` test harness remains green.
-- Rust source containing `#[allow(dead_code)]` or `#![allow(dead_code)]` fails
-  the independent suppression guardrail.
+- Rust source containing direct, crate-level, conditional `cfg_attr`, or
+  multiline `allow(dead_code)` fails the independent suppression guardrail.
 - TypeScript with an unused underscore-prefixed declaration fails the shipped
   Oxlint configuration.
 - TypeScript source that disables the unused-variable rule, or uses a blanket
