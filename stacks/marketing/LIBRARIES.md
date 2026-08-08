@@ -21,7 +21,7 @@ committed; CI installs with `--frozen-lockfile`.
 | Sitemap | `@astrojs/sitemap` | A marketing site without a sitemap is a marketing site with a slower crawl. Needs `site` set in `astro.config.mjs`. |
 | Validation | `zod` (v4) | Every boundary: env, anything the build fetches. Content collections use `astro/zod`, the same library re-exported. |
 | Testing | `vitest` | Via `getViteConfig()` from `astro/config`, so tests see the real build config. |
-| Dead code / unused deps | `knip` | Gate step. Fails on an unused file, export, or dependency. |
+| Dead code / unused deps | TypeScript + oxlint + `knip` | Astro's compiler and lint reject unused locals/parameters (including `_name`); knip rejects unused files, exports, and dependencies. |
 | Copy-paste detection | `jscpd` | Gate step, `threshold: 0` + `exitCode: 1`. |
 | Lint / format | `oxlint` + `oxfmt` (+ `oxlint-tsgolint` for type-aware) | oxlint reads `.astro` frontmatter too; oxfmt handles `.ts`/`.tsx` (JSX included) but cannot parse `.astro` component syntax. The template body is `astro check`'s job. |
 | Git hooks | `lefthook` | Pre-commit lint + format on staged files. |

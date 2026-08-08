@@ -133,6 +133,25 @@ else
     "$(cd "$TREE" && $OXLINT . 2>&1 | head -3)"
 fi
 
+# Exercise the canonical shared base, not a test-only imitation. TypeScript's
+# compiler deliberately exempts underscore-prefixed parameters, so Oxlint has
+# to close that escape hatch for both parameters and local declarations.
+cp "$TREE/.oxlintrc.json" "$TREE/.oxlintrc.minimal.json"
+jq '.options.typeAware = false | .jsPlugins = ["./oxlint-plugin/index.js"]' \
+  "$ROOT/lint/base.oxlintrc.json" > "$TREE/.oxlintrc.json"
+printf 'const _unused = 1;\nexport const live = (_dead: string) => 1;\n' \
+  > "$TREE/src/utilities/unused.ts"
+unused_out=$(cd "$TREE" && $OXLINT -A no-underscore-dangle src/utilities/unused.ts 2>&1)
+unused_status=$?
+unused_count=$(printf '%s\n' "$unused_out" | grep -c 'eslint(no-unused-vars)' || true)
+if [ "$unused_status" -ne 0 ] && [ "$unused_count" -eq 2 ]; then
+  ok 'canonical lint rejects underscore-prefixed unused locals and parameters'
+else
+  bad "canonical lint expected 2 unused diagnostics, got $unused_count" "$unused_out"
+fi
+rm -f "$TREE/src/utilities/unused.ts"
+mv "$TREE/.oxlintrc.minimal.json" "$TREE/.oxlintrc.json"
+
 printf 'throw new Error("boom");\n' > "$TREE/oxlint-plugin/index.js"
 if (cd "$TREE" && $OXLINT . >/dev/null 2>&1); then
   bad 'a broken plugin must not report success'

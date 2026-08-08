@@ -23,13 +23,7 @@
   },
   "rules": {
     "typescript/no-explicit-any": "error",
-    "typescript/no-unused-vars": [
-      "error",
-      {
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_"
-      }
-    ],
+    "eslint/no-unused-vars": ["error", {}],
     "typescript/consistent-type-imports": "error",
     "typescript/prefer-as-const": "error",
     "typescript/consistent-type-assertions": [

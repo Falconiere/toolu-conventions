@@ -138,11 +138,13 @@ blocked-patterns list.
    drift and the compiler cannot say which is right (CORE rule 13).
    _Enforced by:_ `no-restricted-imports` (competing validation libraries) +
    review.
-7. **Nothing unused, nothing duplicated.** `knip` fails the gate on an unused
-   file, export, or dependency; `jscpd` fails it on copy-paste. Both are part of
-   `bun run check`, not optional extras.
-   _Enforced by:_ `knip.json` and `.jscpd.json` (`threshold: 0` is what fails
-   the gate; `exitCode: 1` covers the case where the threshold is later raised).
+7. **Nothing unused, nothing duplicated.** TypeScript and oxlint reject unused
+   locals and parameters, including names prefixed with `_`; `knip` rejects an
+   unused file, export, or dependency; `jscpd` rejects copy-paste. Delete or wire
+   dead code instead of suppressing the checks.
+   _Enforced by:_ `noUnusedLocals`, `noUnusedParameters`,
+   `eslint/no-unused-vars`, `knip.json`, and `.jscpd.json` (`threshold: 0` is
+   what fails the duplication gate; `exitCode: 1` covers a later threshold).
 8. **Co-locate tests** in a sibling `__tests__/` folder (`button.tsx` →
    `__tests__/button.test.tsx`), and test with **real data** — exercise real
    inputs and real integration paths. A mock-only test that just proves a mock

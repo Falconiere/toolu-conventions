@@ -131,6 +131,12 @@ From `$ROOT`:
 bun --filter '*' run check
 ```
 
+Dead code has no naming escape hatch. Every package enables `noUnusedLocals` and
+`noUnusedParameters`; oxlint's `eslint/no-unused-vars` rejects every unused
+local or parameter (including `_name`); root-level knip checks unused files,
+exports, and dependencies across the workspace. Delete or wire the code; do not
+add an ignore pattern.
+
 Every package must be green. If you are tempted to run `oxlint` from `$ROOT` to
 debug a failure: don't — see Phase 1. Run it inside the package.
 

@@ -35,12 +35,16 @@ Worker entry and no `index.ts`** — its public surface is the `exports` map in
    and `verification` and migrates them itself; `drizzle.config.ts` filters
    them. Adding them here means two migrators fighting over one database.
 7. **Tests run in workerd against a real Turso database.** No mock client.
-8. **`max-lines: 300`**, code lines only.
+8. **Nothing unused.** TypeScript/oxlint rejects unused locals and parameters,
+   including `_name`; knip rejects unused files, exports, and dependencies.
+   Delete or wire the code; never add an ignore pattern.
+9. **`max-lines: 300`**, code lines only.
 
 ## Gate
 
-`bun run check` — typecheck, lint, tests, guardrails. From the workspace root,
-`bun --filter '*' run check` runs it for every package.
+`bun run check` — typecheck, lint, format-check, guardrails, knip, jscpd, and
+tests. From the workspace root, `bun --filter '*' run check` runs it for every
+package.
 
 Never run oxlint from the workspace root: it resolves `guardrails.config.json`
 from the working directory, and there is deliberately none there.

@@ -251,10 +251,16 @@ Set these scripts in `package.json`. This block **overrides** the values
 
 `bun run check` is the one-command gate, in CORE gate order: `tsc --noEmit` +
 `oxlint --deny-warnings` + `oxfmt --check` + `bash scripts/guardrails/run.sh` +
-`jest`. The structure script enforces the folder rules the linter can't see
+`knip` + `jscpd` + `jest`. The structure script enforces the folder rules the linter can't see
 (allowed `src/` dirs, per-folder READMEs, no barrel files, `lefthook.yml` not
 `.yaml`); oxlint's `no-restricted-imports` + `unicorn/filename-case` + `max-lines`
 carry the import/naming/size rules.
+
+Dead code has no naming escape hatch. `noUnusedLocals` and
+`noUnusedParameters` provide compiler coverage, oxlint's
+`eslint/no-unused-vars` rejects every unused local or parameter (including
+`_name`), and knip checks the module graph for unused files, exports, and
+dependencies. Delete or wire the code; do not add an ignore pattern.
 
 No manual Babel edit is needed for Reanimated. On SDK 50+ with Reanimated 4,
 `babel-preset-expo` auto-wires the worklets plugin (`react-native-worklets/plugin`)

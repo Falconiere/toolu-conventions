@@ -176,6 +176,12 @@ Set the `package.json` `scripts` block to exactly this:
 structure-check + knip + jscpd + test, in that order. Now install the pre-commit hooks — **the
 config must already be in place** (copied in the step above) before you run this:
 
+Dead code has no naming escape hatch. `noUnusedLocals` and
+`noUnusedParameters` provide compiler coverage, oxlint's
+`eslint/no-unused-vars` rejects every unused local or parameter (including
+`_name`), and knip checks the module graph for unused files, exports, and
+dependencies. Delete or wire the code; do not add an ignore pattern.
+
 ```bash
 bunx lefthook install
 ```

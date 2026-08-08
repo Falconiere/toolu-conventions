@@ -60,7 +60,10 @@ adding files, and add a line when you add something notable.
   properties so the component works in both bands.
 - **`yup` / `valibot` / `joi`, or a hand-written type guard** → `zod`.
 - **An `interface` declared beside its schema** → `type X = z.infer<typeof X>`.
-- **An unused export, file, or dependency** → knip fails the gate. Delete it.
+- **An unused local or parameter, including `_name`** → Astro/oxlint fails the
+  gate. Delete it or use it; never add an ignore pattern.
+- **An unused export, file, or dependency** → knip fails the gate. Delete it or
+  wire it into the module graph.
 - **Copy-pasted blocks** → jscpd fails the gate. Extract it.
 - **A framework integration used as the default component model** → `.astro`
   components. A React island is for one genuinely interactive section, with a

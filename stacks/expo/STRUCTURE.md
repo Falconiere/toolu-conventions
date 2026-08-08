@@ -90,6 +90,8 @@ for the full "blocked patterns" list. What enforces what:
 - **300-line ceiling** — oxlint `max-lines` (code lines only, tests exempt).
 - **No `any`, no `console.log`/`debugger`, default exports only in `app/**`** —
   oxlint rules + Lefthook pre-commit.
+- **No unused code** — TypeScript and oxlint reject unused locals and parameters,
+  including `_name`; knip rejects unused files, exports, and dependencies.
 
 1. **No barrel files.** Never create an `index.ts(x)` that only re-exports. Import
    the concrete file: `import { Button } from '@/ui/button'`. This keeps every
@@ -107,10 +109,12 @@ for the full "blocked patterns" list. What enforces what:
 5. **No `any`.** No `as any`, `: any`, or `as unknown as T`. Use `unknown` + type
    guards. (`typescript/no-explicit-any: error`.)
 6. **No `console.log` / `debugger`.** Use `console.warn` / `console.error`.
-7. **Flat until it grows.** Keep a primitive/util as a single file until it
+7. **Nothing unused.** Delete or wire unused locals, parameters, files, exports,
+   and dependencies. An underscore prefix is not an exemption.
+8. **Flat until it grows.** Keep a primitive/util as a single file until it
    passes ~300 lines or sprouts sub-parts, then promote it to a folder
    (`button/` with `button.tsx` + `styles.ts`).
-8. **`max-lines: 300`** per file (tests exempt).
+9. **`max-lines: 300`** per file (tests exempt).
 
 ## Style baseline (UI defaults)
 

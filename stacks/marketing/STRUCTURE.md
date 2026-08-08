@@ -112,7 +112,13 @@ truth — the test config *derives* from the build config rather than replacing 
    colour ramps do not exist here — a magic number is a class that was never
    generated, not a review note.
    _Enforced by:_ the `@theme` resets in `src/ui/theme/scale.css`.
-9. **Named exports, no barrels, kebab-case filenames, co-located real-data
+9. **Nothing unused.** `astro check` and oxlint reject unused locals and
+   parameters, including names prefixed with `_`; `knip` rejects an unused file,
+   export, or dependency. Delete or wire dead code instead of suppressing the
+   checks.
+   _Enforced by:_ `noUnusedLocals`, `noUnusedParameters`,
+   `eslint/no-unused-vars`, and `knip.json`.
+10. **Named exports, no barrels, kebab-case filenames, co-located real-data
    tests, no `any`, no `console.log`, `max-lines: 300`** — the CORE rules.
    _Enforced by:_ oxlint + `guardrails`. oxlint **does** read `.astro`
    frontmatter, so the import and TypeScript rules apply there too — the entry

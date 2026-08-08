@@ -31,14 +31,16 @@ code:
 
 - TypeScript's `noUnusedLocals` and `noUnusedParameters` detect unused local
   declarations and parameters.
-- Oxlint's `typescript/no-unused-vars` catches the same issue during lint and
+- Oxlint's `eslint/no-unused-vars` catches the same issue during lint and
   closes TypeScript's leading-underscore parameter exemption.
 - Knip detects unused files, exports, dependencies, and other project-graph
   issues that a per-file compiler or linter cannot see.
 
 Remove the `argsIgnorePattern` and `varsIgnorePattern` leading-underscore
-exemptions from the canonical Oxlint base and propagate that byte-identical base
-to every TypeScript stack.
+exemptions from the canonical Oxlint base and retain an empty options object.
+Oxlint's bare rule form supplies its own default `varsIgnorePattern: "^_"`; the
+empty object is what explicitly disables that intrinsic exemption. Propagate
+the byte-identical base to every TypeScript stack.
 
 Add an independent guardrail for source comments that disable the unused-code
 lint, including blanket Oxlint disable directives, and for Rust attributes that

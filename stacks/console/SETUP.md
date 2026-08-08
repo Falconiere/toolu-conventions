@@ -222,6 +222,12 @@ Set the `package.json` scripts (merge with what `create-vite` generated;
 `bash scripts/guardrails/run.sh` + `knip` + `jscpd` + `vitest run` (the CORE
 gate order).
 
+Dead code has no naming escape hatch. `noUnusedLocals` and
+`noUnusedParameters` provide compiler coverage, oxlint's
+`eslint/no-unused-vars` rejects every unused local or parameter (including
+`_name`), and knip checks the module graph for unused files, exports, and
+dependencies. Delete or wire the code; do not add an ignore pattern.
+
 ---
 
 ## Phase 3 — Create the folder structure

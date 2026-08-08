@@ -117,7 +117,10 @@ checks the folder tree, the wrangler config, and `package.json` itself.
 - **A procedure built from a bare `os` instead of `base`** → it compiles, and its
   context is untyped.
 - **An `interface` declared beside its schema** → `type X = z.infer<typeof X>`.
-- **An unused export, file, or dependency** → knip fails the gate. Delete it.
+- **An unused local or parameter, including `_name`** → TypeScript/oxlint fails
+  the gate. Delete it or use it; never add an ignore pattern.
+- **An unused export, file, or dependency** → knip fails the gate. Delete it or
+  wire it into the module graph.
 - **Copy-pasted blocks** → jscpd fails the gate. Extract it.
 
 ## Conventions
