@@ -412,6 +412,41 @@ if tagged lint-suppressions; then
     && ok 'AC-23 a TSX generic cannot hide a later active directive' \
     || bad 'AC-23 TSX generics must remain JavaScript lexical context' "exit=$STATUS out=$out"
 
+  printf 'export const tuple = <const T,>(value: T) => value;\nconst hidden = 1;// oxlint-disable-line no-unused-vars\n' \
+    > "$SC/src/utilities/tsx-const-generic-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/tsx-const-generic-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a TSX const generic cannot hide a later directive' \
+    || bad 'AC-23 const type parameters must remain JavaScript lexical context' "exit=$STATUS out=$out"
+
+  printf 'export const fallback = <T = unknown>(value: T) => value;\nconst hidden = 1;// oxlint-disable-line no-unused-vars\n' \
+    > "$SC/src/utilities/tsx-default-generic-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/tsx-default-generic-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 a TSX defaulted generic cannot hide a later directive' \
+    || bad 'AC-23 defaulted type parameters must remain JavaScript lexical context' "exit=$STATUS out=$out"
+
+  printf 'export const Example = () => (\n  <div>{/[}]/.test("}") /* oxlint-disable */}</div>\n);\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/jsx-regex-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/jsx-regex-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 regex braces cannot hide a JSX expression directive' \
+    || bad 'AC-23 JSX regex literals must not corrupt expression depth' "exit=$STATUS out=$out"
+
+  printf 'export const example = `${/\\}/.test("}") /* oxlint-disable */}`;\nconst hidden = 1;\n' \
+    > "$SC/src/utilities/template-regex-active-disable.ts"
+  gr_in "$SC" --file src/utilities/template-regex-active-disable.ts; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 regex braces cannot hide a template expression directive' \
+    || bad 'AC-23 template regex literals must not corrupt expression depth' "exit=$STATUS out=$out"
+
+  printf 'export const Example = (total: number, divisor: number) => (\n  <div>{total / divisor /* oxlint-disable */}</div>\n);\n' \
+    > "$SC/src/utilities/jsx-division-active-disable.tsx"
+  gr_in "$SC" --file src/utilities/jsx-division-active-disable.tsx; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 division is not mistaken for a regex literal' \
+    || bad 'AC-23 ordinary division must keep later comments visible' "exit=$STATUS out=$out"
+
   printf 'pub const NORMAL: &str = "#[allow(dead_code)]";\n/*\n#[allow(dead_code)]\n*/\npub const EXAMPLE: &str = r#"\n#[allow(dead_code)]\n"#;\n' \
     > "$SC/src/utilities/raw-string-documentation.rs"
   gr_in "$SC" --file src/utilities/raw-string-documentation.rs; out=$OUT
@@ -420,7 +455,7 @@ if tagged lint-suppressions; then
     || bad 'AC-23 Rust strings must not be mistaken for attributes' "exit=$STATUS out=$out"
 
   gr_in "$SC" --only lint-suppressions; out=$OUT
-  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 17 ] \
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 22 ] \
     && ! printf '%s\n' "$out" | grep -q 'template-documentation\|raw-string-documentation\|jsx-documentation' \
     && ok 'AC-23 repo candidate scan reaches every active suppression form' \
     || bad 'AC-23 repo mode must find active forms without flagging strings' "exit=$STATUS out=$out"
