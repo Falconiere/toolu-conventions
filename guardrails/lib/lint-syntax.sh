@@ -30,25 +30,89 @@ gr_ls_js_pop_brace() {
   GR_LS_JS_BRACE_DEPTH=${frame#*,}
 }
 
+gr_ls_js_skip_trivia() {
+  local line i length char next
+  line=$1
+  i=$2
+  length=${#line}
+  while [ "$i" -lt "$length" ]; do
+    char=${line:i:1}
+    next=${line:i+1:1}
+    if [ -z "${char//[[:space:]]/}" ]; then
+      i=$((i + 1))
+    elif [ "$char$next" = '/*' ]; then
+      i=$((i + 2))
+      while [ "$i" -lt "$length" ] && [ "${line:i:2}" != '*/' ]; do i=$((i + 1)); done
+      i=$((i + 2))
+    elif [ "$char$next" = '//' ]; then
+      while [ "$i" -lt "$length" ] && [ "${line:i:1}" != $'\n' ]; do i=$((i + 1)); done
+    else
+      break
+    fi
+  done
+  GR_LS_JS_SCAN_INDEX=$i
+}
+
 gr_ls_js_is_generic_arrow() {
-  local line i length char previous quote angle paren
+  local line i length char next previous after quote angle paren mode regex_class
   line=$1
   i=$(( $2 + 1 ))
   length=${#line}
+
+  # TSX requires an ambiguity breaker: a comma, default, constraint, or const
+  # modifier after the first type-parameter name. A plain `<pre>(x) =>` is JSX
+  # text, not a generic arrow, even though the following bytes look arrow-like.
+  gr_ls_js_skip_trivia "$line" "$i"
+  i=$GR_LS_JS_SCAN_INDEX
+  if [ "${line:i:5}" = const ]; then
+    after=${line:i+5:1}
+    if [ -z "$after" ] || [ -z "${after//[[:space:]]/}" ] || [ "$after${line:i+6:1}" = '/*' ]; then
+      i=$((i + 5))
+      gr_ls_js_skip_trivia "$line" "$i"
+      i=$GR_LS_JS_SCAN_INDEX
+    fi
+  fi
+  char=${line:i:1}
+  [[ $char =~ [[:alpha:]_$] ]] || return 1
+  i=$((i + 1))
+  while [ "$i" -lt "$length" ] && [[ ${line:i:1} =~ [[:alnum:]_$] ]]; do i=$((i + 1)); done
+  gr_ls_js_skip_trivia "$line" "$i"
+  i=$GR_LS_JS_SCAN_INDEX
+  case "${line:i:1}" in ','|'=') ;; *)
+    [ "${line:i:7}" = extends ] || return 1
+    after=${line:i+7:1}
+    [[ ! $after =~ [[:alnum:]_$] ]] || return 1
+    ;;
+  esac
+
+  i=$(( $2 + 1 ))
   quote=''
+  mode=code
   angle=1
   while [ "$i" -lt "$length" ] && [ "$angle" -gt 0 ]; do
     char=${line:i:1}
+    next=${line:i+1:1}
     previous=${line:i-1:1}
-    if [ -n "$quote" ]; then
-      if [ "$char" = '\\' ]; then i=$((i + 1)); elif [ "$char" = "$quote" ]; then quote=''; fi
-    else
-      case "$char" in
-        "'"|'"'|\`) quote=$char ;;
-        '<') angle=$((angle + 1)) ;;
-        '>') [ "$previous" = '=' ] || angle=$((angle - 1)) ;;
-      esac
-    fi
+    case "$mode" in
+      code)
+        if [ "$char$next" = '//' ]; then mode=line_comment
+        elif [ "$char$next" = '/*' ]; then mode=block_comment
+        else
+          case "$char" in
+            "'"|'"'|\`) quote=$char; mode=quote ;;
+            '<') angle=$((angle + 1)) ;;
+            '>') [ "$previous" = '=' ] || angle=$((angle - 1)) ;;
+          esac
+        fi
+        ;;
+      quote)
+        if [ "$char" = '\\' ]; then i=$((i + 1)); elif [ "$char" = "$quote" ]; then mode=code; fi
+        ;;
+      block_comment)
+        if [ "$char$next" = '*/' ]; then mode=code; i=$((i + 1)); fi
+        ;;
+      line_comment) [ "$char" = $'\n' ] && mode=code ;;
+    esac
     i=$((i + 1))
   done
   [ "$angle" -eq 0 ] || return 1
@@ -60,18 +124,48 @@ gr_ls_js_is_generic_arrow() {
   [ "${line:i:1}" = '(' ] || return 1
   paren=1
   quote=''
+  mode=code
+  regex_class=0
   i=$((i + 1))
   while [ "$i" -lt "$length" ] && [ "$paren" -gt 0 ]; do
     char=${line:i:1}
-    if [ -n "$quote" ]; then
-      if [ "$char" = '\\' ]; then i=$((i + 1)); elif [ "$char" = "$quote" ]; then quote=''; fi
-    else
-      case "$char" in
-        "'"|'"'|\`) quote=$char ;;
-        '(') paren=$((paren + 1)) ;;
-        ')') paren=$((paren - 1)) ;;
-      esac
-    fi
+    next=${line:i+1:1}
+    case "$mode" in
+      code)
+        if [ "$char$next" = '//' ]; then mode=line_comment
+        elif [ "$char$next" = '/*' ]; then mode=block_comment
+        elif [ "$char" = / ] && gr_ls_js_starts_regex "$line" "$i"; then
+          mode=regex
+          regex_class=0
+        else
+          case "$char" in
+            "'"|'"'|\`) quote=$char; mode=quote ;;
+            '(') paren=$((paren + 1)) ;;
+            ')') paren=$((paren - 1)) ;;
+          esac
+        fi
+        ;;
+      quote)
+        if [ "$char" = '\\' ]; then i=$((i + 1)); elif [ "$char" = "$quote" ]; then mode=code; fi
+        ;;
+      block_comment)
+        if [ "$char$next" = '*/' ]; then mode=code; i=$((i + 1)); fi
+        ;;
+      line_comment) [ "$char" = $'\n' ] && mode=code ;;
+      regex)
+        if [ "$char" = '\\' ]; then
+          i=$((i + 1))
+        elif [ "$regex_class" -eq 1 ]; then
+          [ "$char" = ']' ] && regex_class=0
+        elif [ "$char" = '[' ]; then
+          regex_class=1
+        elif [ "$char" = / ]; then
+          mode=code
+        elif [ "$char" = $'\n' ]; then
+          mode=code
+        fi
+        ;;
+    esac
     i=$((i + 1))
   done
   [ "$paren" -eq 0 ] || return 1
@@ -84,16 +178,19 @@ gr_ls_js_is_generic_arrow() {
 }
 
 # A `<name` token is JSX only at an expression boundary. Looking through the
-# closing `>` and parameter list distinguishes every single-line generic-arrow
-# spelling from an element, including const and defaulted type parameters.
+# closing `>` and parameter list distinguishes generic-arrow spellings from an
+# element, including multiline, const, and defaulted type parameters.
 gr_ls_js_starts_jsx() {
-  local line offset next prefix
+  local line offset next prefix generic_source generic_offset
   [ "$GR_LS_JS_JSX_ENABLED" -eq 1 ] || return 1
   line=$1
   offset=$2
   next=${line:offset+1:1}
   case "$next" in /|'>'|[[:alpha:]_]) ;; *) return 1 ;; esac
-  gr_ls_js_is_generic_arrow "$line" "$offset" && return 1
+  generic_source=${GR_LS_JS_SOURCE-$line}
+  generic_offset=$offset
+  [ -n "${GR_LS_JS_SOURCE+x}" ] && generic_offset=$((GR_LS_JS_SOURCE_OFFSET + offset))
+  gr_ls_js_is_generic_arrow "$generic_source" "$generic_offset" && return 1
   prefix=${line:0:offset}
   prefix=${prefix%"${prefix##*[![:space:]]}"}
   case "$prefix" in
@@ -106,13 +203,20 @@ gr_ls_js_starts_jsx() {
 # boundary. This is the same lexical distinction JavaScript parsers make, kept
 # deliberately conservative so ordinary `a / b` remains code.
 gr_ls_js_starts_regex() {
-  local line offset next prefix
+  local line offset next prefix before last
   line=$1
   offset=$2
   next=${line:offset+1:1}
   [ "$next" != '=' ] || return 1
   prefix=${line:0:offset}
   prefix=${prefix%"${prefix##*[![:space:]]}"}
+  case "$prefix" in *'++'|*'--') return 1 ;; esac
+  if [[ $prefix == *'!' ]]; then
+    before=${prefix%?}
+    last=${before: -1}
+    if [[ $last =~ [[:alnum:]_$] ]]; then return 1; fi
+    case "$last" in ')'|']'|'}'|'"'|"'"|\`) return 1 ;; esac
+  fi
   case "$prefix" in
     ''|*'=>'|*'return'|*'case'|*'delete'|*'void'|*'typeof'|*'yield'|*'await'|*'throw'|*'='|*'('|*'['|*'{'|*','|*':'|*'?'|*';'|*'!'|*'~'|*'+'|*'-'|*'*'|*'/'|*'%'|*'&'|*'|'|*'^') return 0 ;;
     *) return 1 ;;

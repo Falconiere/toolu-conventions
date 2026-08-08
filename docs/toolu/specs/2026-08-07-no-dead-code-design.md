@@ -57,9 +57,11 @@ documentation that discusses them. A stateful lexical pass distinguishes real
 JavaScript comments from quoted/template or rendered JSX text and real Rust
 attributes from comments, normal/raw strings, and character literals. This
 includes regex literal escape/class state inside JSX and template expressions
-and generic-arrow lookahead so braces or TSX type parameters cannot corrupt the
-comment context. This check cannot be implemented as another Oxlint rule because
-the same directive could disable that rule too.
+and full-source generic-arrow lookahead with regex/comment states, so braces,
+parentheses, multiline parameters, or TSX type parameters cannot corrupt the
+comment context. Regex detection distinguishes division after ordinary and
+postfix expressions. This check cannot be implemented as another Oxlint rule
+because the same directive could disable that rule too.
 
 Existing Knip entries and narrowly documented ignores for framework-generated
 or non-TypeScript-consumed assets remain valid: an entry point or a tool
@@ -85,8 +87,10 @@ configuration text:
 - Directive text inside a TypeScript string, template literal, or rendered JSX
   text stays silent because it is documentation rather than an active lint
   comment; a real comment inside a JSX/template expression still fails when
-  preceded by a brace-bearing regex. Standard, const, and defaulted TSX generic
-  arrows keep later directives visible.
+  preceded by a brace-bearing regex. Standard, const, defaulted, and multiline
+  TSX generic arrows keep later directives visible even when parameters contain
+  regex classes or comments with `)`; ordinary, postfix, and non-null division
+  are not mistaken for regex literals.
 - Clean fixtures and the freshly materialized templates continue to pass.
 - Template validation asserts that all TypeScript stacks retain
   `noUnusedLocals`, `noUnusedParameters`, the canonical Oxlint base, and Knip in
