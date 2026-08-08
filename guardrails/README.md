@@ -141,8 +141,10 @@ match, and reading one as the other is the mistake this paragraph exists to prev
 and Cargo/clippy decide whether a declaration is unused; this check only prevents source
 from silencing those decisions with a blanket disable, a `no-unused-vars` directive, or
 Rust `allow(dead_code)` in a direct or `cfg_attr` attribute. Single-line,
-inline-block, and multiline forms are covered; a scoped disable for an unrelated
-rule is still available.
+inline-block, conditional, and multiline forms are covered, including comments
+inside a Rust attribute. The scanners distinguish executable syntax from
+TypeScript template literals and Rust strings, so documentation examples remain
+legal; a scoped disable for an unrelated rule is still available.
 
 ## What differs per stack
 

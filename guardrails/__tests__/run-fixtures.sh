@@ -293,7 +293,7 @@ if tagged lint-suppressions; then
     && ok 'AC-23 an aliased no-unused-vars directive in a rule list is rejected' \
     || bad 'AC-23 no-unused-vars aliases must not bypass the check' "exit=$STATUS out=$out"
 
-  printf 'const hidden = 1; // eslint-disable-line no-unused-vars\n' \
+  printf 'const hidden = 1;// eslint-disable-line no-unused-vars\n' \
     > "$SC/src/utilities/trailing-unused-disable.ts"
   gr_in "$SC" --file src/utilities/trailing-unused-disable.ts; out=$OUT
   [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
@@ -328,10 +328,32 @@ if tagged lint-suppressions; then
     && ok 'AC-23 multiline Rust allow(dead_code) is rejected' \
     || bad 'AC-23 multiline Rust dead-code allowances must fail' "exit=$STATUS out=$out"
 
+  printf '#![allow(\n  /* policy */ dead_code\n)]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/commented-allow-dead-code.rs"
+  gr_in "$SC" --file src/utilities/commented-allow-dead-code.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 comments cannot hide a Rust allow(dead_code) attribute' \
+    || bad 'AC-23 comments inside Rust attributes must not bypass the check' "exit=$STATUS out=$out"
+
+  printf 'export const quoted = "/* oxlint-disable */";\nexport const example = `\n/* oxlint-disable */\n`;\n' \
+    > "$SC/src/utilities/template-documentation.ts"
+  gr_in "$SC" --file src/utilities/template-documentation.ts; out=$OUT
+  [ "$STATUS" -eq 0 ] && [ "$(count_check "$out" lint-suppressions)" -eq 0 ] \
+    && ok 'AC-23 a directive shown in a template literal is not active' \
+    || bad 'AC-23 TypeScript strings must not be mistaken for lint directives' "exit=$STATUS out=$out"
+
+  printf 'pub const NORMAL: &str = "#[allow(dead_code)]";\n/*\n#[allow(dead_code)]\n*/\npub const EXAMPLE: &str = r#"\n#[allow(dead_code)]\n"#;\n' \
+    > "$SC/src/utilities/raw-string-documentation.rs"
+  gr_in "$SC" --file src/utilities/raw-string-documentation.rs; out=$OUT
+  [ "$STATUS" -eq 0 ] && [ "$(count_check "$out" lint-suppressions)" -eq 0 ] \
+    && ok 'AC-23 an attribute shown in a Rust raw string is not active' \
+    || bad 'AC-23 Rust strings must not be mistaken for attributes' "exit=$STATUS out=$out"
+
   gr_in "$SC" --only lint-suppressions; out=$OUT
-  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 7 ] \
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 8 ] \
+    && ! printf '%s\n' "$out" | grep -q 'template-documentation\|raw-string-documentation' \
     && ok 'AC-23 repo candidate scan reaches every active suppression form' \
-    || bad 'AC-23 repo mode must not skip multiline or conditional forms' "exit=$STATUS out=$out"
+    || bad 'AC-23 repo mode must find active forms without flagging strings' "exit=$STATUS out=$out"
   rm -rf "$SC"
 fi
 

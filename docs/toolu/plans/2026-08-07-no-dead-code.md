@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Delete dead code or wire it into a real entry point; do not rename or suppress it.
-- Rust uses dead_code = "deny" and the independent guardrail rejects source-authored direct or cfg_attr allow(dead_code), including crate-level and multiline forms.
+- Rust uses dead_code = "deny" and the independent guardrail rejects source-authored direct or cfg_attr allow(dead_code), including crate-level, comment-formatted, and multiline forms.
 - TypeScript retains noUnusedLocals, noUnusedParameters, eslint/no-unused-vars, and Knip.
 - Legitimate framework entry points remain documented Knip configuration.
 - Reject active blanket Oxlint disables and disables naming no-unused-vars, but not unrelated named suppressions.
@@ -216,6 +216,7 @@ git commit -m "feat(typescript): reject all unused code"
 
 **Files:**
 - Create: guardrails/checks/lint-suppressions.sh
+- Create: guardrails/lib/lint-syntax.sh
 - Create: guardrails/__tests__/fixtures/violating/src/utilities/suppressed-unused.ts
 - Modify: guardrails/run.sh
 - Modify: guardrails/__tests__/run-fixtures.sh
@@ -227,7 +228,7 @@ git commit -m "feat(typescript): reject all unused code"
 
 **Interfaces:**
 - Consumes: gr_violation plus repo/file/hook/stop dispatch.
-- Produces: check id lint-suppressions and gr_check_lint_suppressions with one violation per file across TS/JS line/block directives and direct, cfg_attr, or multiline Rust allow(dead_code) attributes.
+- Produces: check id lint-suppressions and gr_check_lint_suppressions with one violation per file across TS/JS line/block directives and direct, cfg_attr, comment-formatted, or multiline Rust allow(dead_code) attributes.
 
 - [ ] **Step 1: Add failing fixtures**
 
@@ -242,7 +243,8 @@ In run-fixtures.sh add lint-suppressions to ALL_CHECKS and assert:
 
 - the committed fixture reports one violation in repo and --file modes;
 - scratch active blanket line and inline block disables report;
-- scratch Rust item/crate direct, cfg_attr, and multiline allow(dead_code) each report;
+- scratch Rust item/crate direct, cfg_attr, multiline, and comment-formatted allow(dead_code) each report;
+- directive/attribute text inside TypeScript template literals and Rust raw strings stays silent;
 - // Explain oxlint-disable eslint/no-unused-vars here. stays silent;
 - --list now returns 14.
 
@@ -258,12 +260,15 @@ Expected: zero findings where findings are required.
 
 Create lint-suppressions.sh with these boundaries:
 
-- Parse TypeScript/JavaScript line comments and single- or multiline block
-  comments. Reject blanket eslint/oxlint disables and rule lists containing any
-  supported `no-unused-vars` alias, including an inline block followed by code.
-- Parse Rust attributes as complete blocks before removing whitespace. Reject
+- Lex TypeScript/JavaScript strings and template literals before parsing real
+  line comments and single- or multiline block comments. Reject blanket
+  eslint/oxlint disables and rule lists containing any supported
+  `no-unused-vars` alias, including an inline block followed by code.
+- Lex Rust comments, normal strings, and raw strings before parsing attributes
+  as complete blocks. Reject
   direct item/crate `allow(dead_code)` and conditional
-  `cfg_attr(..., allow(dead_code))`, including multiline forms.
+  `cfg_attr(..., allow(dead_code))`, including multiline forms and attributes
+  with embedded comments.
 - Keep unrelated scoped lint disables and prose that merely names a directive
   silent.
 - File mode scans in Bash without child processes. Repo mode uses one NUL-safe
