@@ -140,8 +140,9 @@ match, and reading one as the other is the mistake this paragraph exists to prev
 `lint-suppressions` is deliberately independent of that ownership split. TypeScript/oxlint
 and Cargo/clippy decide whether a declaration is unused; this check only prevents source
 from silencing those decisions with a blanket disable, a `no-unused-vars` directive, or
-`#[allow(dead_code)]` / `#![allow(dead_code)]`. A scoped disable for an unrelated rule is
-still available.
+Rust `allow(dead_code)` in a direct or `cfg_attr` attribute. Single-line,
+inline-block, and multiline forms are covered; a scoped disable for an unrelated
+rule is still available.
 
 ## What differs per stack
 

@@ -7,23 +7,114 @@
 #   other rule;
 # - a scoped no-unused-vars disable hides exactly the dead code this convention
 #   exists to expose;
-# - Rust's #[allow(dead_code)] and #![allow(dead_code)] override Cargo's
-#   workspace-level `dead_code = "deny"`.
+# - Rust's direct or cfg_attr allow(dead_code) overrides Cargo's workspace-level
+#   `dead_code = "deny"`, whether written on one line or several.
 #
 # Script and Rust paths are scanned separately. An oxlint directive in Rust is
 # just prose, and a Rust attribute-like string in TypeScript is not an
 # attribute; applying all patterns to all languages would invent violations.
 
-GR_LS_BLANKET='(^|[[:space:]])(//|/\*|\*)[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]*(--[^[:cntrl:]]*)?(\*/)?[[:space:]]*$'
-GR_LS_UNUSED='(^|[[:space:]])(//|/\*|\*)[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]+([^,[:space:]]+[[:space:]]*,[[:space:]]*)*((eslint|typescript|@typescript-eslint)/)?no-unused-vars([[:space:],*]|$)'
-GR_LS_RUST_UNUSED='^[[:space:]]*#!?\[[[:space:]]*allow[[:space:]]*\([[:space:]]*([^,)]*[[:space:]]*,[[:space:]]*)*dead_code([[:space:]]*,[^)]*)?\)[[:space:]]*\]'
+GR_LS_LINE_BLANKET='(^|[[:space:]])//[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]*(--[^[:cntrl:]]*)?$'
+GR_LS_LINE_UNUSED='(^|[[:space:]])//[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]+([^,[:space:]]+[[:space:]]*,[[:space:]]*)*((eslint|typescript|@typescript-eslint)/)?no-unused-vars([[:space:],]|$)'
+GR_LS_BLOCK_START='(^|[[:space:]])/\*[[:space:]]*(oxlint|eslint)-disable'
+GR_LS_BLOCK_BLANKET='(^|[[:space:]])/\*[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]*(--[^*]*)?\*/'
+GR_LS_BLOCK_UNUSED='(^|[[:space:]])/\*[[:space:]]*(oxlint|eslint)-disable(-next-line|-line)?[[:space:]]+([^,[:space:]*]+[[:space:]]*,[[:space:]]*)*((eslint|typescript|@typescript-eslint)/)?no-unused-vars([[:space:],*]|$)'
+GR_LS_RUST_DIRECT='^#!?\[allow\(([^,)]*,)*dead_code(,[^)]*)?\)\]'
+GR_LS_RUST_CFG_ATTR='^#!?\[cfg_attr\(.*,allow\(([^,)]*,)*dead_code(,[^)]*)?\).*\)\]'
+GR_LS_SCRIPT_CANDIDATE='(oxlint|eslint)-disable'
+GR_LS_RUST_CANDIDATE='(^|[^[:alnum:]_])allow([^[:alnum:]_]|$)'
+
+gr_ls_block_forbidden() {
+  [[ $1 =~ $GR_LS_BLOCK_BLANKET ]] || [[ $1 =~ $GR_LS_BLOCK_UNUSED ]]
+}
+
+# gr_ls_script_forbidden <path> — recognize line directives plus single- and
+# multi-line block directives. A prose comment remains legal because the lint
+# directive must be the first token after the actual comment delimiter.
+gr_ls_script_forbidden() {
+  local path line block after in_block
+  path=$1
+  block=''
+  in_block=0
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ "$in_block" -eq 1 ]; then
+      block="$block $line"
+      case "$line" in
+        *'*/'*)
+          gr_ls_block_forbidden "$block" && return 0
+          block=''
+          in_block=0
+          ;;
+      esac
+      continue
+    fi
+
+    if [[ $line =~ $GR_LS_LINE_BLANKET ]] || [[ $line =~ $GR_LS_LINE_UNUSED ]]; then
+      return 0
+    fi
+    if [[ $line =~ $GR_LS_BLOCK_START ]]; then
+      block=$line
+      after=${line#*'/*'}
+      if [[ $after == *'*/'* ]]; then
+        gr_ls_block_forbidden "$block" && return 0
+        block=''
+      else
+        in_block=1
+      fi
+    fi
+  done < "$path" || return 2
+  return 1
+}
+
+gr_ls_rust_attr_forbidden() {
+  local compact
+  compact=${1//[[:space:]]/}
+  [[ $compact =~ $GR_LS_RUST_DIRECT ]] || [[ $compact =~ $GR_LS_RUST_CFG_ATTR ]]
+}
+
+# gr_ls_rust_forbidden <path> — collect an attribute through its closing
+# bracket before matching. This covers rustfmt's one-line form and source that
+# spreads allow/cfg_attr over several lines without treating prose as syntax.
+gr_ls_rust_forbidden() {
+  local path line trimmed attr in_attr
+  path=$1
+  attr=''
+  in_attr=0
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ "$in_attr" -eq 1 ]; then
+      attr="$attr $line"
+      case "$line" in
+        *']'*)
+          gr_ls_rust_attr_forbidden "$attr" && return 0
+          attr=''
+          in_attr=0
+          ;;
+      esac
+      continue
+    fi
+
+    trimmed=${line#"${line%%[![:space:]]*}"}
+    case "$trimmed" in
+      '#['*|'#!['*)
+        attr=$trimmed
+        if [[ $trimmed == *']'* ]]; then
+          gr_ls_rust_attr_forbidden "$attr" && return 0
+          attr=''
+        else
+          in_attr=1
+        fi
+        ;;
+    esac
+  done < "$path" || return 2
+  return 1
+}
 
 # gr_ls_scan <path> — file/hook mode. Read in Bash instead of launching grep:
 # this path runs after every edit, and one process per check is measurable once
 # workspace dispatch has already re-execed the package guardrail. Repo mode
 # still uses one batched grep for the whole tree below.
 gr_ls_scan() {
-  local path kind line matched
+  local path kind status
   path=$1
   case "$path" in
     *.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs|*.astro) kind=script ;;
@@ -33,22 +124,21 @@ gr_ls_scan() {
   [ -f "$path" ] || return 0
   [ -r "$path" ] || gr_fatal "lint-suppressions cannot read $path"
 
-  matched=0
-  while IFS= read -r line || [ -n "$line" ]; do
-    if [ "$kind" = 'script' ]; then
-      if [[ $line =~ $GR_LS_BLANKET ]] || [[ $line =~ $GR_LS_UNUSED ]]; then
-        matched=1
-        break
-      fi
-    elif [[ $line =~ $GR_LS_RUST_UNUSED ]]; then
-      matched=1
-      break
-    fi
-  done < "$path" || gr_fatal "lint-suppressions scan failed on $path"
-  [ "$matched" -eq 1 ] || return 0
-  gr_violation lint-suppressions "$path" \
-    'dead-code lint enforcement is disabled' \
-    'delete the unused code or wire it into the program; do not suppress the lint'
+  if [ "$kind" = 'script' ]; then
+    gr_ls_script_forbidden "$path"
+  else
+    gr_ls_rust_forbidden "$path"
+  fi
+  status=$?
+  case "$status" in
+    0)
+      gr_violation lint-suppressions "$path" \
+        'dead-code lint enforcement is disabled' \
+        'delete the unused code or wire it into the program; do not suppress the lint'
+      ;;
+    1) ;;
+    *) gr_fatal "lint-suppressions scan failed on $path" ;;
+  esac
 }
 
 # gr_ls_repo_lists <script-list> <rust-list> — inventory live source files,
@@ -56,9 +146,24 @@ gr_ls_scan() {
 # Lists are NUL-delimited because filenames may contain spaces, colons, or
 # newlines; the rest of guardrails already makes the same path-safety promise.
 gr_ls_repo_lists() {
-  local script_list rust_list path
+  local script_list rust_list path inventory errfile status errtext
   script_list=$1
   rust_list=$2
+  inventory=$(mktemp)
+  errfile=$(mktemp)
+  find . \
+    \( -path './.git' -o -path './node_modules' -o -path './dist' \
+       -o -path './build' -o -path './out' -o -path './coverage' \
+       -o -path './.wrangler' -o -path './.next' -o -path './.expo' \
+       -o -path './target' -o -path './vendor' \) -prune \
+    -o -type f -print0 > "$inventory" 2>"$errfile"
+  status=$?
+  if [ "$status" -ne 0 ] || [ -s "$errfile" ]; then
+    errtext=$(cat "$errfile")
+    rm -f "$inventory" "$errfile"
+    gr_fatal "lint-suppressions source inventory failed: ${errtext:-find exited $status}"
+  fi
+  rm -f "$errfile"
   while IFS= read -r -d '' path; do
     path=${path#./}
     # Match extensions inline: a helper call through command substitution would
@@ -69,31 +174,23 @@ gr_ls_repo_lists() {
         ;;
       *.rs) printf '%s\0' "$path" >> "$rust_list" ;;
     esac
-  done < <(find . \
-    \( -path './.git' -o -path './node_modules' -o -path './dist' \
-       -o -path './build' -o -path './out' -o -path './coverage' \
-       -o -path './.wrangler' -o -path './.next' -o -path './.expo' \
-       -o -path './target' -o -path './vendor' \) -prune \
-    -o -type f -print0 2>/dev/null)
+  done < "$inventory"
+  rm -f "$inventory"
 }
 
 # gr_ls_scan_batch <nul-list> <kind> — one grep process per language family,
 # then one violation per matching file. The sh wrapper absorbs grep's normal
 # no-match status (1) but preserves real failures through xargs.
 gr_ls_scan_batch() {
-  local list kind hitfile errfile status errtext path
+  local list kind pattern hitfile errfile status errtext path
   list=$1
   kind=$2
   [ -s "$list" ] || return 0
   hitfile=$(mktemp)
   errfile=$(mktemp)
-  if [ "$kind" = 'script' ]; then
-    xargs -0 sh -c 'p1=$1; p2=$2; shift 2; grep -E -I -l -Z -e "$p1" -e "$p2" -- "$@" || [ $? -eq 1 ]' \
-      sh "$GR_LS_BLANKET" "$GR_LS_UNUSED" < "$list" > "$hitfile" 2>"$errfile"
-  else
-    xargs -0 sh -c 'p1=$1; shift; grep -E -I -l -Z -e "$p1" -- "$@" || [ $? -eq 1 ]' \
-      sh "$GR_LS_RUST_UNUSED" < "$list" > "$hitfile" 2>"$errfile"
-  fi
+  [ "$kind" = 'script' ] && pattern=$GR_LS_SCRIPT_CANDIDATE || pattern=$GR_LS_RUST_CANDIDATE
+  xargs -0 sh -c 'p1=$1; shift; grep -E -I -l -Z -e "$p1" -- "$@" || [ $? -eq 1 ]' \
+    sh "$pattern" < "$list" > "$hitfile" 2>"$errfile"
   status=$?
   errtext=$(cat "$errfile")
   rm -f "$errfile"
@@ -102,9 +199,7 @@ gr_ls_scan_batch() {
     gr_fatal "lint-suppressions $kind repo scan failed: ${errtext:-batch exited $status}"
   fi
   while IFS= read -r -d '' path; do
-    gr_violation lint-suppressions "$path" \
-      'dead-code lint enforcement is disabled' \
-      'delete the unused code or wire it into the program; do not suppress the lint'
+    gr_ls_scan "$path"
   done < "$hitfile"
   rm -f "$hitfile"
 }

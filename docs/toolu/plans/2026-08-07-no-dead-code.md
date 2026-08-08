@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Delete dead code or wire it into a real entry point; do not rename or suppress it.
-- Rust uses dead_code = "deny" and the independent guardrail rejects source-authored #[allow(dead_code)] and #![allow(dead_code)].
+- Rust uses dead_code = "deny" and the independent guardrail rejects source-authored direct or cfg_attr allow(dead_code), including crate-level and multiline forms.
 - TypeScript retains noUnusedLocals, noUnusedParameters, eslint/no-unused-vars, and Knip.
 - Legitimate framework entry points remain documented Knip configuration.
 - Reject active blanket Oxlint disables and disables naming no-unused-vars, but not unrelated named suppressions.
@@ -107,7 +107,7 @@ git commit -m "feat(rust): deny dead code"
 
 **Interfaces:**
 - Consumes: canonical lint base, TS configs/package scripts, real Oxlint suite.
-- Produces: eslint/no-unused-vars = ["error", {}], whose empty options object disables Oxlint's intrinsic underscore default, plus validation of all five TS stacks.
+- Produces: eslint/no-unused-vars = ["error", {"args":"all"}], whose explicit options disable Oxlint's intrinsic underscore-name default and its positional after-used exemption, plus validation of all five TS stacks.
 
 - [ ] **Step 1: Add the failing behavior test**
 
@@ -117,7 +117,7 @@ In run-plugin.sh, after removing the seeded house-rule violations and before cor
 cp "$TREE/.oxlintrc.json" "$TREE/.oxlintrc.minimal.json"
 jq '.options.typeAware = false | .jsPlugins = ["./oxlint-plugin/index.js"]' \
   "$ROOT/lint/base.oxlintrc.json" > "$TREE/.oxlintrc.json"
-printf 'const _unused = 1;\nexport const live = (_dead: string) => 1;\n' \
+printf 'const _unused = 1;\nexport const live = (_dead: string, used: string) => used;\n' \
   > "$TREE/src/utilities/unused.ts"
 unused_out=$(cd "$TREE" && $OXLINT src/utilities/unused.ts 2>&1)
 unused_status=$?
@@ -141,11 +141,12 @@ Expected: the new assertion gets zero rather than two diagnostics.
 
 Replace the option array in lint/base.oxlintrc.json with:
 
-Oxlint's bare rule form defaults varsIgnorePattern to ^_. Keep an options object
-but remove both explicit ignore patterns:
+Oxlint's bare rule form defaults `varsIgnorePattern` to `^_`, and its default
+`args: "after-used"` ignores an unused parameter before a later used one. Remove
+both explicit ignore patterns and set `args: "all"`:
 
 ~~~json
-"eslint/no-unused-vars": ["error", {}]
+"eslint/no-unused-vars": ["error", {"args": "all"}]
 ~~~
 
 Synchronize:
@@ -174,7 +175,7 @@ for stack in $TS_STACKS; do
   jq -e '.scripts["check:unused"] == "knip" and (.scripts.check | contains("check:unused"))' \
     "stacks/$stack/templates/package.json" >/dev/null \
     || bad "dead-code: $stack must run knip in its full gate"
-  jq -e '.rules["eslint/no-unused-vars"] == ["error", {}]' \
+  jq -e '.rules["eslint/no-unused-vars"] == ["error", {"args": "all"}]' \
     "stacks/$stack/templates/base.oxlintrc.json" >/dev/null \
     || bad "dead-code: $stack must reject unused variables without name exemptions"
 done
@@ -226,7 +227,7 @@ git commit -m "feat(typescript): reject all unused code"
 
 **Interfaces:**
 - Consumes: gr_violation plus repo/file/hook/stop dispatch.
-- Produces: check id lint-suppressions and gr_check_lint_suppressions with one violation per file across TS/JS directives and Rust allow(dead_code) attributes.
+- Produces: check id lint-suppressions and gr_check_lint_suppressions with one violation per file across TS/JS line/block directives and direct, cfg_attr, or multiline Rust allow(dead_code) attributes.
 
 - [ ] **Step 1: Add failing fixtures**
 
@@ -240,8 +241,8 @@ const unused = 1;
 In run-fixtures.sh add lint-suppressions to ALL_CHECKS and assert:
 
 - the committed fixture reports one violation in repo and --file modes;
-- a scratch active blanket // oxlint-disable reports;
-- a scratch Rust #[allow(dead_code)] and #![allow(dead_code)] each report;
+- scratch active blanket line and inline block disables report;
+- scratch Rust item/crate direct, cfg_attr, and multiline allow(dead_code) each report;
 - // Explain oxlint-disable eslint/no-unused-vars here. stays silent;
 - --list now returns 14.
 
@@ -257,92 +258,28 @@ Expected: zero findings where findings are required.
 
 Create lint-suppressions.sh with these boundaries:
 
-~~~bash
-GR_LS_BLANKET='^[[:space:]]*(//|/\*)[[:space:]]*oxlint-disable(-next-line|-line)?([[:space:]]*(\*/)?[[:space:]]*|[[:space:]]+--.*)$'
-GR_LS_UNUSED='^[[:space:]]*(//|/\*)[[:space:]]*oxlint-disable(-next-line|-line)?.*[[:space:],]((eslint|typescript|@typescript-eslint)/)?no-unused-vars([[:space:],*]|$)'
-GR_LS_RUST_UNUSED='^[[:space:]]*#!?\[[[:space:]]*allow[[:space:]]*\([^)]*dead_code[^)]*\)[[:space:]]*\]'
-
-gr_ls_source() {
-  case "$1" in
-    *.ts|*.tsx|*.mts|*.cts|*.js|*.jsx|*.mjs|*.cjs|*.rs) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-gr_ls_scan() {
-  local path match status
-  path=$1
-  gr_ls_source "$path" || return 0
-  [ -f "$path" ] || return 0
-  match=$(grep -E -I -n -m1 -e "$GR_LS_BLANKET" -e "$GR_LS_UNUSED" \
-    -e "$GR_LS_RUST_UNUSED" -- "$path")
-  status=$?
-  [ "$status" -le 1 ] || gr_fatal "lint-suppressions scan failed on $path: grep exited $status"
-  [ -n "$match" ] || return 0
-  gr_violation lint-suppressions "$path" \
-    'unused-code lint suppression' \
-    'delete the dead code or wire it into a real entry point; do not disable the unused-code lint'
-}
-~~~
-
-Implement repo mode as one NUL-safe batch, including untracked source files so
-the Stop hook sees a newly written suppression before it is staged:
-
-~~~bash
-gr_ls_scan_repo() {
-  local list hits err status errtext path
-  list=$(mktemp)
-  hits=$(mktemp)
-  err=$(mktemp)
-  find . \( -name .git -o -name node_modules -o -name dist -o -name build \
-              -o -name out -o -name coverage -o -name .wrangler -o -name .next \) -prune \
-    -o -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mts' -o -name '*.cts' \
-                   -o -name '*.js' -o -name '*.jsx' -o -name '*.mjs' -o -name '*.cjs' \
-                   -o -name '*.rs' \) \
-    -print0 > "$list"
-  if [ -s "$list" ]; then
-    xargs -0 sh -c '
-      p1=$1; p2=$2; p3=$3; shift 3
-      grep -E -I -l -Z -e "$p1" -e "$p2" -e "$p3" -- "$@" || [ $? -eq 1 ]
-    ' sh "$GR_LS_BLANKET" "$GR_LS_UNUSED" "$GR_LS_RUST_UNUSED" \
-      < "$list" > "$hits" 2> "$err"
-    status=$?
-    errtext=$(cat "$err")
-    [ -z "$errtext" ] && [ "$status" -eq 0 ] || {
-      rm -f "$list" "$hits" "$err"
-      gr_fatal "lint-suppressions repo scan failed: ${errtext:-xargs exited $status}"
-    }
-    while IFS= read -r -d '' path; do
-      gr_ls_scan "${path#./}"
-    done < "$hits"
-  fi
-  rm -f "$list" "$hits" "$err"
-}
-~~~
-
-This copies secret-content.sh's fail-closed xargs contract: grep 1 is clean,
-stderr or another status is fatal. Re-running gr_ls_scan only for hit files
-keeps output to one violation per file. File mode calls gr_ls_scan directly.
-
-Expose:
-
-~~~bash
-gr_check_lint_suppressions() {
-  local mode path
-  mode=$1
-  path=$2
-  if [ "$mode" = 'file' ]; then
-    gr_ls_scan "$path"
-    return 0
-  fi
-  [ "$mode" = 'repo' ] || return 0
-  gr_ls_scan_repo
-}
-~~~
+- Parse TypeScript/JavaScript line comments and single- or multiline block
+  comments. Reject blanket eslint/oxlint disables and rule lists containing any
+  supported `no-unused-vars` alias, including an inline block followed by code.
+- Parse Rust attributes as complete blocks before removing whitespace. Reject
+  direct item/crate `allow(dead_code)` and conditional
+  `cfg_attr(..., allow(dead_code))`, including multiline forms.
+- Keep unrelated scoped lint disables and prose that merely names a directive
+  silent.
+- File mode scans in Bash without child processes. Repo mode uses one NUL-safe
+  candidate grep per language family and reuses the syntax-aware file scanner
+  only for hits, preserving one violation per file.
+- Inventory with foreground `find`, capture stderr/status, and exit 3 if the
+  tree cannot be traversed; a skipped subtree must never read as clean.
+- Include untracked source files so the Stop hook sees newly written
+  suppressions before they are staged.
 
 - [ ] **Step 4: Register it**
 
-Add lint-suppressions to GR_CHECKS_FILE after secret-content. Explain in run.sh that the check lives outside Oxlint because the same directive can silence an Oxlint rule. Do not add it to ownedByLinter. It stays silent on Rust files.
+Add lint-suppressions to GR_CHECKS_FILE after secret-content. Explain in run.sh
+that the check lives outside Oxlint because the same directive can silence an
+Oxlint rule. Do not add it to ownedByLinter: the independent check runs on both
+TypeScript/JavaScript and Rust source.
 
 - [ ] **Step 5: Verify GREEN and latency**
 
@@ -402,7 +339,7 @@ Inspect every hit. Current docs must agree on Rust deny plus the attribute guard
 for stack in backend-ts console database-ts expo marketing; do
   jq -e '.compilerOptions.noUnusedLocals == true and .compilerOptions.noUnusedParameters == true' \
     "stacks/$stack/templates/tsconfig.json" >/dev/null
-  jq -e '.rules["eslint/no-unused-vars"] == ["error", {}]' \
+  jq -e '.rules["eslint/no-unused-vars"] == ["error", {"args": "all"}]' \
     "stacks/$stack/templates/base.oxlintrc.json" >/dev/null
   diff lint/base.oxlintrc.json "stacks/$stack/templates/base.oxlintrc.json"
 done

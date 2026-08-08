@@ -777,7 +777,7 @@ for stack in $TS_STACKS; do
       && grep -q '"check": .*check:unused' "stacks/$stack/SETUP.md" \
       || bad "dead-code: $stack setup must add knip to its full check gate"
   fi
-  jq -e '.rules["eslint/no-unused-vars"] == ["error", {}]' \
+  jq -e '.rules["eslint/no-unused-vars"] == ["error", {"args": "all"}]' \
     "stacks/$stack/templates/base.oxlintrc.json" >/dev/null \
     || bad "dead-code: $stack must reject every unused variable without name exemptions"
 done

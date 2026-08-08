@@ -265,12 +265,12 @@ if tagged lint-suppressions; then
     && ok 'AC-23 prose that names a directive is not mistaken for one' \
     || bad 'AC-23 only active lint directives may be rejected' "exit=$STATUS out=$out"
 
-  printf '/* oxlint-disable */\nexport const live = 1;\n' \
+  printf '/* oxlint-disable */ const hidden = 1;\n' \
     > "$SC/src/utilities/blanket-disable.ts"
   gr_in "$SC" --file src/utilities/blanket-disable.ts; out=$OUT
   [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
-    && ok 'AC-23 a blanket lint disable is rejected' \
-    || bad 'AC-23 blanket lint disables must fail' "exit=$STATUS out=$out"
+    && ok 'AC-23 an inline blanket block disable is rejected' \
+    || bad 'AC-23 inline blanket block disables must fail' "exit=$STATUS out=$out"
 
   printf '// oxlint-disable-next-line no-console -- intentional test probe\nconsole.log("probe");\n' \
     > "$SC/src/utilities/scoped-disable.ts"
@@ -278,6 +278,13 @@ if tagged lint-suppressions; then
   [ "$STATUS" -eq 0 ] && [ "$(count_check "$out" lint-suppressions)" -eq 0 ] \
     && ok 'AC-23 a scoped disable for another rule remains available' \
     || bad 'AC-23 unrelated scoped lint directives must remain available' "exit=$STATUS out=$out"
+
+  printf '/* oxlint-disable no-console */ console.log("probe");\n' \
+    > "$SC/src/utilities/scoped-block-disable.ts"
+  gr_in "$SC" --file src/utilities/scoped-block-disable.ts; out=$OUT
+  [ "$STATUS" -eq 0 ] && [ "$(count_check "$out" lint-suppressions)" -eq 0 ] \
+    && ok 'AC-23 a scoped block disable for another rule remains available' \
+    || bad 'AC-23 unrelated scoped block directives must remain available' "exit=$STATUS out=$out"
 
   printf '// eslint-disable-next-line no-console, @typescript-eslint/no-unused-vars\nconst hidden = 1;\n' \
     > "$SC/src/utilities/aliased-unused-disable.ts"
@@ -306,6 +313,25 @@ if tagged lint-suppressions; then
   [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
     && ok 'AC-23 Rust crate-level allow(dead_code) is rejected' \
     || bad 'AC-23 Rust crate-level dead-code allowances must fail' "exit=$STATUS out=$out"
+
+  printf '#![cfg_attr(all(), allow(dead_code))]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/cfg-allow-dead-code.rs"
+  gr_in "$SC" --file src/utilities/cfg-allow-dead-code.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 Rust cfg_attr allow(dead_code) is rejected' \
+    || bad 'AC-23 conditional Rust dead-code allowances must fail' "exit=$STATUS out=$out"
+
+  printf '#![\n  allow(\n    dead_code\n  )\n]\nfn hidden() {}\n' \
+    > "$SC/src/utilities/multiline-allow-dead-code.rs"
+  gr_in "$SC" --file src/utilities/multiline-allow-dead-code.rs; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 1 ] \
+    && ok 'AC-23 multiline Rust allow(dead_code) is rejected' \
+    || bad 'AC-23 multiline Rust dead-code allowances must fail' "exit=$STATUS out=$out"
+
+  gr_in "$SC" --only lint-suppressions; out=$OUT
+  [ "$STATUS" -eq 1 ] && [ "$(count_check "$out" lint-suppressions)" -eq 7 ] \
+    && ok 'AC-23 repo candidate scan reaches every active suppression form' \
+    || bad 'AC-23 repo mode must not skip multiline or conditional forms' "exit=$STATUS out=$out"
   rm -rf "$SC"
 fi
 
