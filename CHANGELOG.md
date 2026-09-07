@@ -1,3 +1,15 @@
+# [0.7.0](https://github.com/Falconiere/toolu-conventions/compare/v0.6.0...v0.7.0) (2026-09-07)
+
+
+### Bug Fixes
+
+* harden initializer review boundaries ([d9f3c04](https://github.com/Falconiere/toolu-conventions/commit/d9f3c042c3558d44a00602507e5f16f7dd9cd1f5))
+
+
+### Features
+
+* add deterministic project initializer ([2b9b248](https://github.com/Falconiere/toolu-conventions/commit/2b9b248d643ba237a3fed928d94da1dc552de400))
+
 # [0.6.0](https://github.com/Falconiere/toolu-conventions/compare/v0.5.0...v0.6.0) (2026-08-08)
 
 
