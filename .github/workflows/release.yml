@@ -2,8 +2,9 @@
 # carries releasable Conventional Commits (feat / fix / BREAKING).
 #
 # Docs-only, chore, and ci commits do not cut a release — semantic-release
-# exits 0 with nothing published. Releases publish @toolu/create through npm
-# trusted publishing; no long-lived npm token is stored in GitHub.
+# exits 0 with nothing published. Releases publish @toolu/create via npm
+# trusted publishing (OIDC) when the package exists on the registry, with
+# secrets.NPM_TOKEN as fallback for first publish / OIDC gaps.
 #
 # Pushes to main authenticate as the `all-app-release` GitHub App (secrets
 # HOMEBREW_APP_ID / HOMEBREW_APP_PRIVATE_KEY — same publish App as
@@ -111,5 +112,6 @@ jobs:
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
         run: node node_modules/semantic-release/bin/semantic-release.js
