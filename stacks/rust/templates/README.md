@@ -31,7 +31,8 @@ lefthook install
 
 ## Layout
 
-- `src/` — one module per responsibility, `snake_case` filenames.
+- `src/domains/` — business capabilities (one module or folder per domain).
+- `src/cli.rs` / `src/http.rs` — delivery adapters (not domains).
 - `src/**/tests/` — colocated module tests (sibling `tests/` folders; never in-file).
 - `tests/` — crate-root integration tests, one file per surface.
 - `CLAUDE.md` — conventions and blocked patterns (read first if you are an agent).

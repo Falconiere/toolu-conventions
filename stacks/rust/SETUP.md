@@ -76,9 +76,9 @@ kit's templates.
 
 Copy each template to its destination (source → destination). `CLAUDE.md.template`
 is renamed to `CLAUDE.md`; everything else keeps its name. `src/` is copied
-**whole**, not file by file: `main.rs` declares `mod greeting;` and `greeting.rs`
-points its test module at `tests/greeting.rs`, so copying only `main.rs` leaves
-`cargo build` failing with `error[E0583]: file not found for module 'greeting'`.
+**whole**, not file by file: `main.rs` declares `mod domains;`, `domains.rs` declares `mod greeting;`, and
+`domains/greeting.rs` points its test module at `domains/tests/greeting.rs`, so
+copying only `main.rs` leaves `cargo build` failing with a missing module.
 
 ```bash
 cp "$KIT/stacks/rust/templates/Cargo.toml"            Cargo.toml

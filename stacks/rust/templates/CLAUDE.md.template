@@ -87,8 +87,10 @@ Fix the code, do not silence the lint.
 ├── lefthook.yml          # pre-commit fmt · pre-push clippy
 ├── src/
 │   ├── main.rs           # binary entry point (or lib.rs for a library crate)
-│   ├── <module>.rs       # one module per responsibility, snake_case
-│   └── tests/            # colocated module tests (sibling; not __tests__)
+│   ├── domains.rs        # declares domain modules
+│   ├── domains/          # business capabilities (+ colocated tests/)
+│   ├── cli.rs · http.rs  # delivery adapters when those integrations are on
+│   └── config/ · error/ · utilities/
 ├── tests/                # crate-root integration tests, one file per surface
 ├── scripts/
 │   └── guardrails/run.sh # structure gate (snake_case · 500-line ceiling · .yml)
