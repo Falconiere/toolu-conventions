@@ -21,9 +21,18 @@ project-name/
 ├── src/
 │   ├── main.rs           # binary entry point …
 │   │                     #   (or lib.rs if this crate is a library)
-│   ├── <module>.rs       # one module per responsibility, snake_case
-│   ├── tests/            # colocated module tests (sibling; not __tests__)
-│   │   └── <module>.rs
+│   ├── domains.rs        # declares domain modules (no barrel re-exports)
+│   ├── domains/          # business capabilities. README.md
+│   │   ├── <name>.rs     #   one file per domain until it grows
+│   │   ├── <name>/       #   or folder: model/service/store + tests/
+│   │   │   ├── model.rs
+│   │   │   ├── service.rs
+│   │   │   ├── store.rs
+│   │   │   └── tests/
+│   │   └── tests/        #   colocated tests for single-file domains
+│   │       └── <name>.rs
+│   ├── cli.rs · http.rs  # delivery adapters (not domains)
+│   ├── config/ · error/ · utilities/
 │   └── <module>/         # a module that outgrew one file becomes a folder:
 │       ├── <part>.rs     #   sub-parts declared from <module>.rs
 │       └── tests/        #   colocated tests for those parts
@@ -40,6 +49,12 @@ project-name/
 A binary crate has `src/main.rs`; a library crate has `src/lib.rs`. A crate can
 have both (a thin `main.rs` that calls into `lib.rs`) — do that when the logic
 should also be testable/usable as a library.
+
+Business capability lives under **`src/domains/`**. Delivery adapters (`cli`,
+`http`) and shared shells (`config`, `error`, `utilities`) stay outside that
+tree. Guardrails `src.topLevel` lists those directories; domain folders may grow
+from a single `<name>.rs` into `<name>/{model,service,store}.rs` with a sibling
+`tests/`.
 
 ## Modules — no `mod.rs` barrels
 
@@ -83,14 +98,16 @@ with the Rust folder name `tests/`. Real data only — no mock-data tests.
 
 ```
 src/
-├── parse_config.rs              # production module
-├── tests/
-│   └── parse_config.rs          # colocated tests (sibling tests/ folder)
-├── shift_store.rs               # module root (declares submodules)
-└── shift_store/
-    ├── query.rs
+├── domains.rs                   # declares domain modules
+├── domains/
+│   ├── greeting.rs              # single-file domain
+│   └── tests/
+│       └── greeting.rs          # colocated tests (sibling tests/ folder)
+├── utilities.rs                 # module root (declares submodules) …
+└── utilities/
+    ├── parse_config.rs
     └── tests/
-        └── query.rs             # colocated next to the part under test
+        └── parse_config.rs      # colocated next to the part under test
 ```
 
 Keep each `tests/` tree **flat**. Filename matches the module under test.
