@@ -1067,6 +1067,22 @@ async function planBackend(
       file.content = file.content.replaceAll("@/services/auth", "@/domains/auth/auth");
     }
   }
+  if (files.has("guardrails.config.json")) {
+    const config = parsePlannedJson(files, "guardrails.config.json");
+    const src = objectProperty(config, "src");
+    src.topLevel = optionalStringArrayProperty(src, "topLevel").map((name) =>
+      name === "services" ? "domains" : name,
+    );
+    src.requireReadme = optionalStringArrayProperty(src, "requireReadme").map((name) =>
+      name === "services" ? "domains" : name,
+    );
+    const nested = objectProperty(src, "nested");
+    if (Array.isArray(nested.services)) {
+      nested["domains/*"] = nested.services;
+      delete nested.services;
+    }
+    setPlannedJson(files, "guardrails.config.json", config);
+  }
   files.set("package.json", { path: "package.json", content: backendPackage(manifest) });
   for (const path of [
     "src/rpc/README.md",
