@@ -26,6 +26,9 @@ TREE=$(mktemp -d)
 trap 'rm -rf "$TREE"' EXIT
 
 cp "$ROOT/stacks/console/templates/guardrails.config.json" "$TREE/"
+# Plugin tree uses domains/; console template still says features until the
+# console stack PR lands — rewrite the copied allowlist to match this suite.
+sed -i 's/"features"/"domains"/g; s/"features\/\*"/"domains\/*"/g' "$TREE/guardrails.config.json"
 cp -R "$ROOT/guardrails/oxlint-plugin" "$TREE/oxlint-plugin"
 cat > "$TREE/.oxlintrc.json" <<'JSON'
 {
