@@ -13,7 +13,10 @@
     ],
     "nested": {
       "domains/*": [
-        "tests"
+        "tests",
+        "model",
+        "service",
+        "store"
       ],
       "cli": [
         "tests"
