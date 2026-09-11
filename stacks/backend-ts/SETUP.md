@@ -216,7 +216,8 @@ a stale copy.
 Build the tree from [`STRUCTURE.md`](./STRUCTURE.md):
 
 ```bash
-mkdir -p src/rpc/__tests__ src/routes/__tests__ src/domains src/utilities/__tests__ \
+mkdir -p src/rpc/__tests__ src/routes/__tests__ \
+         src/domains/health/__tests__ src/utilities/__tests__ \
          src/utilities src/constants src/types
 ```
 

@@ -102,7 +102,7 @@ checks the folder tree, the wrangler config, and `package.json` itself.
   import the concrete file. Only `src/index.ts` may be named `index.ts`.
 - **Default exports outside `src/index.ts`** → named exports everywhere else.
 - **Parent-relative imports** (`../x`) → use the `@/` alias or same-directory `./`.
-- **Unexpected `src/` layout** → only `routes domains utilities constants types`
+- **Unexpected `src/` layout** → only `rpc routes domains utilities constants types`
   (each with a `README.md`) + `app.ts`/`index.ts` at the root. Adding an
   integration dir (`db`, `middleware`) means adding it to `allowed_dirs` in
   `scripts/guardrails/run.sh`.
@@ -131,7 +131,7 @@ checks the folder tree, the wrangler config, and `package.json` itself.
   `getHealth`; `user-route.ts` → the user router). One primary export per file.
 - **Named exports** everywhere; `src/index.ts` is the single exception, because
   the runtime requires the fetch handler to be the default export.
-- **Routes are thin**: a route module parses the request, calls a service, and
+- **Routes are thin**: a route module parses the request, calls a domain, and
   shapes the response. No business logic, no direct DB access in routes.
 - **Domains hold logic**: framework-agnostic functions in `src/domains/<name>/`,
   testable without the HTTP layer.

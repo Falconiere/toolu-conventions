@@ -27,7 +27,7 @@ the same engine Cloudflare runs, so what passes locally is what deploys.
 | `src/rpc/` | The typed API surface — oRPC procedures (`base.ts`, `router.ts`, `*-procedures.ts`). |
 | `src/routes/` | Plain HTTP only: `/health`, webhooks, auth callbacks. |
 | `src/domains/` | Business capabilities — one folder each, framework-agnostic, testable. |
-| `src/utilities/` | Shared pure helpers. |
+| `src/utilities/` | Shared pure + infra helpers (incl. database-service). |
 | `src/constants/` | `env.ts` (Zod-validated bindings) + enums. |
 | `src/types/` | Cross-cutting types. |
 | `wrangler.jsonc` | Worker config: name, entry, compat flags, vars, environments. |
