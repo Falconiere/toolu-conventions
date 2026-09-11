@@ -1059,10 +1059,13 @@ async function planBackend(
   }
   files.delete("src/services/README.md");
   for (const file of files.values()) {
+    if (!/\.(?:ts|tsx|rs)$/.test(file.path)) continue;
     file.content = file.content
       .replaceAll("@/services/database-service", "@/utilities/database-service")
-      .replaceAll("@/services/drizzle-service", "@/utilities/drizzle-service")
-      .replaceAll("@/services/auth", "@/domains/auth/auth");
+      .replaceAll("@/services/drizzle-service", "@/utilities/drizzle-service");
+    if (files.has("src/domains/auth/auth.ts")) {
+      file.content = file.content.replaceAll("@/services/auth", "@/domains/auth/auth");
+    }
   }
   files.set("package.json", { path: "package.json", content: backendPackage(manifest) });
   for (const path of [
@@ -1396,6 +1399,14 @@ async function planRust(
       path: "src/domains.rs",
       content: "//! Business capability modules.\n\npub(crate) mod greeting;\n",
     });
+  }
+  for (const file of files.values()) {
+    if (!file.path.endsWith(".rs")) continue;
+    if (file.path === "src/domains.rs") continue;
+    file.content = file.content
+      .replaceAll("mod greeting;", "mod domains;")
+      .replaceAll("use greeting::", "use domains::greeting::")
+      .replaceAll("crate::greeting", "crate::domains::greeting");
   }
   const templateCargo = await readFile(resolve(templateRoot, "Cargo.toml"), "utf8");
   const lintStart = templateCargo.indexOf("# House lints.");
