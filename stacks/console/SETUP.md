@@ -532,7 +532,7 @@ mkdir -p .github/workflows
    `.github/workflows/code-review.yml`. It reviews every PR against the repo's
    own convention files (read from the **base** ref, so a PR cannot rewrite the
    rules it is judged by) and posts inline findings. It needs an
-   `DEEPSEEK_API_KEY` repository secret — that's on the human checklist.
+   `OPENROUTER_API_KEY` repository secret — that's on the human checklist.
 
 Both are required checks on `main` once branch protection is set up (human
 checklist).
@@ -586,7 +586,7 @@ chosen options; the common items:
 - [ ] **Auth** (if wired): register the OAuth app(s) with each provider and add
       the client id/secret + `BETTER_AUTH_SECRET` to the **API service**, not to
       this project.
-- [ ] **GitHub repo**: create it, push, and add the `DEEPSEEK_API_KEY` secret
+- [ ] **GitHub repo**: create it, push, and add the `OPENROUTER_API_KEY` secret
       for the code-review workflow.
 - [ ] **Branch protection**: require both the **CI** check
       (`.github/workflows/ci.yml`) and a passing **Code Review** on PRs to `main`.
