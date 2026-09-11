@@ -241,7 +241,7 @@ dependencies. Delete or wire the code; do not add an ignore pattern.
 Build the tree from [`STRUCTURE.md`](./STRUCTURE.md):
 
 ```bash
-mkdir -p src/app src/ui/theme src/features/home/screens src/api/clients \
+mkdir -p src/app src/ui/theme src/domains/home/screens src/api/clients \
          src/api/queries src/utilities src/providers src/constants src/types
 ```
 
@@ -267,11 +267,11 @@ Then:
    with a Zod schema. **Keep the static member-access pattern** — Vite
    only substitutes `import.meta.env.VITE_X` at direct access sites, so a loop or
    a dynamic index collapses every var to `undefined` in the production bundle.
-5. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
+5. Drop a `README.md` into each of `src/ui`, `src/domains`, `src/api`,
    `src/utilities`, `src/providers`, `src/constants`, and `src/types`, generated
    from `$KIT/shared/folder-README.md` (fill in the folder's purpose + a short
    "what's inside" list — seed it now, keep it updated as you add files). The
-   gate enforces five of them — `ui`, `features`, `api`, `utilities`,
+   gate enforces five of them — `ui`, `domains`, `api`, `utilities`,
    `providers`, this stack's `requireReadme` — and `scripts/guardrails/run.sh`
    fails without those. `constants` and `types` get one by house convention
    rather than by the gate; `src/app` gets none.
@@ -324,7 +324,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
 }
 ```
 
-5. Create the first feature screen, `src/features/home/screens/home-screen.tsx`:
+5. Create the first domain screen, `src/domains/home/screens/home-screen.tsx`:
 
 ```tsx
 /** The console home screen. */
@@ -368,7 +368,7 @@ Skip any the user declined. Add a README line under the relevant folder for each
 
 Then follow the rule in STRUCTURE.md: **our API → `orpc`, everything else →
 `http`**. Do not hand-write `queryKey` arrays for oRPC calls — `orpc.<path>.key()`
-derives them from the procedure path. No axios, no bare `fetch` in a feature.
+derives them from the procedure path. No axios, no bare `fetch` in a domain.
 
 **6b. Auth (better-auth)** — `bun add better-auth`. The console holds the
 **client** half only:
@@ -564,7 +564,7 @@ bun run build      # production build succeeds
 
 `bun run check` must exit 0. Report the results honestly — do not mark setup
 complete with any gate failing. (A fresh scaffold has no tests yet; `vitest run`
-passes on an empty suite via `passWithNoTests`. The first feature brings its own
+passes on an empty suite via `passWithNoTests`. The first domain brings its own
 `__tests__/` with real-data tests.)
 
 ---

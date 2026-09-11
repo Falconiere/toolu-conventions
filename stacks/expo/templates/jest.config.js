@@ -10,7 +10,7 @@ module.exports = {
   collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts', '!src/**/__tests__/**'],
   moduleNameMapper: {
     '^@/ui/(.*)$': '<rootDir>/src/ui/$1',
-    '^@/features/(.*)$': '<rootDir>/src/features/$1',
+    '^@/domains/(.*)$': '<rootDir>/src/domains/$1',
     '^@/api/(.*)$': '<rootDir>/src/api/$1',
     '^@/utilities/(.*)$': '<rootDir>/src/utilities/$1',
     '^@/providers/(.*)$': '<rootDir>/src/providers/$1',

@@ -298,7 +298,7 @@ Confirm `bun run type-check` and `bun run lint` pass on the bare project.
 Build the tree from [`STRUCTURE.md`](./STRUCTURE.md):
 
 ```bash
-mkdir -p src/ui/theme src/ui/__tests__ src/features/home/screens src/api/clients \
+mkdir -p src/ui/theme src/ui/__tests__ src/domains/home/screens src/api/clients \
          src/api/queries src/utilities src/providers src/constants src/types \
          assets assets/icons/dev assets/icons/prod
 # Keep the variant icon dirs in git until real icons land (Phase 11 human step).
@@ -336,15 +336,15 @@ Then:
    `templates/ui/text-input.tsx` → `src/ui/text-input.tsx`,
    `templates/ui/__tests__/button.test.tsx` → `src/ui/__tests__/button.test.tsx`.
 4. Wire the starter home screen + its route (replaces the Phase 1 placeholder):
-   `templates/features/home/screens/home-screen.tsx` →
-   `src/features/home/screens/home-screen.tsx`, and
+   `templates/domains/home/screens/home-screen.tsx` →
+   `src/domains/home/screens/home-screen.tsx`, and
    `templates/app/index.tsx` → `app/index.tsx` (**overwrite** the placeholder).
    The route is thin — it just re-exports `HomeScreen`.
-5. Drop a `README.md` into each of `src/ui`, `src/features`, `src/api`,
+5. Drop a `README.md` into each of `src/ui`, `src/domains`, `src/api`,
    `src/utilities`, `src/providers`, `src/constants`, `src/types`, and `assets`,
    generated from `templates/folder-README.md` (fill in the folder's purpose + a
    short "what's inside" list — seed it now, keep it updated as you add files).
-   The gate enforces five of them — `ui`, `features`, `api`, `utilities`,
+   The gate enforces five of them — `ui`, `domains`, `api`, `utilities`,
    `providers`, this stack's `requireReadme` — and `scripts/guardrails/run.sh`
    fails without those. `constants`, `types`, and `assets` get one by house
    convention; `assets` sits outside `src/`, so the check never looks at it.

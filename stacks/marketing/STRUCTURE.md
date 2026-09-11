@@ -46,7 +46,7 @@ below — it never relaxes a CORE rule.
 
 > Folder vocabulary (`ui`, `utilities`, `constants`, `types`) is shared with the
 > other stacks in this kit. `pages`, `layouts` and `content` are Astro's;
-> `sections` is this stack's answer to the console's `features`.
+> `sections` is this stack's answer to the console's `domains`.
 
 ## Path alias
 

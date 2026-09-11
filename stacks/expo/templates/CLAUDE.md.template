@@ -7,10 +7,10 @@ the rulebook.
 ## Repo map
 
 ```
-app/            Expo Router routes — THIN (re-export a feature screen, no logic)
+app/            Expo Router routes — THIN (re-export a domain screen, no logic)
 src/ui/         Design-system primitives (button, text, text-input) + theme/
                 (colors · spacing · typography · motion · icons)
-src/features/   One folder per feature: screens/ components/ hooks/ api/ types
+src/domains/   One folder per domain: screens/ components/ hooks/ api/ types
 src/api/        Data layer: orpc.ts (our API) + http-client.ts + clients/ (everything
                 else) + queries/ (React Query hooks + key factories, per domain)
 src/utilities/  Shared pure helpers (dates, formatters, …) — including http.ts
@@ -65,7 +65,7 @@ on staged files only. Run tests non-interactively
 (`--watchAll=false`).
 
 The structure rules are **enforced, not doc-only**: oxlint (`no-restricted-imports`
-for barrel/deep-relative/feature-isolation, `unicorn/filename-case`, `max-lines`)
+for barrel/parent-relative/domain-isolation, `unicorn/filename-case`, `max-lines`)
 plus `scripts/guardrails/run.sh` (allowed `src/` dirs, per-folder READMEs, no
 barrel files, `lefthook.yml`). A violation fails the gate.
 
@@ -84,7 +84,7 @@ barrel files, `lefthook.yml`). A violation fails the gate.
 - **An unused export, file, or dependency** → knip fails the gate. Delete it or
   wire it into the module graph.
 - **Barrel files** (an `index.ts` that only re-exports) → import the concrete
-  file. **Sanctioned exception:** `app/**` route files re-export a feature screen
+  file. **Sanctioned exception:** `app/**` route files re-export a domain screen
   as a default export (Expo Router requires it) — that is the only place a
   re-export + default export is allowed.
 - Tests outside a sibling `__tests__/`; mock-data-only tests.
@@ -92,12 +92,12 @@ barrel files, `lefthook.yml`). A violation fails the gate.
 
 ## Conventions
 
-- **Path aliases**: `@/ui/*`, `@/features/*`, `@/api/*`, `@/utilities/*`,
-  `@/providers/*`, `@/constants/*`, `@/types/*`, `@/assets/*`. Never deep relative
-  imports.
+- **Path aliases**: `@/ui/*`, `@/domains/*`, `@/api/*`, `@/utilities/*`,
+  `@/providers/*`, `@/constants/*`, `@/types/*`, `@/assets/*`. Never parent-relative
+  imports (`../…`); same-directory `./` is fine.
 - **Default exports** only in `app/**` (Expo Router needs them); named exports
   everywhere else.
-- **Routes are thin**: `app/.../x.tsx` imports a feature screen and re-exports it.
+- **Routes are thin**: `app/.../x.tsx` imports a domain screen and re-exports it.
 - **Styling**: `StyleSheet.create` + the `src/ui/theme/*` tokens. No styling
   library (no unistyles/nativewind). No hardcoded hex / magic numbers — use theme
   tokens; no inline style object literals for static styles.
@@ -111,7 +111,7 @@ barrel files, `lefthook.yml`). A violation fails the gate.
 - **Calling things**: our own API → `orpc` (typed end to end from the server's
   procedure declarations, with TanStack Query bindings). Anything else → the
   `http` client in `src/api/http-client.ts`. No axios; no bare `fetch` in a
-  feature; no hand-written `queryKey` arrays for oRPC calls.
+  domain; no hand-written `queryKey` arrays for oRPC calls.
 - **Commits**: `type(scope): description` (conventional). Push to feature
   branches; never directly to main.
 
