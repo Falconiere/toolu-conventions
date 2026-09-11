@@ -34,14 +34,13 @@ jobs:
           fetch-depth: 0 # full history so the merge-base resolves
 
       - name: Review
-        uses: falconiere/toolu-ghactions/code-review@v6
+        uses: falconiere/toolu-ghactions/code-review@v7
         with:
-          PROVIDER: deepseek
-          API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          PROVIDER: openrouter
+          API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           # Preserve blocker enforcement while bounding generative review rounds.
           MAX_ROUNDS: 2
-          # v6 inline payloads currently mismatch GitHub's draft-comment schema;
-          # the sticky summary still retains every finding.
+          # Keep summary-only for this kit; sticky comment still retains every finding.
           INLINE_COMMENTS: false
           # CORE.md holds the house rules; guardrails/README.md and shared/README.md
           # hold the layout facts a reviewer needs to judge a path claim. Without

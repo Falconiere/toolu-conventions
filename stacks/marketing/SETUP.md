@@ -350,7 +350,7 @@ mkdir -p .github/workflows
 2. Copy `templates/.github/workflows/code-review.yml` →
    `.github/workflows/code-review.yml`. It reviews every PR against this repo's
    own convention files, read from the **base** ref. Needs an
-   `DEEPSEEK_API_KEY` repository secret.
+   `OPENROUTER_API_KEY` repository secret.
 
 See [`../../CORE.md`](../../CORE.md) → "Quality gates & guardrails" for how the
 five layers fit together.
@@ -389,7 +389,7 @@ complete with any gate failing.
       — never put a secret in one.
 - [ ] **Search Console / Bing Webmaster**: verify the domain and submit
       `/sitemap-index.xml`.
-- [ ] **GitHub repo**: create it, push, add the `DEEPSEEK_API_KEY` secret.
+- [ ] **GitHub repo**: create it, push, add the `OPENROUTER_API_KEY` secret.
 - [ ] **Branch protection**: require the **CI** check and a passing **Code
       Review** on PRs to `main`.
 

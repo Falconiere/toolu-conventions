@@ -484,7 +484,7 @@ mkdir -p .github/workflows
 2. Copy `templates/.github/workflows/code-review.yml` →
    `.github/workflows/code-review.yml`. It reviews every PR against this repo's
    own convention files, read from the **base** ref. Needs an
-   `DEEPSEEK_API_KEY` repository secret.
+   `OPENROUTER_API_KEY` repository secret.
 
 See [`../../CORE.md`](../../CORE.md) → "Quality gates & guardrails" for how the
 five layers fit together.
@@ -533,7 +533,7 @@ common items:
       register any OAuth apps with their providers.
 - [ ] **Route / custom domain**: attach the Worker to its hostname and confirm
       TLS.
-- [ ] **GitHub repo**: create it, push, and add the `DEEPSEEK_API_KEY` secret.
+- [ ] **GitHub repo**: create it, push, and add the `OPENROUTER_API_KEY` secret.
 - [ ] **Branch protection**: require the **CI** check and a passing **Code
       Review** on PRs to `main`.
 
