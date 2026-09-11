@@ -62,17 +62,17 @@
           },
           {
             "group": [
-              "../../*",
-              "../../**"
+              "../*",
+              "../**"
             ],
-            "message": "No deep relative imports - use @/ aliases"
+            "message": "No parent-relative imports - use @/ aliases or same-directory ./"
           },
           {
             "group": [
-              "@/features/*",
-              "@/features/**"
+              "@/domains/*",
+              "@/domains/**"
             ],
-            "message": "Features are isolated - only route files import feature screens"
+            "message": "Domains are isolated - only route files import domain screens"
           },
           {
             "group": [
@@ -138,10 +138,10 @@
               },
               {
                 "group": [
-                  "../../*",
-                  "../../**"
+                  "../*",
+                  "../**"
                 ],
-                "message": "No deep relative imports - use @/ aliases"
+                "message": "No parent-relative imports - use @/ aliases or same-directory ./"
               },
               {
                 "group": [

@@ -116,7 +116,7 @@ Where the fields match an oRPC procedure's input schema, reuse that schema
 ## Reach-for-these — add when the project needs them
 
 The **approved** choice for each job. The setup guide asks whether to wire the
-backend ones; add the rest as features demand.
+backend ones; add the rest as domains demand.
 
 | Concern | Library | When / why |
 | --- | --- | --- |
@@ -135,7 +135,7 @@ Do not add these without an explicit, documented reason.
 | Library | Avoid because | Use instead |
 | --- | --- | --- |
 | **`axios`** | A dependency for something the platform already does. `fetch` is native in every runtime we ship to, and axios adds a second error model, its own cancellation story, and a bundle cost — while still needing a wrapper to be usable. | **`src/utilities/http.ts`** — the kit's fetch client. Blocked by `no-restricted-imports` *and* by `guardrails` reading `package.json`. |
-| Bare `fetch` scattered through features | Base URL, auth headers, timeouts and error shaping get re-implemented (differently) at each call site. | `orpc` for our API; the one configured `http` client for everything else. |
+| Bare `fetch` scattered through domains | Base URL, auth headers, timeouts and error shaping get re-implemented (differently) at each call site. | `orpc` for our API; the one configured `http` client for everything else. |
 | Hand-written `queryKey` arrays for oRPC calls | Two places to keep in sync, and an invalidation that silently matches nothing when they drift. | `orpc.<path>.key()` — derived from the procedure path. |
 | `trpc` | Same idea, but oRPC is the one this kit picked: it speaks OpenAPI as well as RPC, and its schema story is plain Zod. Running both means two clients and two conventions. | `@orpc/client`. |
 | `next` / any meta-framework | This stack is deliberately a client-rendered SPA on static assets. Server rendering belongs to the `marketing` stack (Astro) or a real API service. | `marketing` for content; `backend-ts` for server work. |

@@ -18,11 +18,11 @@ describe("planRecipe", () => {
     const paths = files.map((file) => file.path);
     const packageFile = files.find((file) => file.path === "package.json");
     const homeScreen = files.find(
-      (file) => file.path === "src/features/home/screens/home-screen.tsx",
+      (file) => file.path === "src/domains/home/screens/home-screen.tsx",
     );
 
     expect(paths).toContain("src/providers/app-providers.tsx");
-    expect(paths).toContain("src/features/home/screens/home-screen.tsx");
+    expect(paths).toContain("src/domains/home/screens/home-screen.tsx");
     expect(paths).toContain("src/route-tree.gen.ts");
     expect(paths).toContain("scripts/guardrails/run.sh");
     expect(paths).toContain(".claude/settings.json");
@@ -151,7 +151,7 @@ describe("planRecipe", () => {
     const packageFile = files.find((file) => file.path === "package.json");
 
     expect(paths).toContain("src/index.ts");
-    expect(paths).toContain("src/services/database-service.ts");
+    expect(paths).toContain("src/utilities/database-service.ts");
     expect(paths).toContain("wrangler.jsonc");
     expect(JSON.parse(packageFile?.content ?? "{}").dependencies).toMatchObject({
       "@tursodatabase/serverless": "1.4.0",
@@ -176,9 +176,9 @@ describe("planRecipe", () => {
       files.find((file) => file.path === "package.json")?.content ?? "{}",
     );
 
-    expect(paths).toContain("src/services/auth.ts");
+    expect(paths).toContain("src/domains/auth/auth.ts");
     expect(paths).toContain("src/utilities/logger.ts");
-    expect(paths).toContain("src/services/drizzle-service.ts");
+    expect(paths).toContain("src/utilities/drizzle-service.ts");
     expect(packageFile.dependencies).toMatchObject({
       "better-auth": "1.6.26",
       "drizzle-orm": "0.45.2",
@@ -249,12 +249,12 @@ describe("planRecipe", () => {
     expect(paths).toContain("src/api/orpc.ts");
     expect(paths).toContain("src/api/auth-client.ts");
     expect(paths).toContain("src/utilities/storage.ts");
-    expect(paths).toContain("src/features/home/integration-status.ts");
+    expect(paths).toContain("src/domains/home/screens/integration-status.ts");
     expect(
-      files.find((file) => file.path === "src/features/home/integration-status.ts")?.content,
+      files.find((file) => file.path === "src/domains/home/screens/integration-status.ts")?.content,
     ).toContain("import { storage } from '@/utilities/storage'");
     expect(
-      files.find((file) => file.path === "src/features/home/screens/home-screen.tsx")?.content,
+      files.find((file) => file.path === "src/domains/home/screens/home-screen.tsx")?.content,
     ).toContain("integrationCount");
     expect(packageFile.dependencies).toMatchObject({
       "@orpc/client": "1.14.15",
@@ -402,7 +402,7 @@ describe("planRecipe", () => {
     const files = await planRecipe(manifest, resolve("."));
     const cargo = files.find((file) => file.path === "Cargo.toml");
 
-    expect(files.map((file) => file.path)).toContain("src/tests/greeting.rs");
+    expect(files.map((file) => file.path)).toContain("src/domains/tests/greeting.rs");
     expect(cargo?.content).toContain('name = "acme-cli"');
     expect(cargo?.content).toContain("[dependencies]\n\n");
   });

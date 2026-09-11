@@ -99,7 +99,7 @@ function expoDestination(templateRoot: string, source: string): string | undefin
   if (path === "env.ts") return "src/constants/env.ts";
   if (path.startsWith("theme/")) return `src/ui/${path}`;
   if (path.startsWith("ui/")) return `src/${path}`;
-  if (path.startsWith("features/")) return `src/${path}`;
+  if (path.startsWith("domains/")) return `src/${path}`;
   return path;
 }
 
@@ -450,10 +450,10 @@ function backendApplication(manifest: ScaffoldManifest, workspace: boolean): str
   return `/** The assembled Hono and oRPC application. */
 import { RPCHandler } from '@orpc/server/fetch';
 import { Hono } from 'hono';
-${auth ? "import { auth } from '@/services/auth';\n" : ""}${
-    drizzle && !workspace ? "import { createOrm } from '@/services/drizzle-service';\n" : ""
+${auth ? "import { auth } from '@/domains/auth/auth';\n" : ""}${
+    drizzle && !workspace ? "import { createOrm } from '@/utilities/drizzle-service';\n" : ""
   }import { router } from '@/rpc/router';
-import { createDatabase } from '@/services/database-service';
+import { createDatabase } from '@/utilities/database-service';
 ${logging ? "import { logEvent } from '@/utilities/logger';\n" : ""}
 const rpc = new RPCHandler(router);
 
@@ -791,7 +791,7 @@ async function planConsole(
   files.set("package.json", { path: "package.json", content: consolePackage(manifest) });
   for (const path of [
     "src/ui/README.md",
-    "src/features/README.md",
+    "src/domains/README.md",
     "src/api/README.md",
     "src/utilities/README.md",
     "src/providers/README.md",
@@ -800,9 +800,9 @@ async function planConsole(
   ]) {
     files.set(path, { path, content: folderReadme(path.replace("/README.md", "")) });
   }
-  files.set("src/features/home/README.md", {
-    path: "src/features/home/README.md",
-    content: folderReadme("src/features/home"),
+  files.set("src/domains/home/README.md", {
+    path: "src/domains/home/README.md",
+    content: folderReadme("src/domains/home"),
   });
   const design = await readFile(resolve(assetRoot, "DESIGN.md"), "utf8");
   files.set("docs/design-language.md", { path: "docs/design-language.md", content: design });
@@ -866,8 +866,8 @@ async function planConsole(
     ...(manifest.integrations.includes("api") ? ["orpc"] : []),
     ...(manifest.integrations.includes("auth") ? ["authClient"] : []),
   ];
-  files.set("src/features/home/integration-status.ts", {
-    path: "src/features/home/integration-status.ts",
+  files.set("src/domains/home/screens/integration-status.ts", {
+    path: "src/domains/home/screens/integration-status.ts",
     content: `/** Selected client integrations wired into the starter screen. */\n${integrationImports.join("\n")}${integrationImports.length > 0 ? "\n\n" : ""}export const integrationCount = ${
       integrationValues.length > 0 ? `[${integrationValues.join(", ")}].length` : "0"
     };\n`,
@@ -1053,7 +1053,7 @@ async function planBackend(
   for (const path of [
     "src/rpc/README.md",
     "src/routes/README.md",
-    "src/services/README.md",
+    "src/domains/README.md",
     "src/utilities/README.md",
     "src/constants/README.md",
     "src/types/README.md",
@@ -1061,8 +1061,12 @@ async function planBackend(
     files.set(path, { path, content: folderReadme(path.replace("/README.md", "")) });
   }
   if (manifest.integrations.includes("auth")) {
-    files.set("src/services/auth.ts", {
-      path: "src/services/auth.ts",
+    files.set("src/domains/auth/README.md", {
+      path: "src/domains/auth/README.md",
+      content: folderReadme("src/domains/auth"),
+    });
+    files.set("src/domains/auth/auth.ts", {
+      path: "src/domains/auth/auth.ts",
       content: `/** Better Auth server instance. */\nimport { betterAuth } from 'better-auth';\n\nexport const auth = betterAuth({});\n`,
     });
     addPackageDependencies(files, ["better-auth"]);
@@ -1085,14 +1089,14 @@ async function planBackend(
       delete dependencies["@tursodatabase/serverless"];
       Object.assign(dependencies, pinned(["@libsql/client"]));
       setPlannedJson(files, "package.json", packageFile);
-      files.set("src/services/database-service.ts", {
-        path: "src/services/database-service.ts",
+      files.set("src/utilities/database-service.ts", {
+        path: "src/utilities/database-service.ts",
         content: `/** Request-scoped Turso client used by Drizzle. */\nimport { createClient } from '@libsql/client/web';\nimport { tursoConfig } from '@/constants/env';\n\nexport function createDatabase() {\n  return createClient(tursoConfig());\n}\n`,
       });
     }
-    files.set("src/services/drizzle-service.ts", {
-      path: "src/services/drizzle-service.ts",
-      content: `/** Creates a Drizzle facade over the request-scoped Turso client. */\nimport { drizzle } from 'drizzle-orm/libsql';\nimport { createDatabase } from '@/services/database-service';\n\nexport function createOrm() {\n  return drizzle(createDatabase());\n}\n`,
+    files.set("src/utilities/drizzle-service.ts", {
+      path: "src/utilities/drizzle-service.ts",
+      content: `/** Creates a Drizzle facade over the request-scoped Turso client. */\nimport { drizzle } from 'drizzle-orm/libsql';\nimport { createDatabase } from '@/utilities/database-service';\n\nexport function createOrm() {\n  return drizzle(createDatabase());\n}\n`,
     });
     addPackageDependencies(files, ["drizzle-orm"]);
   }
@@ -1127,11 +1131,11 @@ async function planBackendWorkspace(
   apiScripts.fmt = "oxfmt --ignore-path ../../.oxfmtignore";
   apiScripts["fmt:check"] = "oxfmt --check --ignore-path ../../.oxfmtignore";
   setPlannedJson(apiFiles, "package.json", apiPackage);
-  apiFiles.set("src/services/database-service.ts", {
-    path: "src/services/database-service.ts",
-    content: `/** Request-scoped database shared by API services. */\nimport { createDatabase as createClient } from '@${manifest.project.name}/database/client';\nimport { tursoConfig } from '@/constants/env';\n\nexport function createDatabase() {\n  return createClient(tursoConfig());\n}\n`,
+  apiFiles.set("src/utilities/database-service.ts", {
+    path: "src/utilities/database-service.ts",
+    content: `/** Request-scoped database shared by API domains. */\nimport { createDatabase as createClient } from '@${manifest.project.name}/database/client';\nimport { tursoConfig } from '@/constants/env';\n\nexport function createDatabase() {\n  return createClient(tursoConfig());\n}\n`,
   });
-  apiFiles.delete("src/services/drizzle-service.ts");
+  apiFiles.delete("src/utilities/drizzle-service.ts");
 
   for (const file of apiFiles.values()) {
     if (file.path.startsWith(".github/") || file.path === "lefthook.yml") continue;
@@ -1287,7 +1291,7 @@ async function planExpo(
   files.set("package.json", { path: "package.json", content: expoPackage(manifest) });
   for (const path of [
     "src/ui/README.md",
-    "src/features/README.md",
+    "src/domains/README.md",
     "src/api/README.md",
     "src/utilities/README.md",
     "src/providers/README.md",
@@ -1297,9 +1301,9 @@ async function planExpo(
   ]) {
     files.set(path, { path, content: folderReadme(path.replace("/README.md", "")) });
   }
-  files.set("src/features/home/README.md", {
-    path: "src/features/home/README.md",
-    content: folderReadme("src/features/home"),
+  files.set("src/domains/home/README.md", {
+    path: "src/domains/home/README.md",
+    content: folderReadme("src/domains/home"),
   });
   const design = await readFile(resolve(assetRoot, "DESIGN.md"), "utf8");
   files.set("docs/design-language.md", { path: "docs/design-language.md", content: design });
@@ -1343,8 +1347,8 @@ async function planExpo(
     ...(manifest.integrations.includes("auth") ? ["authClient"] : []),
     ...(manifest.integrations.includes("async-storage") ? ["storage"] : []),
   ];
-  files.set("src/features/home/integration-status.ts", {
-    path: "src/features/home/integration-status.ts",
+  files.set("src/domains/home/screens/integration-status.ts", {
+    path: "src/domains/home/screens/integration-status.ts",
     content: `${integrationImports.join("\n")}${integrationImports.length > 0 ? "\n\n" : ""}/** Number of optional clients wired into this starter. */\nexport const integrationCount = ${
       integrationValues.length > 0 ? `[${integrationValues.join(", ")}].length` : "0"
     };\n`,
@@ -1393,8 +1397,12 @@ async function planRust(
   }
 
   if (manifest.integrations.includes("axum")) {
-    files.delete("src/greeting.rs");
-    files.delete("src/tests/greeting.rs");
+    files.delete("src/domains/greeting.rs");
+    files.delete("src/domains/tests/greeting.rs");
+    files.set("src/domains.rs", {
+      path: "src/domains.rs",
+      content: "//! Business capability modules.\n",
+    });
     files.set("src/http.rs", {
       path: "src/http.rs",
       content: "//! HTTP service modules.\n\npub(crate) mod router;\n",
@@ -1419,7 +1427,7 @@ async function planRust(
   } else if (manifest.integrations.includes("clap")) {
     files.set("src/main.rs", {
       path: "src/main.rs",
-      content: `//! Binary entry point for \`${manifest.project.name}\`.\n\nmod cli;\nmod greeting;\n\nuse clap::Parser;\nuse cli::Cli;\nuse greeting::greeting;\n\n/// Program entry point.\nfn main() {\n    let cli = Cli::parse();\n    println!("{}", greeting(&cli.name));\n}\n`,
+      content: `//! Binary entry point for \`${manifest.project.name}\`.\n\nmod cli;\nmod domains;\n\nuse clap::Parser;\nuse cli::Cli;\nuse domains::greeting::greeting;\n\n/// Program entry point.\nfn main() {\n    let cli = Cli::parse();\n    println!("{}", greeting(&cli.name));\n}\n`,
     });
   }
 }

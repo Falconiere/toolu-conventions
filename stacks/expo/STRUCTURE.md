@@ -3,7 +3,7 @@
 The canonical layout every new app in this stack produces. It inherits every rule
 in [`../../CORE.md`](../../CORE.md) and adds the Expo-specific ones below; a rule
 here may tighten a CORE rule but never relaxes one. The layout is designed for
-**clean feature iteration** and **easy agent traversal**: predictable folder
+**clean domain iteration** and **easy agent traversal**: predictable folder
 names, a README in every top-level source directory, no barrel files (every
 import points at the file that holds the thing), and thin route files.
 
@@ -14,7 +14,7 @@ import points at the file that holds the thing), and thin route files.
 ├── app/                      # Expo Router — ROUTES ONLY (thin, see "Routes" below)
 │   ├── _layout.tsx           # Root layout: mounts providers + <Stack>
 │   ├── (tabs)/               # Route group → tab navigator (_layout.tsx)
-│   └── ...                   # Each route re-exports a feature screen
+│   └── ...                   # Each route re-exports a domain screen
 ├── src/
 │   ├── ui/                   # Design system — primitives + theme. README.md
 │   │   ├── theme/            # colors.ts · spacing.ts · typography.ts · motion.ts · icons.ts (plain TS tokens)
@@ -22,15 +22,15 @@ import points at the file that holds the thing), and thin route files.
 │   │   ├── text.tsx          # Primitive: typographic variants
 │   │   ├── text-input.tsx    # Primitive: labeled input + error state
 │   │   └── __tests__/
-│   ├── features/             # One folder per feature. README.md
-│   │   └── <feature>/
+│   ├── domains/              # One folder per domain. README.md
+│   │   └── <name>/
 │   │       ├── screens/      # <name>-screen.tsx (rendered by app/ routes)
-│   │       ├── components/   # feature-local components
-│   │       ├── hooks/        # feature-local hooks
-│   │       ├── api/          # feature-local clients/queries (optional)
+│   │       ├── components/   # domain-local components
+│   │       ├── hooks/        # domain-local hooks
+│   │       ├── api/          # domain-local clients/queries (optional)
 │   │       ├── types.ts
 │   │       └── __tests__/
-│   ├── api/                  # Cross-feature data layer. README.md
+│   ├── api/                  # Cross-domain data layer. README.md
 │   │   ├── clients/          # one file per resource — request fns (CRUD)
 │   │   └── queries/          # React Query hooks + key factories, per domain
 │   ├── utilities/            # Shared pure helpers (dates, formatters, …). README.md
@@ -57,12 +57,12 @@ import points at the file that holds the thing), and thin route files.
 ## Path aliases
 
 Configured in `tsconfig.json` and read by Babel (`babel-preset-expo` reads
-tsconfig paths). Always import via alias — never deep relative paths like
-`../../../ui`.
+tsconfig paths). Always import via `@/` or same-directory `./` — never parent-relative paths like
+`../x` or `../../ui`.
 
 ```ts
 @/ui/*          → src/ui/*
-@/features/*    → src/features/*
+@/domains/*    → src/domains/*
 @/api/*         → src/api/*
 @/utilities/*   → src/utilities/*
 @/providers/*   → src/providers/*
@@ -77,8 +77,8 @@ These are **machine-enforced** — the gate (`bun run check`) fails on a violati
 not just review. See [`templates/CLAUDE.md.template`](./templates/CLAUDE.md.template)
 for the full "blocked patterns" list. What enforces what:
 
-- **No barrel imports / no deep relatives / feature isolation** — oxlint
-  `no-restricted-imports` (bans `**/index*`, `../../*`, and `@/features/*` outside
+- **No barrel imports / no parent-relative imports / domain isolation** — oxlint
+  `no-restricted-imports` (bans `**/index*`, `../*`, and `@/domains/*` outside
   `app/**`).
 - **No barrel *files*, allowed `src/` dirs, per-folder READMEs, `lefthook.yml` not
   `.yaml`, test colocation** — `scripts/guardrails/run.sh` (walks the tree the
@@ -97,9 +97,9 @@ for the full "blocked patterns" list. What enforces what:
    the concrete file: `import { Button } from '@/ui/button'`. This keeps every
    symbol traceable to exactly one file — the single most useful property for an
    agent navigating the repo. **The one sanctioned exception is `app/**` route
-   files** — they re-export a feature screen as a default export because Expo
+   files** — they re-export a domain screen as a default export because Expo
    Router requires it (see rule 2 and "Routes"). Nowhere else.
-2. **Thin routes.** Files under `app/` only re-export a feature screen and
+2. **Thin routes.** Files under `app/` only re-export a domain screen and
    configure navigation. No logic, data fetching, or state. (See "Routes".)
 3. **Filename ↔ content.** Kebab-case filenames; the file is named after what it
    exports (`shift-card.tsx` → `ShiftCard`, `use-shifts.ts` → `useShifts`). One
@@ -154,7 +154,7 @@ when the design explicitly calls for it, and say so in a comment.
 Route files are a thin mapping from URL → screen. Example `app/(tabs)/index.tsx`:
 
 ```tsx
-import { HomeScreen } from '@/features/home/screens/home-screen';
+import { HomeScreen } from '@/domains/home/screens/home-screen';
 
 export default HomeScreen;
 ```
@@ -212,7 +212,7 @@ export function usePosts(authorId: string) {
 An agent should be able to answer "where does X live / is there a util for Y
 already?" without reading the whole tree. We get that from:
 
-- **A README in every top-level source folder** (`src/ui`, `src/features`,
+- **A README in every top-level source folder** (`src/ui`, `src/domains`,
   `src/api`, `src/utilities`, `src/providers`, `assets`). Each lists what belongs
   there, what's currently inside (one line each), and where NOT to put things.
   Use [`templates/folder-README.md`](./templates/folder-README.md).
@@ -222,5 +222,5 @@ already?" without reading the whole tree. We get that from:
 - **Path aliases** make import sites self-describing (`@/utilities/format-money`
   tells you exactly where it is).
 
-When you add a notable util/primitive/feature, add a one-line entry to that
+When you add a notable util/primitive/domain, add a one-line entry to that
 folder's README so the index stays current.

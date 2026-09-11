@@ -1,7 +1,7 @@
 /** The console home screen. */
 import { APP_ENV } from '@/constants/env';
 import { icons } from '@/ui/theme/icons';
-import { integrationCount } from '../integration-status';
+import { integrationCount } from './integration-status';
 
 export function HomeScreen() {
   return (
