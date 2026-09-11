@@ -1049,6 +1049,21 @@ async function planBackend(
   const templateRoot = resolve(assetRoot, "stacks/backend-ts/templates");
   const values = placeholderValues(manifest);
   await addTree(files, templateRoot, (source) => backendDestination(templateRoot, source), values);
+  const legacyDatabase = files.get("src/services/database-service.ts");
+  if (legacyDatabase) {
+    files.delete("src/services/database-service.ts");
+    files.set("src/utilities/database-service.ts", {
+      ...legacyDatabase,
+      path: "src/utilities/database-service.ts",
+    });
+  }
+  files.delete("src/services/README.md");
+  for (const file of files.values()) {
+    file.content = file.content
+      .replaceAll("@/services/database-service", "@/utilities/database-service")
+      .replaceAll("@/services/drizzle-service", "@/utilities/drizzle-service")
+      .replaceAll("@/services/auth", "@/domains/auth/auth");
+  }
   files.set("package.json", { path: "package.json", content: backendPackage(manifest) });
   for (const path of [
     "src/rpc/README.md",
@@ -1363,6 +1378,25 @@ async function planRust(
   const templateRoot = resolve(assetRoot, "stacks/rust/templates");
   const values = placeholderValues(manifest);
   await addTree(files, templateRoot, (source) => rustDestination(templateRoot, source), values);
+  const legacyGreeting = files.get("src/greeting.rs");
+  if (legacyGreeting) {
+    files.delete("src/greeting.rs");
+    files.set("src/domains/greeting.rs", { ...legacyGreeting, path: "src/domains/greeting.rs" });
+  }
+  const legacyGreetingTest = files.get("src/tests/greeting.rs");
+  if (legacyGreetingTest) {
+    files.delete("src/tests/greeting.rs");
+    files.set("src/domains/tests/greeting.rs", {
+      ...legacyGreetingTest,
+      path: "src/domains/tests/greeting.rs",
+    });
+  }
+  if (!files.has("src/domains.rs")) {
+    files.set("src/domains.rs", {
+      path: "src/domains.rs",
+      content: "//! Business capability modules.\n\npub(crate) mod greeting;\n",
+    });
+  }
   const templateCargo = await readFile(resolve(templateRoot, "Cargo.toml"), "utf8");
   const lintStart = templateCargo.indexOf("# House lints.");
   const dependencies: string[] = [];
