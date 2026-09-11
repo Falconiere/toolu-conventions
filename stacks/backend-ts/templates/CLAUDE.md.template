@@ -27,7 +27,7 @@ src/app.ts       The Hono app — routes + middleware mounted here (wiring only)
 src/index.ts     Worker entry — `export default app`. The ONE default export
 src/rpc/         The typed API surface — oRPC procedures (base.ts, router.ts, *-procedures.ts)
 src/routes/      Plain HTTP only: /health, webhooks, auth callbacks
-src/services/    Business logic — framework-agnostic, unit-testable
+src/domains/     One folder per capability — framework-agnostic, unit-testable
 src/utilities/   Shared pure helpers (dates, formatters, …)
 src/constants/   env.ts (Zod-validated bindings) + enums
 src/types/       Cross-cutting TS types
@@ -83,7 +83,7 @@ secrets: `wrangler secret put X --env staging` is a separate act.
 ## Blocked patterns (the gate rejects these — not just review)
 
 Structure is **machine-enforced**: oxlint carries `no-restricted-imports` (barrel,
-deep-relative, axios), `import/no-default-export`, `unicorn/filename-case`
+parent-relative, axios), `import/no-default-export`, `unicorn/filename-case`
 (kebab-case), and `max-lines` (300 code lines); `scripts/guardrails/run.sh`
 checks the folder tree, the wrangler config, and `package.json` itself.
 
@@ -101,8 +101,8 @@ checks the folder tree, the wrangler config, and `package.json` itself.
 - **Barrel files** (an `index.ts` that only re-exports, or importing one) →
   import the concrete file. Only `src/index.ts` may be named `index.ts`.
 - **Default exports outside `src/index.ts`** → named exports everywhere else.
-- **Deep relative imports** (`../../x`) → use the `@/` alias.
-- **Unexpected `src/` layout** → only `routes services utilities constants types`
+- **Parent-relative imports** (`../x`) → use the `@/` alias or same-directory `./`.
+- **Unexpected `src/` layout** → only `rpc routes domains utilities constants types`
   (each with a `README.md`) + `app.ts`/`index.ts` at the root. Adding an
   integration dir (`db`, `middleware`) means adding it to `allowed_dirs` in
   `scripts/guardrails/run.sh`.
@@ -125,19 +125,19 @@ checks the folder tree, the wrangler config, and `package.json` itself.
 
 ## Conventions
 
-- **Path alias**: `@/*` → `src/*`. Always import via alias — never deep relative
-  paths like `../../services/x`.
+- **Path alias**: `@/*` → `src/*`. Always import via alias or same-directory `./` — never parent-relative
+  paths like `../x`.
 - **Filenames**: kebab-case, named after the export (`health-service.ts` →
   `getHealth`; `user-route.ts` → the user router). One primary export per file.
 - **Named exports** everywhere; `src/index.ts` is the single exception, because
   the runtime requires the fetch handler to be the default export.
-- **Routes are thin**: a route module parses the request, calls a service, and
+- **Routes are thin**: a route module parses the request, calls a domain, and
   shapes the response. No business logic, no direct DB access in routes.
-- **Services hold logic**: framework-agnostic functions in `src/services/`,
+- **Domains hold logic**: framework-agnostic functions in `src/domains/<name>/`,
   testable without the HTTP layer.
 - **One route module per resource**; mount it in `src/app.ts`.
 - **Procedures**: build from `base` (never a bare `os`), declare both `.input()`
-  and `.output()`, keep the handler thin, and put the work in `src/services/`.
+  and `.output()`, keep the handler thin, and put the work in `src/domains/`.
   `src/rpc/router.ts` composes them — it is not a barrel, its shape *is* the API.
 - **Per-request, not per-isolate**: build database connections and the auth
   instance inside the request, from `c.env`. Anything cached at module scope is
