@@ -627,7 +627,7 @@
                   <ul>
                     <li style="--i: 1"><span class="row"><span class="name dir">app</span><span class="hint">routes · entry</span></span></li>
                     <li style="--i: 2"><span class="row"><span class="name dir">ui</span><span class="hint">theme · __tests__</span></span></li>
-                    <li style="--i: 3"><span class="row"><span class="name dir">features</span><span class="hint">one folder per feature</span></span>
+                    <li style="--i: 3"><span class="row"><span class="name dir">domains</span><span class="hint">one folder per domain</span></span>
                       <ul>
                         <li style="--i: 4"><span class="row"><span class="name dir">shifts</span></span>
                           <ul>
@@ -654,8 +654,8 @@
               <figcaption>
                 <code class="code">src.topLevel</code> lists what may sit directly
                 under <code class="code">src</code>;
-                <code class="code">src.nested["features/*"]</code> constrains every
-                feature folder without naming any of them. Omitting a key means
+                <code class="code">src.nested["domains/*"]</code> constrains every
+                domain folder without naming any of them. Omitting a key means
                 unconstrained — an empty array means nothing is allowed, and the
                 Rust stack depends on that difference. Who reports the rejection
                 depends on the stack: the oxlint house plugin on TypeScript, the
@@ -707,7 +707,7 @@
                 <li style="--i: 5" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">secret-content</span><span class="why">no credential shapes in tracked files — keys live in .dev.vars</span></li>
                 <li style="--i: 6" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">lint-suppressions</span><span class="why">dead code is deleted or wired — never hidden with a directive</span></li>
                 <li style="--i: 7" data-state="skip"><span class="glyph"><span class="vh">skipped</span></span><span class="id">patterns</span><span class="why">ownedByLinter — house/no-bare-fetch · no-hardcoded-hex</span></li>
-                <li style="--i: 8" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">folder-readmes</span><span class="why">the five domains requireReadme names · every feature</span></li>
+                <li style="--i: 8" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">folder-readmes</span><span class="why">the five domains requireReadme names · every domain</span></li>
                 <li style="--i: 9" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">test-tree</span><span class="why">tests live in __tests__, next to the code</span></li>
                 <li style="--i: 10" data-state="pass"><span class="glyph"><span class="vh">passed</span></span><span class="id">banned-deps</span><span class="why">no axios · no second validator</span></li>
                 <li style="--i: 11" data-state="fail"><span class="glyph"><span class="vh">failed</span></span><span class="id">shadow-configs</span><span class="why">vitest.config.ts found — use vite.config.ts</span></li>
@@ -851,12 +851,12 @@
                     </ul>
                   </div>
                   <div class="job">
-                    <p class="label">code-review.yml — pull_request only</p>
+                    <p class="label">code-review.yml — pull_request only · @v7 OpenRouter</p>
                     <ul class="job-steps">
                       <li>checkout, full history</li>
                       <li>resolve the merge base</li>
                       <li>read rules from the base ref</li>
-                      <li>review the diff</li>
+                      <li>review via OpenRouter (<code class="code">OPENROUTER_API_KEY</code>)</li>
                       <li>comment on the PR</li>
                     </ul>
                   </div>
