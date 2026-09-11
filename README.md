@@ -161,7 +161,7 @@ Every generated project ships five layers, and the kit treats all five as mandat
 | 4. CI gate | `.github/workflows/ci.yml` | Every PR — steps mirror `bun run check` one-for-one and end in a real build |
 | 5. AI code review | `.github/workflows/code-review.yml` | Every PR, judged against the repo's own convention files read from the base branch |
 
-Layers 4 and 5 need two human actions to be real: the `DEEPSEEK_API_KEY` repository
+Layers 4 and 5 need two human actions to be real: the `OPENROUTER_API_KEY` repository
 secret, and requiring **CI** and **Code Review** on `main`. Without them, two of the five
 are decorative — which is why they're on the generated checklist.
 
