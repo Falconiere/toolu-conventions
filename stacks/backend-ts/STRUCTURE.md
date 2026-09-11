@@ -59,7 +59,10 @@ it. `LIBRARIES.md` names the ones that do.
 > Folder vocabulary (`rpc`, `routes`, `domains`, `utilities`, `constants`,
 > `types`) is intentional. Middleware is added under `src/middleware/` **only
 > when** an integration is wired — add the new dir to `src.topLevel` in
-> `guardrails.config.json` when you do (see `SETUP.md`).
+> `guardrails.config.json` when you do (see `SETUP.md`). The nested key
+> `domains/*` (not a literal folder name) allows `__tests__/` inside each
+> `src/domains/<name>/` folder — that is how `folder-tree` expresses
+> per-domain shape.
 >
 > **`src/db/` is not on that list by default.** With Drizzle, the database is
 > its own workspace package — see [`../database-ts/`](../database-ts/STRUCTURE.md)
