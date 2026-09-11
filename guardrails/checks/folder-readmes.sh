@@ -2,7 +2,7 @@
 #
 #   src.requireReadme  directories under srcRoot that must carry a README.md
 #   src.nested "x/*"   every domain folder under x/ must carry one too, so a
-#                      feature is self-describing the moment it exists
+#                      domain is self-describing the moment it exists
 #
 # Split out of folder-tree on purpose. A README is a fact about a file oxlint is
 # never asked to lint, so no linter rule can ever own it — while it lived inside

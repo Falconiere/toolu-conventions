@@ -87,7 +87,7 @@ describe("built create-toolu CLI", () => {
 
   test("replays a complete manifest through the built binary", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "replayed-cli",
         name: "replayed-cli",
@@ -108,7 +108,7 @@ describe("built create-toolu CLI", () => {
 
   test("rejects unknown fields in replay configuration before generation", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "invalid-replay", name: "invalid-replay", stack: "rust" },
     });
     const config = join(temporary, "invalid-replay.json");
@@ -131,7 +131,7 @@ describe("built create-toolu CLI", () => {
       );
     }
     const base = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "theme-replay", name: "theme-replay", stack: "console" },
     });
     const theme = await resolveImportedTheme(themeDirectory, "console");

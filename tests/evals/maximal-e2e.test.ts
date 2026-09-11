@@ -45,7 +45,7 @@ for (const scenario of cases) {
     const name = `max-${scenario.id}`;
     const target = join(temporary, name);
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { ...scenario.flags, targetDirectory: target, name },
     });
 

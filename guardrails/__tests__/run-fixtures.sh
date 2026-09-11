@@ -95,7 +95,7 @@ fi
 
 # ---------------------------------------------------------------- AC-4
 if tagged folder-tree; then
-  gr_in "$DIRTY" --file src/features/shifts/utils/helper.ts; out=$OUT
+  gr_in "$DIRTY" --file src/domains/shifts/utils/helper.ts; out=$OUT
   s=$STATUS
   if [ "$s" -eq 1 ] && [ "$(count_check "$out" folder-tree)" -ge 1 ]; then
     ok 'AC-4  --file reports the same folder-tree violation'
@@ -119,7 +119,7 @@ fi
 
 # ---------------------------------------------------------------- AC-5
 if [ -z "$ONLY" ]; then
-  payload=$(jq -nc --arg p "$DIRTY/src/features/shifts/utils/helper.ts" '{
+  payload=$(jq -nc --arg p "$DIRTY/src/domains/shifts/utils/helper.ts" '{
     session_id: "test", hook_event_name: "PostToolUse", tool_name: "Write",
     tool_input: { file_path: $p, content: "x" },
     tool_response: { filePath: $p, success: true }
@@ -194,10 +194,10 @@ if tagged folder-tree; then
   gr_in "$DIRTY"; out=$OUT
   printf '%s' "$out" | grep -q 'utils.*not an allowed directory' \
     && ok 'AC-9  folder-tree fires on an unsanctioned intra-domain directory' \
-    || bad 'AC-9  folder-tree must reject src/features/shifts/utils/'
+    || bad 'AC-9  folder-tree must reject src/domains/shifts/utils/'
 
   SC=$(bash "$HERE/lib/mkrepo.sh" clean)
-  rm -f "$SC/src/features/shifts/README.md"
+  rm -f "$SC/src/domains/shifts/README.md"
   gr_in "$SC"; out=$OUT
   printf '%s' "$out" | grep -q 'domain folder has no README' \
     && ok 'AC-9  folder-tree fires on a domain folder with no README' \
@@ -725,7 +725,7 @@ fi
 # Lefthook expands {staged_files} to EVERY staged file at once, so --file has to
 # take a list. A single-path flag would have broken every multi-file commit.
 if [ -z "$ONLY" ]; then
-  gr_in "$DIRTY" --file src/ui/index.ts src/features/shifts/utils/helper.ts; out=$OUT
+  gr_in "$DIRTY" --file src/ui/index.ts src/domains/shifts/utils/helper.ts; out=$OUT
   if [ "$STATUS" -eq 1 ] \
     && [ "$(count_check "$out" no-barrels)" -eq 1 ] \
     && [ "$(count_check "$out" folder-tree)" -ge 1 ]; then
@@ -883,7 +883,7 @@ if [ -z "$ONLY" ]; then
   # became an in-process loop, gr_cache_config's globals would leak and this
   # would fire twice or not at all.
   if printf '%s\n' "$ws_out" | grep -q 'packages/database/src/schema/wide-table.ts' \
-    && ! printf '%s\n' "$ws_out" | grep -q 'packages/api/src/services/wide-service.ts'; then
+    && ! printf '%s\n' "$ws_out" | grep -q 'packages/api/src/domains/ping/wide-service.ts'; then
     ok 'AC-6  each package is held to its OWN fileSize ceiling'
   else
     bad 'AC-6  a 40-line file must break max 20 and pass max 300' "$ws_out"

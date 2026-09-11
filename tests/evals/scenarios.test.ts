@@ -146,7 +146,7 @@ try {
 if (process.env.UPDATE_EVAL_GOLDENS === "1") {
   goldens = {};
   for (const scenario of scenarios) {
-    const manifest = resolveConfiguration({ generatorVersion: "0.6.0", flags: scenario.flags });
+    const manifest = resolveConfiguration({ generatorVersion: "0.7.0", flags: scenario.flags });
     goldens[scenario.id] = authoredDigest(await planRecipe(manifest, resolve(".")));
   }
   await writeFile(goldenPath, `${JSON.stringify(goldens, null, 2)}\n`);
@@ -154,7 +154,7 @@ if (process.env.UPDATE_EVAL_GOLDENS === "1") {
 
 describe("recipe scenario evals", () => {
   test.each(scenarios)("$id meets its semantic contract and authored golden", async (scenario) => {
-    const manifest = resolveConfiguration({ generatorVersion: "0.6.0", flags: scenario.flags });
+    const manifest = resolveConfiguration({ generatorVersion: "0.7.0", flags: scenario.flags });
     const first = await planRecipe(manifest, resolve("."));
     const second = await planRecipe(manifest, resolve("."));
     const paths = new Set(first.map((file) => file.path));

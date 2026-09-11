@@ -10,7 +10,7 @@ project read this file first, then the chosen stack kit.
    is re-exporting. Import the concrete file that holds the thing. Every symbol
    stays traceable to exactly one file — the single most useful property for an
    agent navigating a repo. Sanctioned exception: framework ROUTE files
-   (`app/**` in Expo Router) that exist to re-export a feature screen.
+   (`app/**` in Expo Router) that exist to re-export a domain screen.
 2. **Named exports.** One primary export per file, exported by name, so grep
    lands on the definition. Exactly two framework-mandated exceptions exist, and
    each is machine-scoped to a single path: Expo Router route files, and the
@@ -78,6 +78,19 @@ project read this file first, then the chosen stack kit.
     against an interface, or a real generic. `as const` is the one exception —
     it narrows a literal, it doesn't assert an unrelated one — and stays
     allowed.
+
+## Domain-first
+
+Product stacks put each business capability in `src/domains/<name>/`. Delivery
+adapters — routes, UI shells, RPC/HTTP entrypoints, CLI — stay outside that
+tree. One word kit-wide for those capability folders: **`domains`** (not
+`features` or flat `services`).
+
+Two stacks are named exceptions and keep their own shape:
+
+- **marketing** — content site: `sections/` plus Astro `pages/` / `layouts/` /
+  `content/`, not product domains.
+- **database-ts** — library package: `client/` / `schema/`, not app domains.
 
 ## Platform defaults
 
@@ -170,7 +183,7 @@ deliberate: **one rule, one enforcer.** Two enforcers of one ceiling is how the
 two numbers drift apart, and how an `oxlint-disable` silences half a rule.
 
 - **oxlint** owns what it can see in TypeScript: `no-restricted-imports` (no
-  barrel imports, no deep relatives, feature isolation, **no axios**, no
+  barrel imports, no parent-relative imports, domain isolation, **no axios**, no
   competing validation library), `import/no-default-export`,
   `unicorn/filename-case` (kebab-case), `max-lines` (300 code lines, tests
   exempt) and `max-lines-per-function` (50; 80 in `.tsx`, where a component's

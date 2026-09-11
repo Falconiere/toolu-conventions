@@ -5,7 +5,7 @@ import { checkPrerequisites, PrerequisiteError } from "../src/prerequisites";
 describe("prerequisite diagnostics", () => {
   test("reports the complete install-guidance list using user-facing tool names", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "missing-tools", name: "missing-tools", stack: "rust" },
     });
 
@@ -33,7 +33,7 @@ describe("prerequisite diagnostics", () => {
 
   test("explains that native Windows requires WSL", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "windows-project", name: "windows-project", stack: "console" },
     });
 

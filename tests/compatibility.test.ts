@@ -7,7 +7,7 @@ describe("compatibility rules", () => {
   test("requires Drizzle for a database workspace and Axum for Rust local dev", () => {
     expect(() =>
       resolveConfiguration({
-        generatorVersion: "0.6.0",
+        generatorVersion: "0.7.0",
         flags: {
           targetDirectory: "bad-workspace",
           name: "bad-workspace",
@@ -18,7 +18,7 @@ describe("compatibility rules", () => {
     ).toThrow("database-package requires drizzle");
     expect(() =>
       resolveConfiguration({
-        generatorVersion: "0.6.0",
+        generatorVersion: "0.7.0",
         flags: {
           targetDirectory: "bad-rust",
           name: "bad-rust",
@@ -32,7 +32,7 @@ describe("compatibility rules", () => {
   test("rejects duplicate marketing pages", () => {
     expect(() =>
       resolveConfiguration({
-        generatorVersion: "0.6.0",
+        generatorVersion: "0.7.0",
         flags: {
           targetDirectory: "duplicate-pages",
           name: "duplicate-pages",
@@ -45,7 +45,7 @@ describe("compatibility rules", () => {
 
   test("accepts only the exact imported token surface for a visual stack", () => {
     const base = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "bad-theme", name: "bad-theme", stack: "console" },
     });
     const manifest = parseManifest({

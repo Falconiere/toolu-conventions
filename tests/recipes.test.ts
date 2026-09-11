@@ -10,7 +10,7 @@ import { resolveImportedTheme } from "../src/theme";
 describe("planRecipe", () => {
   test("materializes a complete console base from owned assets", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "acme-console", name: "acme-console", stack: "console" },
     });
 
@@ -38,7 +38,7 @@ describe("planRecipe", () => {
 
   test("layers the complete console API, auth, and Worker API surface", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-console",
         name: "acme-console",
@@ -66,7 +66,7 @@ describe("planRecipe", () => {
 
   test("generates deterministic marketing route shells from validated slugs", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-site",
         name: "acme-site",
@@ -91,7 +91,7 @@ describe("planRecipe", () => {
     ["analytics-fathom", undefined, "cdn.usefathom.com/script.js"],
   ])("materializes the %s analytics recipe", async (integration, dependency, marker) => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-site",
         name: "acme-site",
@@ -113,7 +113,7 @@ describe("planRecipe", () => {
 
   test("layers blog, changelog, Cloudflare SSR, and a React island onto marketing", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-site",
         name: "acme-site",
@@ -142,7 +142,7 @@ describe("planRecipe", () => {
 
   test("materializes a backend with its default Turso persistence wired", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "acme-api", name: "acme-api", stack: "backend-ts" },
     });
 
@@ -161,7 +161,7 @@ describe("planRecipe", () => {
 
   test("layers backend auth, structured logging, and Drizzle", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-api",
         name: "acme-api",
@@ -187,7 +187,7 @@ describe("planRecipe", () => {
 
   test("materializes the backend and database as a Bun workspace", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-platform",
         name: "acme-platform",
@@ -209,7 +209,7 @@ describe("planRecipe", () => {
 
   test("materializes an owned Expo project without an upstream scaffolder", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "acme-mobile", name: "acme-mobile", stack: "expo" },
     });
 
@@ -231,7 +231,7 @@ describe("planRecipe", () => {
 
   test("layers Expo API, auth, and async storage integrations", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-mobile",
         name: "acme-mobile",
@@ -275,7 +275,7 @@ describe("planRecipe", () => {
       await writeFile(join(themeDirectory, path), content);
     }
     const base = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "acme-mobile", name: "acme-mobile", stack: "expo" },
     });
     const imported = await resolveImportedTheme(themeDirectory, "expo");
@@ -293,7 +293,7 @@ describe("planRecipe", () => {
 
   test("materializes selected staging environments into deployment configuration", async () => {
     const consoleManifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-console",
         name: "acme-console",
@@ -302,7 +302,7 @@ describe("planRecipe", () => {
       },
     });
     const expoManifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-mobile",
         name: "acme-mobile",
@@ -325,11 +325,11 @@ describe("planRecipe", () => {
 
   test("omits optional staging profiles and emits Cloudflare development configuration", async () => {
     const expoManifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "acme-mobile", name: "acme-mobile", stack: "expo" },
     });
     const backendManifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-api",
         name: "acme-api",
@@ -355,7 +355,7 @@ describe("planRecipe", () => {
 
   test("derives operations topology and materializes all selected operation modules", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-api",
         name: "acme-api",
@@ -395,7 +395,7 @@ describe("planRecipe", () => {
 
   test("materializes a zero-dependency Rust base with the rendered crate name", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "acme-cli", name: "acme-cli", stack: "rust" },
     });
 
@@ -409,7 +409,7 @@ describe("planRecipe", () => {
 
   test("layers exact clap, axum, and serde recipes onto Rust", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-service",
         name: "acme-service",
@@ -429,7 +429,7 @@ describe("planRecipe", () => {
 
   test("generates a valid plain-text health handler for Axum without Serde", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "plain-service",
         name: "plain-service",

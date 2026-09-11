@@ -3,7 +3,7 @@
 # Two rules from one config block:
 #   src.topLevel  the only directories permitted directly under srcRoot
 #   src.nested    a glob-keyed allowlist of subdirectories, which is how
-#                 intra-domain shape is expressed — "features/*" constrains
+#                 intra-domain shape is expressed — "domains/*" constrains
 #                 every feature folder without naming any of them
 #
 # src.requireReadme is NOT here: it is a fact about README files, which oxlint
@@ -13,9 +13,9 @@
 # function, declaring it owned switched them off in the bash module while nothing
 # in the oxlint plugin ever picked them up. One check id, one enforcement surface.
 #
-# src.topLevel OMITTED means unconstrained (the Rust stack: module names are
-# arbitrary). An empty array means nothing is allowed. They are different, and
-# the distinction is what keeps Rust usable.
+# src.topLevel OMITTED means unconstrained. An empty array means nothing is
+# allowed. They are different. The Rust stack sets topLevel to the delivery
+# shells (cli · http · …) plus domains/.
 
 # gr_ft_allow_for <parent-rel-dir> — the allowlist governing this directory's
 # children, empty when no key matches (unconstrained). Reads the cached map;
@@ -31,7 +31,7 @@ gr_ft_allow_for() {
     values=${entry#*|}
     case "$key" in
       */\*)
-        # "features/*" governs the children of every direct child of features/
+        # "domains/*" governs the children of every direct child of domains/
         prefix=${key%/\*}
         case "$parent" in
           "$prefix"/*)
@@ -45,9 +45,8 @@ gr_ft_allow_for() {
         return
         ;;
       \*)
-        # A bare "*" key governs every directory at any depth. The Rust stack
-        # needs it: module names are arbitrary, but a module folder may still
-        # only hold .rs parts and a sibling tests/.
+        # A bare "*" key governs every directory at any depth when no more
+        # specific key matched.
         printf '%s' "$values"
         return
         ;;

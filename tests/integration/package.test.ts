@@ -74,7 +74,7 @@ describe("published package eval", () => {
   test("scaffolds a complete replay manifest from the installed tarball", async () => {
     const target = join(temporary, "packed-project");
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: target,
         name: "packed-project",

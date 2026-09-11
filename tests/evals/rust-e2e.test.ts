@@ -9,7 +9,7 @@ test("real Rust toolchain eval installs, initializes hooks, and passes canonical
   const temporary = await mkdtemp(join(tmpdir(), "toolu-rust-e2e-"));
   const target = join(temporary, "verified-service");
   const manifest = resolveConfiguration({
-    generatorVersion: "0.6.0",
+    generatorVersion: "0.7.0",
     flags: {
       targetDirectory: target,
       name: "verified-service",

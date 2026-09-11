@@ -15,7 +15,7 @@ import {
 describe("generator engine", () => {
   test("plans install, git, hooks, checks, and build in canonical order", () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "acme-console", name: "acme-console", stack: "console" },
     });
 
@@ -33,7 +33,7 @@ describe("generator engine", () => {
 
   test("includes Rust structure guardrails in the canonical verification plan", () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "acme-cli", name: "acme-cli", stack: "rust" },
     });
 
@@ -46,7 +46,7 @@ describe("generator engine", () => {
 
   test("generates Cloudflare binding types before checking a backend", () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "acme-api", name: "acme-api", stack: "backend-ts" },
     });
 
@@ -59,7 +59,7 @@ describe("generator engine", () => {
 
   test("verifies selected operations manifests and local-dev preflight", () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: {
         targetDirectory: "acme-api",
         name: "acme-api",
@@ -86,7 +86,7 @@ describe("generator engine", () => {
     const temporary = await mkdtemp(join(tmpdir(), "toolu-engine-"));
     const target = join(temporary, "acme-cli");
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: target, name: "acme-cli", stack: "rust" },
     });
     const phases: string[] = [];
@@ -112,7 +112,7 @@ describe("generator engine", () => {
     const temporary = await mkdtemp(join(tmpdir(), "toolu-engine-retry-"));
     const target = join(temporary, "acme-console");
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: target, name: "acme-console", stack: "console" },
     });
     let installAttempts = 0;
@@ -136,7 +136,7 @@ describe("generator engine", () => {
     const temporary = await mkdtemp(join(tmpdir(), "toolu-engine-failure-"));
     const target = join(temporary, "acme-api");
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: target, name: "acme-api", stack: "backend-ts" },
     });
     const runner: CommandRunner = async (command) => ({
