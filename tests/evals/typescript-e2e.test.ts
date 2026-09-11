@@ -11,7 +11,7 @@ for (const stack of ["console", "marketing", "backend-ts"] as const) {
     const name = `verified-${stack}`;
     const target = join(temporary, name);
     const manifest = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: target, name, stack },
     });
 

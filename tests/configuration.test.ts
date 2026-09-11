@@ -6,10 +6,10 @@ import { resolveImportedTheme } from "../src/theme";
 describe("resolveConfiguration", () => {
   test("applies flags over config values and fills stable optional defaults", () => {
     const resolved = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       config: {
         schemaVersion: 1,
-        generatorVersion: "0.6.0",
+        generatorVersion: "0.7.0",
         project: {
           name: "configured-name",
           displayName: "Configured Name",
@@ -44,7 +44,7 @@ describe("resolveConfiguration", () => {
 
   test("replaces preset recipe identity when a theme import is resolved", async () => {
     const base = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "imported-console", name: "imported-console", stack: "console" },
     });
     const imported = await resolveImportedTheme(

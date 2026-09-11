@@ -7,7 +7,7 @@ import {
 
 const validManifest = {
   schemaVersion: 1,
-  generatorVersion: "0.6.0",
+  generatorVersion: "0.7.0",
   project: { name: "acme", displayName: "Acme", targetDirectory: "acme" },
   stack: { id: "console" },
   integrations: [],

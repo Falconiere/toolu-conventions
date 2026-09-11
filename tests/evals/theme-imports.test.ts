@@ -10,7 +10,7 @@ describe("theme import evals", () => {
   test("authors web imports byte-for-byte and records a web import recipe", async () => {
     const source = resolve("stacks/console/templates/theme");
     const base = resolveConfiguration({
-      generatorVersion: "0.6.0",
+      generatorVersion: "0.7.0",
       flags: { targetDirectory: "web-import", name: "web-import", stack: "console" },
     });
     const manifest = withResolvedTheme(base, await resolveImportedTheme(source, "console"));
@@ -37,7 +37,7 @@ describe("theme import evals", () => {
         );
       }
       const base = resolveConfiguration({
-        generatorVersion: "0.6.0",
+        generatorVersion: "0.7.0",
         flags: { targetDirectory: "native-import", name: "native-import", stack: "expo" },
       });
       const imported = await resolveImportedTheme(temporary, "expo");
