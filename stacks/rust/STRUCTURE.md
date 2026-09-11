@@ -52,7 +52,8 @@ should also be testable/usable as a library.
 
 Business capability lives under **`src/domains/`**. Delivery adapters (`cli`,
 `http`) and shared shells (`config`, `error`, `utilities`) stay outside that
-tree. Guardrails `src.topLevel` lists those directories; domain folders may grow
+tree. Guardrails `src.topLevel` lists those directories; nested `domains/*` allows
+`tests`/`model`/`service`/`store` inside each domain folder. Domain folders may grow
 from a single `<name>.rs` into `<name>/{model,service,store}.rs` with a sibling
 `tests/`.
 
