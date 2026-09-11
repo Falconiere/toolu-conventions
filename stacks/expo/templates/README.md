@@ -19,9 +19,9 @@ bun run android      # build + run on Android (dev client)
 
 | Path | What |
 | --- | --- |
-| `app/` | Expo Router routes (thin — each re-exports a feature screen). |
+| `app/` | Expo Router routes (thin — each re-exports a domain screen). |
 | `src/ui/` | Design-system primitives (`button`, `text`, `text-input`) + `theme/` tokens (colors, spacing, typography, motion, icons). |
-| `src/features/` | Feature modules — one folder each (`screens/`, `components/`, `hooks/`, …). |
+| `src/domains/` | Domain modules — one folder each (`screens/`, `components/`, `hooks/`, …). |
 | `src/api/` | Data layer: `clients/` (requests) + `queries/` (React Query hooks). |
 | `src/utilities/` | Shared pure helpers. |
 | `src/providers/` | App-level context providers (mounted in `app/_layout.tsx`). |

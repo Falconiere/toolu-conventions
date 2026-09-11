@@ -5,7 +5,7 @@
   "src": {
     "topLevel": [
       "ui",
-      "features",
+      "domains",
       "api",
       "utilities",
       "providers",
@@ -13,7 +13,7 @@
       "types"
     ],
     "nested": {
-      "features/*": [
+      "domains/*": [
         "screens",
         "components",
         "hooks",
@@ -31,7 +31,7 @@
     },
     "requireReadme": [
       "ui",
-      "features",
+      "domains",
       "api",
       "utilities",
       "providers"
