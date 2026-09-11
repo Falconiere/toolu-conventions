@@ -45,6 +45,6 @@ jobs:
           CODEBASE_OVERVIEW: >-
             Hono service on Cloudflare Workers (workerd), Turso over HTTP for
             persistence. Routes are thin and live in src/routes; logic lives in
-            src/services. Config arrives as Worker bindings, never process.env,
+            src/domains. Config arrives as Worker bindings, never process.env,
             and secrets never appear in wrangler.jsonc. Tests run inside the
             real runtime against a real database — a mock-only test is a defect.

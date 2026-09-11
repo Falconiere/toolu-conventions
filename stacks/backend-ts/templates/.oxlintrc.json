@@ -59,10 +59,10 @@
           },
           {
             "group": [
-              "../../*",
-              "../../**"
+              "../*",
+              "../**"
             ],
-            "message": "No deep relative imports - use @/ aliases"
+            "message": "No parent-relative imports - use @/ aliases or same-directory ./"
           },
           {
             "group": [

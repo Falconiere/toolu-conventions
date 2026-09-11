@@ -3,7 +3,7 @@
 import { RPCHandler } from '@orpc/server/fetch';
 import { Hono } from 'hono';
 import { router } from '@/rpc/router';
-import { createDatabase } from '@/services/database-service';
+import { createDatabase } from '@/utilities/database-service';
 
 // The handler is stateless and holds no config, so building it once per isolate
 // is correct — the per-request values go in `context` below, never in here.
