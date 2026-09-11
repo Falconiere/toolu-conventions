@@ -41,8 +41,8 @@ cat > "$TREE/.oxlintrc.json" <<'JSON'
 }
 JSON
 
-mkdir -p "$TREE/src/features/shifts"/{screens,components,__tests__} \
-         "$TREE/src/features/shifts/utils" "$TREE/src/features/shifts/hooks" \
+mkdir -p "$TREE/src/domains/shifts"/{screens,components,__tests__} \
+         "$TREE/src/domains/shifts/utils" "$TREE/src/domains/shifts/hooks" \
          "$TREE/src/ui/theme/tokens" "$TREE/src/utilities" "$TREE/src/app/shifts"
 
 # --- files that must stay SILENT ---------------------------------------------
@@ -55,33 +55,33 @@ printf 'export const Route = 1;\n'                        > "$TREE/src/app/shift
 printf 'export const colors = { primary: "#0a84ff" };\n'  > "$TREE/src/ui/theme/colors.ts"
 printf 'export const dark = "#0a84ff";\n'                 > "$TREE/src/ui/theme/tokens/dark.ts"
 printf 'export const get = (u: string) => fetch(u);\n'    > "$TREE/src/utilities/http.ts"
-printf 'export const S = () => null;\n'                   > "$TREE/src/features/shifts/screens/shifts-screen.tsx"
-printf 'export const t = 1;\n'                            > "$TREE/src/features/shifts/__tests__/s.test.tsx"
+printf 'export const S = () => null;\n'                   > "$TREE/src/domains/shifts/screens/shifts-screen.tsx"
+printf 'export const t = 1;\n'                            > "$TREE/src/domains/shifts/__tests__/s.test.tsx"
 # The point of no-module-scope-database: this is the SAME call as the violating
 # one, inside a function. A textual rule cannot tell them apart.
 printf 'export const load = () => createDatabase({ url: "x" });\n' \
-  > "$TREE/src/features/shifts/hooks/use-database.ts"
+  > "$TREE/src/domains/shifts/hooks/use-database.ts"
 # createClient is the constructor name for supabase, redis, urql and others.
 # Module scope, but nothing to do with a database — must stay silent.
 printf 'import { createClient } from "urql";\nexport const gql = createClient({ url: "/graphql" });\n' \
-  > "$TREE/src/features/shifts/hooks/urql-client.ts"
+  > "$TREE/src/domains/shifts/hooks/urql-client.ts"
 
 # --- exactly one violation per rule ------------------------------------------
-VIOLATING="$TREE/src/features/shifts/utils/helper.ts
-$TREE/src/features/shifts/stray.test.ts
-$TREE/src/features/shifts/screens/bad.tsx
-$TREE/src/features/shifts/screens/color.ts
-$TREE/src/features/shifts/components/index.ts
-$TREE/src/features/shifts/components/module-db.ts
-$TREE/src/features/shifts/components/static-db.ts"
-printf 'export const h = 1;\n'                            > "$TREE/src/features/shifts/utils/helper.ts"
-printf 'export const stray = 1;\n'                        > "$TREE/src/features/shifts/stray.test.ts"
-printf 'export const load = () => fetch("/shifts");\n'    > "$TREE/src/features/shifts/screens/bad.tsx"
-printf 'export const c = "#ff0000";\n'                    > "$TREE/src/features/shifts/screens/color.ts"
-printf 'export * from "./shifts-screen";\n'               > "$TREE/src/features/shifts/components/index.ts"
-printf 'export const db = createDatabase({ url: "x" });\n' > "$TREE/src/features/shifts/components/module-db.ts"
+VIOLATING="$TREE/src/domains/shifts/utils/helper.ts
+$TREE/src/domains/shifts/stray.test.ts
+$TREE/src/domains/shifts/screens/bad.tsx
+$TREE/src/domains/shifts/screens/color.ts
+$TREE/src/domains/shifts/components/index.ts
+$TREE/src/domains/shifts/components/module-db.ts
+$TREE/src/domains/shifts/components/static-db.ts"
+printf 'export const h = 1;\n'                            > "$TREE/src/domains/shifts/utils/helper.ts"
+printf 'export const stray = 1;\n'                        > "$TREE/src/domains/shifts/stray.test.ts"
+printf 'export const load = () => fetch("/shifts");\n'    > "$TREE/src/domains/shifts/screens/bad.tsx"
+printf 'export const c = "#ff0000";\n'                    > "$TREE/src/domains/shifts/screens/color.ts"
+printf 'export * from "./shifts-screen";\n'               > "$TREE/src/domains/shifts/components/index.ts"
+printf 'export const db = createDatabase({ url: "x" });\n' > "$TREE/src/domains/shifts/components/module-db.ts"
 printf 'export class Repo {\n  static db = createDatabase({ url: "x" });\n}\n' \
-  > "$TREE/src/features/shifts/components/static-db.ts"
+  > "$TREE/src/domains/shifts/components/static-db.ts"
 
 out=$(cd "$TREE" && $OXLINT . 2>&1)
 
@@ -112,9 +112,9 @@ for clean in \
   'src/ui/theme/tokens/dark.ts' \
   'src/app/index.tsx' \
   'src/app/shifts/index.tsx' \
-  'src/features/shifts/__tests__/s.test.tsx' \
-  'src/features/shifts/hooks/use-database.ts' \
-  'src/features/shifts/hooks/urql-client.ts'; do
+  'src/domains/shifts/__tests__/s.test.tsx' \
+  'src/domains/shifts/hooks/use-database.ts' \
+  'src/domains/shifts/hooks/urql-client.ts'; do
   if printf '%s\n' "$out" | grep -q "^$clean:"; then
     bad "clean file reported: $clean" "$(printf '%s\n' "$out" | grep "^$clean:" | head -1)"
   else

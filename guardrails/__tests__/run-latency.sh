@@ -24,7 +24,7 @@ cp "$HERE/fixtures/clean/wrangler.jsonc" "$TREE/"
 cp "$HERE/fixtures/clean/lefthook.yml" "$TREE/"
 
 mkdir -p "$TREE/src/ui/theme" "$TREE/src/api" "$TREE/src/utilities" "$TREE/src/app"
-for d in ui features api utilities; do
+for d in ui domains api utilities; do
   mkdir -p "$TREE/src/$d"
   printf '# %s\n' "$d" > "$TREE/src/$d/README.md"
 done
@@ -32,7 +32,7 @@ printf 'export const get = (u: string) => fetch(u);\n' > "$TREE/src/utilities/ht
 
 # 20 domains × 25 files = 500.
 for i in $(seq 1 20); do
-  domain="$TREE/src/features/domain-$i"
+  domain="$TREE/src/domains/domain-$i"
   mkdir -p "$domain/screens" "$domain/components" "$domain/hooks" "$domain/__tests__"
   printf '# domain-%s\n' "$i" > "$domain/README.md"
   for j in $(seq 1 8); do
@@ -116,7 +116,7 @@ measure_in() {
 }
 
 measure_in 'repo mode' "$REPO_BUDGET_MS" "$TREE"
-measure_in '--file' "$FILE_BUDGET_MS" "$TREE" --file src/features/domain-7/components/part-3.tsx
+measure_in '--file' "$FILE_BUDGET_MS" "$TREE" --file src/domains/domain-7/components/part-3.tsx
 
 # ---------------------------------------------------------------- workspace
 #
@@ -143,8 +143,8 @@ EOF
 for pkg in api database; do
   dest="$WS/packages/$pkg"
   cp "$TREE/guardrails.config.json" "$TREE/package.json" "$TREE/wrangler.jsonc" "$TREE/lefthook.yml" "$dest/"
-  mkdir -p "$dest/src/ui/theme" "$dest/src/api" "$dest/src/utilities" "$dest/src/app" "$dest/src/features"
-  for d in ui features api utilities; do printf '# %s\n' "$d" > "$dest/src/$d/README.md"; done
+  mkdir -p "$dest/src/ui/theme" "$dest/src/api" "$dest/src/utilities" "$dest/src/app" "$dest/src/domains"
+  for d in ui domains api utilities; do printf '# %s\n' "$d" > "$dest/src/$d/README.md"; done
   cp "$TREE/src/utilities/http.ts" "$dest/src/utilities/http.ts"
 done
 # 10 domains each — the same 500 files, split down the middle.
@@ -152,7 +152,7 @@ half=0
 for i in $(seq 1 20); do
   half=$(( half + 1 ))
   [ "$half" -le 10 ] && pkg=api || pkg=database
-  cp -R "$TREE/src/features/domain-$i" "$WS/packages/$pkg/src/features/domain-$i"
+  cp -R "$TREE/src/domains/domain-$i" "$WS/packages/$pkg/src/domains/domain-$i"
 done
 ln -sf "$native" "$WS/packages/api/node_modules/.bin/ast-grep" 2>/dev/null || {
   mkdir -p "$WS/packages/api/node_modules/.bin" "$WS/packages/database/node_modules/.bin"
@@ -164,6 +164,6 @@ ws_count=$(find "$WS/packages" -path '*/src/*' -type f | wc -l)
 printf 'workspace tree: %s files across 2 packages\n' "$ws_count"
 
 measure_in 'ws repo' "$REPO_BUDGET_MS" "$WS"
-measure_in 'ws --file' "$FILE_BUDGET_MS" "$WS" --file packages/api/src/features/domain-7/components/part-3.tsx
+measure_in 'ws --file' "$FILE_BUDGET_MS" "$WS" --file packages/api/src/domains/domain-7/components/part-3.tsx
 
 exit "$fail"

@@ -4,12 +4,16 @@
   "srcRoot": "src",
   "src": {
     "topLevel": [
-      "services",
+      "domains",
       "utilities"
     ],
-    "nested": {},
+    "nested": {
+      "domains/*": [
+        "__tests__"
+      ]
+    },
     "requireReadme": [
-      "services",
+      "domains",
       "utilities"
     ]
   },

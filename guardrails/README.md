@@ -164,7 +164,7 @@ Only `guardrails.config.json`. The module itself is identical everywhere:
 | | `console` | `marketing` | `backend-ts` | `database-ts` | `expo` | `rust` |
 | --- | --- | --- | --- | --- | --- | --- |
 | `srcRoot` | `src` | `src` | `src` | `src` | `src` | `src` |
-| `src.topLevel` | app · ui · features · api · utilities · providers · constants · types | pages · layouts · sections · ui · content · utilities · constants · types | rpc · routes · services · utilities · constants · types | client · schema · constants · types | ui · features · api · utilities · providers · constants · types | *(not tree-checked)* |
+| `src.topLevel` | app · ui · domains · api · utilities · providers · constants · types | pages · layouts · sections · ui · content · utilities · constants · types | rpc · routes · domains · utilities · constants · types | client · schema · constants · types | ui · domains · api · utilities · providers · constants · types | domains · config · error · utilities · cli · http |
 | Tests | `__tests__/` colocated | `__tests__/` colocated | `__tests__/` colocated | `__tests__/` colocated | `__tests__/` colocated | sibling `tests/` |
 | File / function ceiling | 300 / 50 | 300 / 50 | 300 / 50 | 300 / 50 | 300 / 50 | 500 / 100 |
 | Banned deps | axios · yup · joi · valibot · superstruct · ajv | same | same | same | same | *(none listed)* |

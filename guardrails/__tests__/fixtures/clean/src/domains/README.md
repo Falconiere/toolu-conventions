@@ -1,3 +1,3 @@
-# features
+# domains
 
 What belongs here.
