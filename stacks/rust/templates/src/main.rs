@@ -3,9 +3,9 @@
 //! This is a starter skeleton: replace it with the real program. It exists so
 //! the toolchain, lints, and test harness are wired and green from commit one.
 
-mod greeting;
+mod domains;
 
-use greeting::greeting;
+use domains::greeting::greeting;
 
 /// Program entry point.
 fn main() {
