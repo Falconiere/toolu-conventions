@@ -3,11 +3,37 @@
   "version": 2,
   "srcRoot": "src",
   "src": {
+    "topLevel": [
+      "domains",
+      "config",
+      "error",
+      "utilities",
+      "cli",
+      "http"
+    ],
     "nested": {
-      "*": [
+      "domains/*": [
+        "tests"
+      ],
+      "cli": [
+        "tests"
+      ],
+      "http": [
+        "tests"
+      ],
+      "config": [
+        "tests"
+      ],
+      "error": [
+        "tests"
+      ],
+      "utilities": [
         "tests"
       ]
-    }
+    },
+    "requireReadme": [
+      "domains"
+    ]
   },
   "fileSize": {
     "max": 500,
