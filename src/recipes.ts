@@ -1397,6 +1397,8 @@ async function planRust(
   }
 
   if (manifest.integrations.includes("axum")) {
+    files.delete("src/greeting.rs");
+    files.delete("src/tests/greeting.rs");
     files.delete("src/domains/greeting.rs");
     files.delete("src/domains/tests/greeting.rs");
     files.set("src/domains.rs", {
@@ -1425,6 +1427,10 @@ async function planRust(
       content: `//! Binary entry point for \`${manifest.project.name}\`.\n\n${cliImports}\n/// Starts the HTTP service.\n#[tokio::main]\nasync fn main() {\n    let address = (std::net::Ipv4Addr::LOCALHOST, ${port});\n    let listener = match tokio::net::TcpListener::bind(address).await {\n        Ok(listener) => listener,\n        Err(error) => {\n            eprintln!("failed to bind HTTP listener: {error}");\n            return;\n        }\n    };\n    if let Err(error) = axum::serve(listener, http::router::app()).await {\n        eprintln!("HTTP service failed: {error}");\n    }\n}\n`,
     });
   } else if (manifest.integrations.includes("clap")) {
+    files.set("src/domains.rs", {
+      path: "src/domains.rs",
+      content: "//! Business capability modules.\n\npub(crate) mod greeting;\n",
+    });
     files.set("src/main.rs", {
       path: "src/main.rs",
       content: `//! Binary entry point for \`${manifest.project.name}\`.\n\nmod cli;\nmod domains;\n\nuse clap::Parser;\nuse cli::Cli;\nuse domains::greeting::greeting;\n\n/// Program entry point.\nfn main() {\n    let cli = Cli::parse();\n    println!("{}", greeting(&cli.name));\n}\n`,
