@@ -3,7 +3,7 @@
 The canonical layout every new backend-ts service produces. It inherits the
 stack-agnostic rules in [`../../CORE.md`](../../CORE.md) — this file adds the
 Hono-on-Cloudflare-Workers specifics and never relaxes a CORE rule. Designed for
-**thin routes, testable services, and easy LLM traversal**: predictable folder
+**thin routes, testable domains, and easy LLM traversal**: predictable folder
 names, a README in every source directory, no barrel files (every import points
 at the file that holds the thing).
 
@@ -37,9 +37,11 @@ it. `LIBRARIES.md` names the ones that do.
 │   │   └── __tests__/
 │   ├── routes/           # Plain HTTP: /health, webhooks, auth callbacks. README.md
 │   │   └── __tests__/    #   route tests via exports.default.fetch(...)
-│   ├── services/         # Business logic — framework-agnostic, unit-testable. README.md
-│   │   └── __tests__/
-│   ├── utilities/        # Shared pure helpers (dates, formatters, …). README.md
+│   ├── domains/          # One folder per business capability. README.md
+│   │   └── <name>/
+│   │       ├── <name>-service.ts   # primary use-case module (filename ↔ export)
+│   │       └── __tests__/
+│   ├── utilities/        # Shared pure + infra helpers (incl. database-service). README.md
 │   ├── constants/        # env.ts (Zod-validated bindings), enums. README.md
 │   └── types/            # Cross-cutting TS types. README.md
 ├── scripts/              # guardrails/run.sh — folder-tree gate (part of `bun run check`)
@@ -54,7 +56,7 @@ it. `LIBRARIES.md` names the ones that do.
 └── README.md             # human + agent entry point
 ```
 
-> Folder vocabulary (`rpc`, `routes`, `services`, `utilities`, `constants`,
+> Folder vocabulary (`rpc`, `routes`, `domains`, `utilities`, `constants`,
 > `types`) is intentional. Middleware is added under `src/middleware/` **only
 > when** an integration is wired — add the new dir to `src.topLevel` in
 > `guardrails.config.json` when you do (see `SETUP.md`).
@@ -82,14 +84,14 @@ there; a plain route needs a reason.
 ## Path alias
 
 Configured in `tsconfig.json` and resolved by the Workers bundler. Always import
-via the alias — never deep relative paths like `../../services/health`.
+via the alias or same-directory `./` — never parent-relative paths like `../x`.
 
 ```ts
 @/*   → src/*
 ```
 
 So `@/app`, `@/constants/env`, `@/routes/health-route`, and
-`@/services/health-service` all resolve from anywhere in the tree.
+`@/domains/health/health-service` all resolve from anywhere in the tree.
 
 ## App assembly & serving
 
@@ -142,20 +144,20 @@ upholds, not yet a machine check. See
 blocked-patterns list.
 
 1. **No barrel files.** Never an `index.ts` that only re-exports. Import the
-   concrete file: `import { getHealth } from '@/services/health-service'`. —
+   concrete file: `import { getHealth } from '@/domains/health/health-service'`. —
    enforced by `no-restricted-imports` (barrel imports) + `guardrails`
    (no `index.ts` under `src/` except the `src/index.ts` entry).
-2. **No deep relative imports.** Use the `@/` alias, never `../../x`. — enforced
-   by `no-restricted-imports` (`../../*` pattern).
+2. **No parent-relative imports.** Use the `@/` alias or same-directory `./`, never `../x`. — enforced
+   by `no-restricted-imports` (`../*` pattern).
 3. **Thin routes.** A module under `src/routes/` parses the request, calls a
-   service, and shapes the response — no business logic, no direct DB access. —
+   domain, and shapes the response — no business logic, no direct DB access. —
    (review).
-4. **Services hold logic.** Put the real work in `src/services/` as
+4. **Domains hold logic.** Put the real work in `src/domains/<name>/` as
    framework-agnostic functions, so they unit-test without the HTTP layer. —
    (review).
 5. **One route module per resource.** `src/routes/user-route.ts` owns `/users`;
    mount it in `src/app.ts`. — (review).
-6. **Allowed `src/` layout.** Only `rpc routes services utilities constants types`
+6. **Allowed `src/` layout.** Only `rpc routes domains utilities constants types`
    as top-level dirs (each with a `README.md`), plus `app.ts` + `index.ts` at the
    root. — enforced by `guardrails`.
 7. **Filename ↔ content.** Kebab-case filenames named after the export
@@ -211,7 +213,7 @@ implementation.
 // src/rpc/shift-procedures.ts
 import * as z from 'zod';
 import { base } from '@/rpc/base';
-import { listShiftsForLocation } from '@/services/shift-service';
+import { listShiftsForLocation } from '@/domains/shift/shift-service';
 
 const Shift = z.object({ id: z.string(), startsAt: z.iso.datetime() });
 
@@ -232,7 +234,7 @@ Rules that hold for every procedure:
    is whatever the handler happened to return, and the client's type is a guess.
    The output schema is what makes the contract two-way.
 3. **Handlers stay thin.** Parse, call a service, shape the result — the same
-   rule as a route. The work lives in `src/services/`.
+   rule as a route. The work lives in `src/domains/`.
 4. **`src/rpc/router.ts` is not a barrel.** It composes a value whose shape *is*
    the API, and reading it should tell you the whole surface. Adding a domain is
    one line there.
@@ -287,7 +289,7 @@ without reading the whole tree. We get that from:
 - **`CLAUDE.md` at the root** as the map + rulebook, read first by agents.
 - **No barrels + filename ↔ content** — grep for a symbol lands on its definition.
 - **The `@/` alias** makes import sites self-describing
-  (`@/services/health-service` tells you exactly where it is).
+  (`@/domains/health/health-service` tells you exactly where it is).
 
 When you add a notable service/route/utility, add a one-line entry to that
 folder's README so the index stays current.

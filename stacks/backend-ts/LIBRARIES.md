@@ -1,6 +1,6 @@
 # Library Reference
 
-The curated toolbox for backend-ts services. The philosophy is **lean**: Hono and
+The curated toolbox for backend-ts APIs. The philosophy is **lean**: Hono and
 the Workers runtime cover most of what a small service needs, so every extra
 dependency must earn its place, do one job well, and not duplicate the platform.
 Reach for the runtime's own APIs (`fetch`, `crypto`, `Intl`, `URL`,
@@ -43,7 +43,7 @@ Turso ships several, and only one of them runs here:
 | `@libsql/client` | The legacy name | Only via Drizzle, and only the `/web` entry |
 
 A response from the client is data, not a type: validate it into your own shape
-in `src/services/` rather than trusting a row's declared columns.
+in `src/domains/` rather than trusting a row's declared columns.
 
 ---
 
@@ -70,7 +70,7 @@ Do not add these without an explicit, documented reason.
 | Library | Avoid because | Use instead |
 | --- | --- | --- |
 | `express` | A Node-era framework built on Node's `req`/`res` and its stream internals. It does not belong on workerd. | `hono` — Web-standard types, built for this runtime. |
-| `nest` (NestJS) | Heavy DI/decorator framework, large runtime and conceptual weight unjustified for a lean service — and a poor fit for an isolate-per-request model. | `hono` + plain `services/` functions; add structure as the app grows. |
+| `nest` (NestJS) | Heavy DI/decorator framework, large runtime and conceptual weight unjustified for a lean service — and a poor fit for an isolate-per-request model. | `hono` + plain `domains/<name>/` functions; add structure as the app grows. |
 | **`axios`** | A dependency for something the runtime already has, with its own error model and cancellation story on top. | Built-in `fetch`, or `src/utilities/http.ts`. Blocked by lint **and** by `guardrails`. |
 | **`pino`** (and other Node loggers) | Built around Node streams and transports; on Workers the platform already captures and indexes structured output. | A tiny `logger.ts` writing JSON through `console.warn`/`console.error`. |
 | **`dotenv`** | There is no `.env` at runtime here. Config is bindings; local secrets come from `.dev.vars`, which wrangler loads itself. | `wrangler.jsonc` `vars` + `.dev.vars` + `src/constants/env.ts`. |

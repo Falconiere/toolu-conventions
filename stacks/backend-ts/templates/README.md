@@ -26,7 +26,7 @@ the same engine Cloudflare runs, so what passes locally is what deploys.
 | `src/index.ts` | Worker entry — `export default app`. The one default export. |
 | `src/rpc/` | The typed API surface — oRPC procedures (`base.ts`, `router.ts`, `*-procedures.ts`). |
 | `src/routes/` | Plain HTTP only: `/health`, webhooks, auth callbacks. |
-| `src/services/` | Business logic — framework-agnostic, testable. |
+| `src/domains/` | Business capabilities — one folder each, framework-agnostic, testable. |
 | `src/utilities/` | Shared pure helpers. |
 | `src/constants/` | `env.ts` (Zod-validated bindings) + enums. |
 | `src/types/` | Cross-cutting types. |
@@ -93,6 +93,6 @@ Both should be required checks on `main`.
 ## Conventions
 
 Strict TypeScript, no barrel files, named exports (except the Worker entry),
-kebab-case filenames, thin routes + services for logic, colocated real-data
+kebab-case filenames, thin routes + domains for logic, colocated real-data
 tests, Zod at every boundary with types from `z.infer`. Full rules in
 [`CLAUDE.md`](./CLAUDE.md).

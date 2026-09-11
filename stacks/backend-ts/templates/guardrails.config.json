@@ -6,7 +6,7 @@
     "topLevel": [
       "rpc",
       "routes",
-      "services",
+      "domains",
       "utilities",
       "constants",
       "types"
@@ -18,14 +18,14 @@
       "routes": [
         "__tests__"
       ],
-      "services": [
+      "domains/*": [
         "__tests__"
       ]
     },
     "requireReadme": [
       "rpc",
       "routes",
-      "services",
+      "domains",
       "utilities",
       "constants",
       "types"

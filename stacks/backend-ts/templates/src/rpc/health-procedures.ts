@@ -12,8 +12,8 @@ const HealthStatus = z.object({
 // client's types are derived from these same schemas, so the contract cannot
 // drift from the implementation.
 //
-// Keep handlers thin, exactly like a route: parse, call a service, shape the
-// result. The real work lives in src/services/.
+// Keep handlers thin, exactly like a route: parse, call a domain, shape the
+// result. The real work lives in src/domains/.
 /** `health.check` — liveness, callable by a typed client. */
 export const check = base.output(HealthStatus).handler(() => {
   return { status: 'ok' };

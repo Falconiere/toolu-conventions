@@ -216,7 +216,7 @@ a stale copy.
 Build the tree from [`STRUCTURE.md`](./STRUCTURE.md):
 
 ```bash
-mkdir -p src/rpc/__tests__ src/routes/__tests__ src/services/__tests__ \
+mkdir -p src/rpc/__tests__ src/routes/__tests__ src/domains src/utilities/__tests__ \
          src/utilities src/constants src/types
 ```
 
@@ -234,7 +234,7 @@ Then:
 5. Copy `templates/src/rpc/{base,router,health-procedures}.ts` → `src/rpc/`. This
    is the typed API surface — read [`STRUCTURE.md`](./STRUCTURE.md) →
    "Procedures" before adding one.
-6. Drop a `README.md` into each of `src/rpc`, `src/routes`, `src/services`,
+6. Drop a `README.md` into each of `src/rpc`, `src/routes`, `src/domains`,
    `src/utilities`, `src/constants`, and `src/types`, generated from
    `$KIT/shared/folder-README.md`
    (fill in the folder's purpose + a short "what's inside" list — seed it now,
@@ -270,7 +270,7 @@ describe('GET /health', () => {
 
 **Conventions reminder while you build:** no barrel files, kebab-case filenames
 named after their export, named exports only (`src/index.ts` is the one
-exception), thin routes + services for logic, co-located `__tests__/`, no `any`,
+exception), thin routes + domains for logic, co-located `__tests__/`, no `any`,
 no `console.log`.
 
 ---
@@ -332,7 +332,7 @@ export function openDb() {
 }
 ```
 
-Query from `src/services/`, never from a route. Schema changes are SQL files you
+Query from `src/domains/`, never from a route. Schema changes are SQL files you
 apply with the Turso CLI (or Drizzle migrations if you took Phase 6c) — a
 service does not migrate its own database on boot.
 
@@ -364,7 +364,7 @@ serves many requests; a module-level instance would capture one request's env),
 mount its handler, and let it own the session tables in Turso:
 
 ```ts
-// src/services/auth-service.ts
+// src/domains/auth/auth.ts
 import { betterAuth } from 'better-auth';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 import { tursoConfig } from '@/constants/env';
