@@ -1,6 +1,6 @@
 {
   "name": "@toolu/create",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Deterministic initializer for Toolu projects.",
   "keywords": [
     "create",

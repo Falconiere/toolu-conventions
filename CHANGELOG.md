@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/Falconiere/toolu-conventions/compare/v0.7.0...v0.8.0) (2026-09-12)
+
+
+### Features
+
+* ship domain-first domains layout ([#27](https://github.com/Falconiere/toolu-conventions/issues/27)) ([af64b1b](https://github.com/Falconiere/toolu-conventions/commit/af64b1b4b04f6710d3f02251a0f5a5d13110d920))
+
 # [0.7.0](https://github.com/Falconiere/toolu-conventions/compare/v0.6.0...v0.7.0) (2026-09-07)
 
 
