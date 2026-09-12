@@ -633,7 +633,7 @@
             Every project is laid out so a stranger (or an agent) can guess where
             a screen, an API call, or a helper lives. Folders are named for jobs,
             not for frameworks. TypeScript stacks share one vocabulary; Rust uses
-            the same idea with modules instead of feature folders.
+            the same idea with modules instead of domain folders.
           </p>
 
           <div class="structure-split">
@@ -642,7 +642,7 @@
               <h3 class="subhead">Authenticated app tree</h3>
               <p class="body">
                 Routes only wire URLs to screens. Product work lives under
-                <strong>features/</strong>. Shared UI and helpers stay outside features.
+                <strong>domains/</strong>. Shared UI and helpers stay outside domains.
                 Imports use <code class="code">@/*</code> (never deep relatives); no barrel
                 <code class="code">index.ts</code>. Canonical detail:
                 <code class="code">stacks/console/STRUCTURE.md</code>.
@@ -669,14 +669,14 @@
                           <div class="row"><span class="name dir">ui/</span><span class="hint">design system + theme</span></div>
                         </li>
                         <li>
-                          <div class="row"><span class="name dir">features/&lt;feature&gt;/</span><span class="hint">one job per folder</span></div>
+                          <div class="row"><span class="name dir">domains/&lt;domain&gt;/</span><span class="hint">one job per folder</span></div>
                           <ul>
                             <li><div class="row"><span class="name dir">screens/</span></div></li>
                             <li><div class="row"><span class="name dir">components/</span></div></li>
                             <li><div class="row"><span class="name dir">hooks/</span></div></li>
                             <li><div class="row"><span class="name dir">api/</span><span class="hint">optional</span></div></li>
                             <li><div class="row"><span class="name file">types.ts</span></div></li>
-                            <li><div class="row"><span class="name dir">__tests__/</span><span class="hint">colocated · per feature</span></div></li>
+                            <li><div class="row"><span class="name dir">__tests__/</span><span class="hint">colocated · per domain</span></div></li>
                           </ul>
                         </li>
                         <li><div class="row"><span class="name dir">api/</span><span class="hint">orpc + http clients</span></div></li>
@@ -784,14 +784,14 @@
             </article>
             <article class="variant">
               <p class="label">backend-ts</p>
-              <p>API: typed product RPC vs plain HTTP; logic in services.</p>
+              <p>API: typed product RPC vs plain HTTP; logic in domains.</p>
               <ul class="tree-viz" aria-label="Backend-ts folder tree">
                 <li>
                   <div class="row"><span class="name dir">src/</span></div>
                   <ul>
                     <li><div class="row"><span class="name file">app.ts</span><span class="hint">wiring only</span></div></li>
                     <li><div class="row"><span class="name file">index.ts</span><span class="hint">Worker entry</span></div></li>
-                    <li><div class="row"><span class="name dir">services/</span><span class="hint">+ __tests__/</span></div></li>
+                    <li><div class="row"><span class="name dir">domains/</span><span class="hint">&lt;name&gt;/ + __tests__/</span></div></li>
                     <li><div class="row"><span class="name dir">rpc/</span><span class="hint">+ __tests__/</span></div></li>
                     <li><div class="row"><span class="name dir">routes/</span><span class="hint">+ __tests__/</span></div></li>
                     <li><div class="row"><span class="name dir">utilities/</span></div></li>
@@ -802,7 +802,7 @@
             </article>
             <article class="variant">
               <p class="label">expo</p>
-              <p>Mobile: Expo Router at repo-root <code class="code">app/</code>; features under <code class="code">src/</code>.</p>
+              <p>Mobile: Expo Router at repo-root <code class="code">app/</code>; domains under <code class="code">src/</code>.</p>
               <ul class="tree-viz" aria-label="Expo folder tree">
                 <li>
                   <div class="row"><span class="name dir">&lt;app&gt;/</span></div>
@@ -811,7 +811,7 @@
                     <li>
                       <div class="row"><span class="name dir">src/</span></div>
                       <ul>
-                        <li><div class="row"><span class="name dir">features/</span></div></li>
+                        <li><div class="row"><span class="name dir">domains/</span></div></li>
                         <li><div class="row"><span class="name dir">ui/</span></div></li>
                         <li><div class="row"><span class="name dir">api/</span></div></li>
                         <li><div class="row"><span class="name dir">utilities/</span></div></li>
@@ -897,7 +897,7 @@
                   <p class="label">TypeScript · colocated</p>
                   <ul class="tree-viz" aria-label="TypeScript colocated tests">
                     <li>
-                      <div class="row"><span class="name dir">ui/</span><span class="hint">or features/…/components</span></div>
+                      <div class="row"><span class="name dir">ui/</span><span class="hint">or domains/…/components</span></div>
                       <ul>
                         <li>
                           <div class="row"><span class="name dir">my-component/</span><span class="hint">module folder</span></div>
