@@ -35,6 +35,10 @@ tree, the same banned dependencies, the same lint config, and the same five enfo
 layers as project #1 — and that an agent working inside it gets told *while it types*
 when it drifts.
 
+Product code lands under `src/domains/<name>/` (with the documented marketing
+and database-ts exceptions) — not a shared `features/` or `services/` tree.
+Stack templates and guardrails enforce that layout.
+
 ## Quick start
 
 ```bash
