@@ -2,10 +2,13 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { z } from "zod";
 import { resolveConfiguration } from "../../src/configuration";
 
 const repository = resolve(".");
-const generatorVersion: string = (await Bun.file(resolve("package.json")).json()).version;
+const { version: generatorVersion } = z
+  .object({ version: z.string().min(1) })
+  .parse(await Bun.file(resolve("package.json")).json());
 let temporary = "";
 let installDirectory = "";
 let tarball = "";

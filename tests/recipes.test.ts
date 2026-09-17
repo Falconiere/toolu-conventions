@@ -10,8 +10,17 @@ import { planRecipe } from "../src/recipes";
 import { resolveImportedTheme } from "../src/theme";
 
 describe("planRecipe", () => {
-  test.each(["console", "expo"])("preserves special display names in %s source", async (stack) => {
-    const displayName = 'O\'Reilly "Labs" \\ tools\n<&{hello}>';
+  test.each(
+    ["console", "expo"].flatMap((stack) =>
+      [
+        'O\'Reilly "Labs" \\ tools\n<&{hello}>',
+        `Terminal${String.fromCharCode(92, 39)}`,
+        `Terminal${String.fromCharCode(92, 92, 39)}`,
+        `Terminal${String.fromCharCode(92, 34)}`,
+        `Terminal${String.fromCharCode(92)}`,
+      ].map((displayName) => ({ stack, displayName })),
+    ),
+  )("preserves $displayName in $stack source", async ({ stack, displayName }) => {
     const manifest = resolveConfiguration({
       generatorVersion: "0.8.0",
       flags: { targetDirectory: "quoted-name", name: "quoted-name", stack, displayName },
@@ -93,10 +102,16 @@ describe("planRecipe", () => {
   });
 
   test("generates valid imports and distinct sections for numeric and overlapping routes", async () => {
-    const pages = ["2026", "a/b", "a-b", "hero"];
+    const pages = ["2026", "a/b", "a-b", "hero"] as const;
+    const expectedSections: Record<(typeof pages)[number], string> = {
+      "2026": "pages/2026-section.astro",
+      "a/b": "pages/a/b-section.astro",
+      "a-b": "pages/a-b-section.astro",
+      hero: "pages/hero-section.astro",
+    };
     const manifest = resolveConfiguration({
       generatorVersion: "0.8.0",
-      flags: { targetDirectory: "routes", name: "routes", stack: "marketing", pages },
+      flags: { targetDirectory: "routes", name: "routes", stack: "marketing", pages: [...pages] },
     });
     const files = await planRecipe(manifest, resolve("."));
     const sections = new Set<string>();
@@ -111,6 +126,7 @@ describe("planRecipe", () => {
         slug,
       ).toEqual([]);
       const sectionImport = /from '@\/sections\/([^']+)'/.exec(frontmatter)![1]!;
+      expect(sectionImport).toEqual(expectedSections[slug]);
       sections.add(sectionImport);
       const section = files.find((file) => file.path === `src/sections/${sectionImport}`)!.content;
       expect(section).toContain(`>${slug.toUpperCase()}</p>`);
@@ -362,6 +378,7 @@ describe("planRecipe", () => {
     expect(paths).toContain("src/ui/icon.tsx");
     expect(JSON.parse(packageFile?.content ?? "{}").dependencies).toMatchObject({
       expo: "53.0.22",
+      "query-string": "7.1.3",
       react: "19.0.0",
       "react-native": "0.79.6",
     });

@@ -386,6 +386,8 @@ function expoPackage(manifest: ScaffoldManifest): string {
       "expo-router",
       "expo-system-ui",
       "expo-updates",
+      // expo-router 5.1.11 imports this without declaring a runtime dependency.
+      "query-string",
       "react-native",
       "react-native-gesture-handler",
       "react-native-safe-area-context",
@@ -897,6 +899,7 @@ async function planMarketing(
 ) {
   if (manifest.stack.id !== "marketing")
     throw new Error("marketing recipe requires a marketing manifest");
+  // Used only in markup below the closing Astro frontmatter delimiter.
   const displayName = escapeMarkup(manifest.project.displayName);
   const description = escapeMarkup(projectDescription(manifest));
   const templateRoot = resolve(assetRoot, "stacks/marketing/templates");

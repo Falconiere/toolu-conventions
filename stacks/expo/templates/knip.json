@@ -2,5 +2,5 @@
   "$schema": "./node_modules/knip/schema.json",
   "project": ["src/**/*.{ts,tsx}", "app/**/*.{ts,tsx}"],
   "ignore": ["src/constants/env.ts", "src/ui/theme/**"],
-  "ignoreDependencies": ["babel-preset-expo"]
+  "ignoreDependencies": ["babel-preset-expo", "query-string"]
 }
