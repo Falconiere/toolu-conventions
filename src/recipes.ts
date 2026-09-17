@@ -2,7 +2,12 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { join, posix, relative, resolve, sep } from "node:path";
 import { pinned, type KnownDependency } from "./dependencies";
 import type { ScaffoldManifest } from "./manifest";
-import { assertNoReservedPlaceholders, renderTemplate } from "./render";
+import {
+  assertNoReservedPlaceholders,
+  escapeMarkup,
+  escapeSingleQuotedString,
+  renderTemplate,
+} from "./render";
 import { readVerifiedImportedThemeFile } from "./theme";
 
 export interface PlannedFile {
@@ -30,7 +35,10 @@ function placeholderValues(manifest: ScaffoldManifest): Record<string, string> {
   return {
     TOOLU_PROJECT_NAME: manifest.project.name,
     TOOLU_DISPLAY_NAME: manifest.project.displayName,
+    TOOLU_DISPLAY_NAME_JS: escapeSingleQuotedString(manifest.project.displayName),
+    TOOLU_DISPLAY_NAME_HTML: escapeMarkup(manifest.project.displayName),
     TOOLU_DESCRIPTION: projectDescription(manifest),
+    TOOLU_DESCRIPTION_HTML: escapeMarkup(projectDescription(manifest)),
     TOOLU_STAGING_ROW: manifest.staging
       ? "| staging | pre-production validation | `bun run deploy --env staging` |"
       : "",
@@ -42,8 +50,8 @@ function placeholderValues(manifest: ScaffoldManifest): Record<string, string> {
     TOOLU_SITE_DOMAIN: manifest.runtime.domain ?? `${manifest.project.name}.example.com`,
     TOOLU_SECTION_MARKER: "01 / HOME",
     TOOLU_HEADLINE_LINE_ONE: "Build with clarity.",
-    TOOLU_HEADLINE_LINE_TWO: manifest.project.displayName,
-    TOOLU_SUBHEAD: projectDescription(manifest),
+    TOOLU_HEADLINE_LINE_TWO_HTML: escapeMarkup(manifest.project.displayName),
+    TOOLU_SUBHEAD_HTML: escapeMarkup(projectDescription(manifest)),
     TOOLU_PROJECT_SLUG: manifest.project.name,
     TOOLU_URL_SCHEME: manifest.project.name.replaceAll("-", ""),
     TOOLU_BUNDLE_ID: `com.${manifest.project.name.replaceAll("-", "")}.app`,
@@ -378,6 +386,8 @@ function expoPackage(manifest: ScaffoldManifest): string {
       "expo-router",
       "expo-system-ui",
       "expo-updates",
+      // expo-router 5.1.11 imports this without declaring a runtime dependency.
+      "query-string",
       "react-native",
       "react-native-gesture-handler",
       "react-native-safe-area-context",
@@ -889,6 +899,9 @@ async function planMarketing(
 ) {
   if (manifest.stack.id !== "marketing")
     throw new Error("marketing recipe requires a marketing manifest");
+  // Used only in markup below the closing Astro frontmatter delimiter.
+  const displayName = escapeMarkup(manifest.project.displayName);
+  const description = escapeMarkup(projectDescription(manifest));
   const templateRoot = resolve(assetRoot, "stacks/marketing/templates");
   const values = placeholderValues(manifest);
   await addTree(
@@ -928,13 +941,14 @@ async function planMarketing(
 
   for (const slug of manifest.stack.pages) {
     if (slug === "home") continue;
-    const sectionStem = `${slug.replaceAll("/", "-")}-section`;
-    const componentName = `${pageTitle(slug).replaceAll(" ", "")}Section`;
+    // Preserve route segments and isolate generated sections from owned templates.
+    const sectionStem = `pages/${slug}-section`;
+    const componentName = `Page${pageTitle(slug).replaceAll(" ", "")}Section`;
     const title = pageTitle(slug);
     const pagePath = `src/pages/${slug}.astro`;
     files.set(pagePath, {
       path: pagePath,
-      content: `---\n/** /${slug} — generated route shell. */\nimport BaseLayout from '@/layouts/base-layout.astro';\nimport ${componentName} from '@/sections/${sectionStem}.astro';\n---\n\n<BaseLayout title="${title} — ${manifest.project.displayName}" description="${title} for ${manifest.project.displayName}.">\n  <${componentName} />\n</BaseLayout>\n`,
+      content: `---\n/** /${slug} — generated route shell. */\nimport BaseLayout from '@/layouts/base-layout.astro';\nimport ${componentName} from '@/sections/${sectionStem}.astro';\n---\n\n<BaseLayout title="${title} — ${displayName}" description="${title} for ${displayName}.">\n  <${componentName} />\n</BaseLayout>\n`,
     });
     const sectionPath = `src/sections/${sectionStem}.astro`;
     files.set(sectionPath, {
@@ -958,7 +972,7 @@ async function planMarketing(
   if (manifest.integrations.includes("blog")) {
     files.set("src/pages/blog/index.astro", {
       path: "src/pages/blog/index.astro",
-      content: `---\nimport BaseLayout from '@/layouts/base-layout.astro';\n---\n\n<BaseLayout title="Blog — ${manifest.project.displayName}" description="Updates from ${manifest.project.displayName}.">\n  <main class="band px-gutter py-section-y"><h1 class="type-display-lg">Blog</h1></main>\n</BaseLayout>\n`,
+      content: `---\nimport BaseLayout from '@/layouts/base-layout.astro';\n---\n\n<BaseLayout title="Blog — ${displayName}" description="Updates from ${displayName}.">\n  <main class="band px-gutter py-section-y"><h1 class="type-display-lg">Blog</h1></main>\n</BaseLayout>\n`,
     });
     files.set("src/content.config.ts", {
       path: "src/content.config.ts",
@@ -986,7 +1000,7 @@ async function planMarketing(
   if (manifest.integrations.includes("changelog")) {
     files.set("src/pages/changelog/index.astro", {
       path: "src/pages/changelog/index.astro",
-      content: `---\nimport BaseLayout from '@/layouts/base-layout.astro';\n---\n\n<BaseLayout title="Changelog — ${manifest.project.displayName}" description="Product changes from ${manifest.project.displayName}.">\n  <main class="band px-gutter py-section-y"><h1 class="type-display-lg">Changelog</h1></main>\n</BaseLayout>\n`,
+      content: `---\nimport BaseLayout from '@/layouts/base-layout.astro';\n---\n\n<BaseLayout title="Changelog — ${displayName}" description="Product changes from ${displayName}.">\n  <main class="band px-gutter py-section-y"><h1 class="type-display-lg">Changelog</h1></main>\n</BaseLayout>\n`,
     });
   }
   if (manifest.integrations.includes("react-island")) {
@@ -996,7 +1010,7 @@ async function planMarketing(
     });
     files.set("src/pages/index.astro", {
       path: "src/pages/index.astro",
-      content: `---\n/** Home page with one opt-in hydrated React island. */\nimport BaseLayout from '@/layouts/base-layout.astro';\nimport HeroSection from '@/sections/hero-section.astro';\nimport { SignupIsland } from '@/ui/signup-island';\n---\n\n<BaseLayout title="${manifest.project.displayName}" description="${projectDescription(manifest)}">\n  <HeroSection />\n  <SignupIsland client:visible />\n</BaseLayout>\n`,
+      content: `---\n/** Home page with one opt-in hydrated React island. */\nimport BaseLayout from '@/layouts/base-layout.astro';\nimport HeroSection from '@/sections/hero-section.astro';\nimport { SignupIsland } from '@/ui/signup-island';\n---\n\n<BaseLayout title="${displayName}" description="${description}">\n  <HeroSection />\n  <SignupIsland client:visible />\n</BaseLayout>\n`,
     });
     addPackageDependencies(
       files,
@@ -1449,7 +1463,7 @@ async function planRust(
 
   if (manifest.integrations.includes("clap")) {
     const serviceFields = manifest.integrations.includes("axum")
-      ? "    /// TCP port for the HTTP service.\n    #[arg(long, default_value_t = 3000)]\n    pub(crate) port: u16,"
+      ? `    /// TCP port for the HTTP service.\n    #[arg(long, default_value_t = ${manifest.runtime.port})]\n    pub(crate) port: u16,`
       : '    /// Name included in the greeting.\n    #[arg(long, default_value = "world")]\n    pub(crate) name: String,';
     files.set("src/cli.rs", {
       path: "src/cli.rs",
@@ -1482,7 +1496,9 @@ async function planRust(
     const cliImports = manifest.integrations.includes("clap")
       ? "mod cli;\nmod http;\n\nuse clap::Parser;\nuse cli::Cli;\n"
       : "mod http;\n";
-    const port = manifest.integrations.includes("clap") ? "Cli::parse().port" : "3000";
+    const port = manifest.integrations.includes("clap")
+      ? "Cli::parse().port"
+      : String(manifest.runtime.port);
     files.set("src/main.rs", {
       path: "src/main.rs",
       content: `//! Binary entry point for \`${manifest.project.name}\`.\n\n${cliImports}\n/// Starts the HTTP service.\n#[tokio::main]\nasync fn main() {\n    let address = (std::net::Ipv4Addr::LOCALHOST, ${port});\n    let listener = match tokio::net::TcpListener::bind(address).await {\n        Ok(listener) => listener,\n        Err(error) => {\n            eprintln!("failed to bind HTTP listener: {error}");\n            return;\n        }\n    };\n    if let Err(error) = axum::serve(listener, http::router::app()).await {\n        eprintln!("HTTP service failed: {error}");\n    }\n}\n`,

@@ -2,12 +2,168 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
 import { resolveConfiguration } from "../src/configuration";
 import { parseManifest } from "../src/manifest";
 import { planRecipe } from "../src/recipes";
 import { resolveImportedTheme } from "../src/theme";
 
 describe("planRecipe", () => {
+  test.each(
+    ["console", "expo"].flatMap((stack) =>
+      [
+        'O\'Reilly "Labs" \\ tools\n<&{hello}>',
+        `Terminal${String.fromCharCode(92, 39)}`,
+        `Terminal${String.fromCharCode(92, 92, 39)}`,
+        `Terminal${String.fromCharCode(92, 34)}`,
+        `Terminal${String.fromCharCode(92)}`,
+      ].map((displayName) => ({ stack, displayName })),
+    ),
+  )("preserves $displayName in $stack source", async ({ stack, displayName }) => {
+    const manifest = resolveConfiguration({
+      generatorVersion: "0.8.0",
+      flags: { targetDirectory: "quoted-name", name: "quoted-name", stack, displayName },
+    });
+    const files = await planRecipe(manifest, resolve("."));
+    const path = stack === "expo" ? "app.config.ts" : "src/domains/home/screens/home-screen.tsx";
+    const content = files.find((file) => file.path === path)!.content;
+    const result = ts.transpileModule(content, {
+      fileName: path,
+      reportDiagnostics: true,
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.CommonJS,
+        jsx: ts.JsxEmit.ReactJSX,
+      },
+    });
+    expect(
+      result.diagnostics?.map((diagnostic) =>
+        ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+      ),
+    ).toEqual([]);
+    const literals: string[] = [];
+    function visit(node: ts.Node): void {
+      if (ts.isStringLiteral(node)) literals.push(node.text);
+      ts.forEachChild(node, visit);
+    }
+    visit(ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true));
+    expect(literals).toContain(displayName);
+    if (stack === "expo") {
+      for (const variant of ["prod", "test"]) {
+        const context = {
+          exports: {} as { default?: { name: string } },
+          process: { env: { APP_VARIANT: variant } },
+        };
+        runInNewContext(result.outputText, context);
+        expect(context.exports.default?.name).toBe(
+          variant === "prod" ? displayName : `${displayName} (Test)`,
+        );
+      }
+    }
+  });
+
+  test("escapes display names in authored HTML and every marketing page", async () => {
+    const displayName = 'O\'Reilly "Labs" <&{hello}>';
+    for (const stack of ["console", "marketing"]) {
+      const manifest = resolveConfiguration({
+        generatorVersion: "0.8.0",
+        flags: {
+          targetDirectory: "quoted-markup",
+          name: "quoted-markup",
+          stack,
+          displayName,
+          ...(stack === "marketing"
+            ? { pages: ["home", "pricing"], integrations: ["blog", "changelog", "react-island"] }
+            : {}),
+        },
+      });
+      const files = await planRecipe(manifest, resolve("."));
+      const paths =
+        stack === "console"
+          ? ["index.html"]
+          : [
+              "src/pages/index.astro",
+              "src/pages/404.astro",
+              "src/pages/pricing.astro",
+              "src/pages/blog/index.astro",
+              "src/pages/changelog/index.astro",
+              "src/sections/hero-section.astro",
+            ];
+      for (const path of paths) {
+        const content = files.find((file) => file.path === path)!.content;
+        expect(content, path).not.toContain(displayName);
+        expect(content, path).toContain(
+          "O&#39;Reilly &quot;Labs&quot; &lt;&amp;&#123;hello&#125;&gt;",
+        );
+      }
+      expect(files.find((file) => file.path === "README.md")!.content).toContain(displayName);
+    }
+  });
+
+  test("generates valid imports and distinct sections for numeric and overlapping routes", async () => {
+    const pages = ["2026", "a/b", "a-b", "hero"] as const;
+    const expectedSections: Record<(typeof pages)[number], string> = {
+      "2026": "pages/2026-section.astro",
+      "a/b": "pages/a/b-section.astro",
+      "a-b": "pages/a-b-section.astro",
+      hero: "pages/hero-section.astro",
+    };
+    const manifest = resolveConfiguration({
+      generatorVersion: "0.8.0",
+      flags: { targetDirectory: "routes", name: "routes", stack: "marketing", pages: [...pages] },
+    });
+    const files = await planRecipe(manifest, resolve("."));
+    const sections = new Set<string>();
+    for (const slug of pages) {
+      const page = files.find((file) => file.path === `src/pages/${slug}.astro`)!.content;
+      const frontmatter = page.split("---")[1]!;
+      const result = ts.transpileModule(frontmatter, { reportDiagnostics: true });
+      expect(
+        result.diagnostics?.map((diagnostic) =>
+          ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+        ),
+        slug,
+      ).toEqual([]);
+      const sectionImport = /from '@\/sections\/([^']+)'/.exec(frontmatter)![1]!;
+      expect(sectionImport).toEqual(expectedSections[slug]);
+      sections.add(sectionImport);
+      const section = files.find((file) => file.path === `src/sections/${sectionImport}`)!.content;
+      expect(section).toContain(`>${slug.toUpperCase()}</p>`);
+    }
+    expect(sections.size).toBe(pages.length);
+    expect(
+      files.find((file) => file.path === "src/sections/hero-section.astro")!.content,
+    ).toContain("Build with clarity.");
+  });
+
+  test.each([false, true])("uses the requested Rust listener port (clap: %s)", async (clap) => {
+    const manifest = resolveConfiguration({
+      generatorVersion: "0.8.0",
+      flags: {
+        targetDirectory: "custom-port",
+        name: "custom-port",
+        stack: "rust",
+        integrations: clap ? ["axum", "clap"] : ["axum"],
+        operations: ["local-dev"],
+        port: 4567,
+      },
+    });
+    const files = await planRecipe(manifest, resolve("."));
+    const source = files.find(
+      (file) => file.path === (clap ? "src/cli.rs" : "src/main.rs"),
+    )!.content;
+    const port = clap
+      ? /default_value_t = (\d+)/.exec(source)?.[1]
+      : /Ipv4Addr::LOCALHOST, (\d+)/.exec(source)?.[1];
+    const operations = JSON.parse(
+      files.find((file) => file.path === "operations.config.json")!.content,
+    );
+    expect(Number(port)).toBe(4567);
+    expect(operations.services[0].port).toBe(Number(port));
+    expect(operations.services[0].healthcheck).toBe("http://127.0.0.1:4567/health");
+  });
+
   test("materializes a complete console base from owned assets", async () => {
     const manifest = resolveConfiguration({
       generatorVersion: "0.7.0",
@@ -82,7 +238,7 @@ describe("planRecipe", () => {
     expect(paths).toContain("src/pages/404.astro");
     expect(paths).toContain("src/pages/pricing.astro");
     expect(paths).toContain("src/pages/about/team.astro");
-    expect(paths).toContain("src/sections/about-team-section.astro");
+    expect(paths).toContain("src/sections/pages/about/team-section.astro");
   });
 
   test.each([
@@ -222,6 +378,7 @@ describe("planRecipe", () => {
     expect(paths).toContain("src/ui/icon.tsx");
     expect(JSON.parse(packageFile?.content ?? "{}").dependencies).toMatchObject({
       expo: "53.0.22",
+      "query-string": "7.1.3",
       react: "19.0.0",
       "react-native": "0.79.6",
     });

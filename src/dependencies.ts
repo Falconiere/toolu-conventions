@@ -49,6 +49,7 @@ export const VERSIONS = {
   oxfmt: "0.62.0",
   oxlint: "1.77.0",
   "oxlint-tsgolint": "7.0.2001",
+  "query-string": "7.1.3",
   react: "19.1.1",
   "react-dom": "19.1.1",
   "react-native": "0.79.6",

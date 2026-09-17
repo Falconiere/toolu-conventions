@@ -2,11 +2,15 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { z } from "zod";
 import { resolveConfiguration } from "../../src/configuration";
 import { resolveImportedTheme } from "../../src/theme";
 
 const repository = resolve(".");
 const binary = resolve("dist/create-toolu.js");
+const { version: generatorVersion } = z
+  .object({ version: z.string().min(1) })
+  .parse(await Bun.file(resolve("package.json")).json());
 let temporary = "";
 let fakeBin = "";
 
@@ -87,7 +91,7 @@ describe("built create-toolu CLI", () => {
 
   test("replays a complete manifest through the built binary", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.7.0",
+      generatorVersion,
       flags: {
         targetDirectory: "replayed-cli",
         name: "replayed-cli",
@@ -108,7 +112,7 @@ describe("built create-toolu CLI", () => {
 
   test("rejects unknown fields in replay configuration before generation", async () => {
     const manifest = resolveConfiguration({
-      generatorVersion: "0.7.0",
+      generatorVersion,
       flags: { targetDirectory: "invalid-replay", name: "invalid-replay", stack: "rust" },
     });
     const config = join(temporary, "invalid-replay.json");
@@ -117,7 +121,9 @@ describe("built create-toolu CLI", () => {
     const result = invoke(["--config", config]);
 
     expect(result.exitCode).toBe(1);
-    expect(result.stderr.toString()).toContain("Unrecognized key");
+    expect(JSON.parse(result.stderr.toString())).toContainEqual(
+      expect.objectContaining({ code: "unrecognized_keys", keys: ["unexpected"] }),
+    );
     expect(await Bun.file(join(temporary, "invalid-replay")).exists()).toBe(false);
   });
 
@@ -131,7 +137,7 @@ describe("built create-toolu CLI", () => {
       );
     }
     const base = resolveConfiguration({
-      generatorVersion: "0.7.0",
+      generatorVersion,
       flags: { targetDirectory: "theme-replay", name: "theme-replay", stack: "console" },
     });
     const theme = await resolveImportedTheme(themeDirectory, "console");

@@ -11,7 +11,7 @@ const VARIANT =
 const IS_PROD = VARIANT === 'prod';
 
 // ── Identity (fill these in) ─────────────────────────────────────────────────
-const APP_NAME = IS_PROD ? '{{TOOLU_DISPLAY_NAME}}' : '{{TOOLU_DISPLAY_NAME}} (Test)';
+const APP_NAME = IS_PROD ? '{{TOOLU_DISPLAY_NAME_JS}}' : '{{TOOLU_DISPLAY_NAME_JS}} (Test)';
 const SLUG = '{{TOOLU_PROJECT_SLUG}}';
 const SCHEME = '{{TOOLU_URL_SCHEME}}';
 const IOS_BUNDLE = IS_PROD ? '{{TOOLU_BUNDLE_ID}}' : '{{TOOLU_BUNDLE_ID}}.test';

@@ -2,9 +2,13 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { z } from "zod";
 import { resolveConfiguration } from "../../src/configuration";
 
 const repository = resolve(".");
+const { version: generatorVersion } = z
+  .object({ version: z.string().min(1) })
+  .parse(await Bun.file(resolve("package.json")).json());
 let temporary = "";
 let installDirectory = "";
 let tarball = "";
@@ -74,7 +78,7 @@ describe("published package eval", () => {
   test("scaffolds a complete replay manifest from the installed tarball", async () => {
     const target = join(temporary, "packed-project");
     const manifest = resolveConfiguration({
-      generatorVersion: "0.7.0",
+      generatorVersion,
       flags: {
         targetDirectory: target,
         name: "packed-project",
