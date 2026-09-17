@@ -103,6 +103,13 @@ profile as appropriate. Local-dev remains independently selectable.
 Marketing page values are `home` or deterministic lowercase route slugs such as
 `pricing` and `about/team`. Traversal, empty segments, uppercase characters, and
 unstable dynamic routes are rejected.
+Generated sections live under `src/sections/pages/`, preserving route segments:
+`a/b` and `a-b` have separate sections. Numeric slugs such as `2026` are supported.
+
+Display names preserve quotes, backslashes, and markup characters through
+context-specific escaping in generated source and pages. For Rust services,
+`--port` sets the listener default as well as the local-dev health-check port;
+the optional Clap `--port` argument can override that default at runtime.
 
 ## Themes
 

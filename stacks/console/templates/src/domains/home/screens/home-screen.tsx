@@ -6,7 +6,7 @@ import { integrationCount } from './integration-status';
 export function HomeScreen() {
   return (
     <main className="band min-h-screen p-8">
-      Hello from {'{{TOOLU_DISPLAY_NAME}}'} ({APP_ENV}; {integrationCount} integrations){' '}
+      Hello from {'{{TOOLU_DISPLAY_NAME_JS}}'} ({APP_ENV}; {integrationCount} integrations){' '}
       <span aria-hidden>{icons.check}</span>
     </main>
   );

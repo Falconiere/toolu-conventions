@@ -1,5 +1,22 @@
 const RESERVED_PLACEHOLDER = /\{\{(TOOLU_[A-Z0-9_]+)\}\}/g;
 
+/** Escapes the contents of an existing single-quoted JavaScript string. */
+export function escapeSingleQuotedString(value: string): string {
+  return JSON.stringify(value).slice(1, -1).replaceAll('\\"', '"').replaceAll("'", "\\'");
+}
+
+/** Safe in HTML text/attributes and Astro text (where braces start expressions). */
+export function escapeMarkup(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+    .replaceAll("{", "&#123;")
+    .replaceAll("}", "&#125;");
+}
+
 export class ReservedPlaceholderError extends Error {
   override name = "ReservedPlaceholderError";
 }

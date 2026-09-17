@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { access, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, readdir, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { resolveConfiguration } from "../src/configuration";
@@ -100,7 +100,7 @@ describe("generator engine", () => {
 
       await access(join(target, "Cargo.toml"));
       await access(join(target, "toolu.scaffold.json"));
-      expect(result.targetDirectory).toBe(target);
+      expect(result.targetDirectory).toBe(await realpath(target));
       expect(phases).toEqual(["install", "git", "hooks", "verify", "verify", "verify", "verify"]);
       expect((await readdir(temporary)).filter((path) => path.includes("staging"))).toEqual([]);
     } finally {

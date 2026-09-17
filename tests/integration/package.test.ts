@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { resolveConfiguration } from "../../src/configuration";
 
 const repository = resolve(".");
+const generatorVersion: string = (await Bun.file(resolve("package.json")).json()).version;
 let temporary = "";
 let installDirectory = "";
 let tarball = "";
@@ -74,7 +75,7 @@ describe("published package eval", () => {
   test("scaffolds a complete replay manifest from the installed tarball", async () => {
     const target = join(temporary, "packed-project");
     const manifest = resolveConfiguration({
-      generatorVersion: "0.7.0",
+      generatorVersion,
       flags: {
         targetDirectory: target,
         name: "packed-project",

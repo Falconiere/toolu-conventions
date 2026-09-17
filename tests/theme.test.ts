@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { resolveImportedTheme, verifyImportedTheme } from "../src/theme";
@@ -20,7 +20,7 @@ describe("resolveImportedTheme", () => {
 
     expect(theme).toEqual({
       kind: "import",
-      source,
+      source: await realpath(source),
       files: [
         {
           path: "palette.css",
