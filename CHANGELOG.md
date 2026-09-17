@@ -1,3 +1,10 @@
+## [0.8.1](https://github.com/Falconiere/toolu-conventions/compare/v0.8.0...v0.8.1) (2026-09-17)
+
+
+### Bug Fixes
+
+* **scaffold:** preserve display names, routes, and service ports ([#28](https://github.com/Falconiere/toolu-conventions/issues/28)) ([34f06eb](https://github.com/Falconiere/toolu-conventions/commit/34f06eb5908e1a4f82cd61ed3f677eb2fefcb91e))
+
 # [0.8.0](https://github.com/Falconiere/toolu-conventions/compare/v0.7.0...v0.8.0) (2026-09-12)
 
 
