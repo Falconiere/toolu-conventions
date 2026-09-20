@@ -2332,14 +2332,14 @@ export async function planRecipe(
     path: ".gitignore",
     content: rustOnly
       ? "/target/\n.env\n.tooling/\n"
-      : `node_modules/\ndist/\n.env*\n!.env.example\n.dev.vars\n.tooling/\n${anyRust ? "target/\n" : ""}`,
+      : `node_modules/\ndist/\n.astro/\n.env*\n!.env.example\n.dev.vars\n.tooling/\n.claude/settings.local.json\n${anyRust ? "target/\n" : ""}`,
   });
   if (!rustOnly) {
     files.set(".oxfmtignore", {
       path: ".oxfmtignore",
       content: isMonorepo(manifest)
-        ? "*.md\n**/.astro/**\n**/.wrangler/**\nscripts/guardrails/**\n**/src/ui/theme/**\n"
-        : "*.md\n.astro/**\n.wrangler/**\nscripts/guardrails/**\nsrc/ui/theme/**\n",
+        ? "*.md\n**/.astro/**\n**/.wrangler/**\nscripts/guardrails/**\n**/src/ui/theme/**\n**/*.gen.ts\n**/worker-configuration.d.ts\n"
+        : "*.md\n.astro/**\n.wrangler/**\nscripts/guardrails/**\nsrc/ui/theme/**\n*.gen.ts\nworker-configuration.d.ts\n",
     });
   }
   files.set("toolu.scaffold.json", {

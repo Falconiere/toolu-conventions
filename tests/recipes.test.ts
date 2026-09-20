@@ -183,6 +183,12 @@ describe("planRecipe", () => {
     expect(paths).toContain("scripts/guardrails/run.sh");
     expect(paths).toContain(".claude/settings.json");
     expect(paths).toContain("toolu.scaffold.json");
+    const gitignore = files.find((file) => file.path === ".gitignore")?.content ?? "";
+    expect(gitignore).toContain(".astro/");
+    expect(gitignore).toContain(".claude/settings.local.json");
+    const oxfmtignore = files.find((file) => file.path === ".oxfmtignore")?.content ?? "";
+    expect(oxfmtignore).toContain("*.gen.ts");
+    expect(oxfmtignore).toContain("worker-configuration.d.ts");
     expect(JSON.parse(packageFile?.content ?? "{}")).toMatchObject({
       name: "acme-console",
       private: true,
