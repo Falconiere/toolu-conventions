@@ -20,9 +20,10 @@ have an opinion about.
 1. **No source tree.** If this package ever needs one, it has stopped being a
    config package — split the new code into `packages/ui` or `packages/types`,
    or a new package, instead of growing one here.
-2. **No `package.json` at all.** This package is not a workspace member: it has
-   no dependencies to pin and no scripts for the root fan-out to call. The
-   packages that extend these bases install `oxlint` themselves.
+2. **No source tree, and the `package.json` stays minimal.** It declares the
+   two bases in its `exports` map and one script — the format check — because
+   that is the only gate a package with no code can honestly run. The packages
+   that extend these bases install `oxlint` themselves.
 3. **Extend, do not fork.** A consuming package's `.oxlintrc.json` points its
    `extends` array at these files rather than copying rules into its own
    config — one copy of the rules, not one per package.

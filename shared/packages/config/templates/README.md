@@ -49,6 +49,7 @@ actually runs in: the package.
 
 - Application code, contracts, or components. Those are `packages/ui` and
   `packages/types`.
-- A `package.json`. This package is not a workspace member — it has no
-  dependencies and no scripts, so the root's `bun run --filter '*'` fan-out has
-  nothing to call here. Consumers reach these files by path.
+- Source code, contracts or components. The `package.json` here declares the
+  two bases in its `exports` map and one script, the format check: a package
+  with no code has nothing else to gate. Consumers still resolve the bases by
+  path, because oxlint reads `extends` as a path rather than through Node.

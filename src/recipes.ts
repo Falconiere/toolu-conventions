@@ -1858,10 +1858,11 @@ async function planSharedPackage(
 }
 
 /**
- * The config package is lint bases and nothing else: no source tree, no tests,
- * no scripts. It is deliberately NOT a workspace member — a member with no
- * check script would break the root fan-out — so the members that extend it
- * reach it by path.
+ * The config package is lint bases and nothing else. It is still a workspace
+ * member — every directory under packages/ is one — so it carries an exports
+ * map for its two files (CORE, monorepos rule 5) and the scripts the root
+ * fan-out calls. The members that extend it resolve the bases by path, because
+ * oxlint reads `extends` as a path rather than through Node resolution.
  */
 async function planConfigPackage(
   manifest: ScaffoldManifest,
@@ -1870,6 +1871,22 @@ async function planConfigPackage(
   members: readonly string[],
 ): Promise<void> {
   await addPackageTemplates(files, manifest, assetRoot, "config", "packages/config");
+  setPlannedJson(files, "packages/config/package.json", {
+    name: workspacePackageName(manifest.project.name, "config"),
+    version: "0.1.0",
+    private: true,
+    type: "module",
+    exports: {
+      "./base": "./base.oxlintrc.json",
+      "./base-react": "./base-react.oxlintrc.json",
+    },
+    scripts: {
+      check: "bun run fmt:check",
+      fmt: "oxfmt --ignore-path ../../.oxfmtignore",
+      "fmt:check": "oxfmt --check --ignore-path ../../.oxfmtignore",
+    },
+    devDependencies: pinned(["oxfmt"]),
+  });
   for (const name of ["base.oxlintrc.json", "base-react.oxlintrc.json"]) {
     const path = `packages/config/${name}`;
     const config = parsePlannedJson(files, path);
@@ -2123,10 +2140,6 @@ async function planMonorepoRoot(
 ): Promise<void> {
   const appDirectories = manifest.apps.map((app) => `apps/${app.id}`);
   const packageDirectories = manifest.packages.map((entry) => `packages/${entry}`);
-  // The config package ships lint bases only, so it is not a workspace member.
-  const memberPackages = manifest.packages
-    .filter((entry) => entry !== "config")
-    .map((entry) => `packages/${entry}`);
   const bunApps = manifest.apps.filter((app) => app.stack.id !== "rust");
   const rustApps = manifest.apps.filter((app) => app.stack.id === "rust");
 
@@ -2181,7 +2194,7 @@ async function planMonorepoRoot(
   });
 
   const knipWorkspaces: Record<string, unknown> = { ".": { entry: [], project: [] } };
-  for (const directory of [...bunApps.map((app) => `apps/${app.id}`), ...memberPackages]) {
+  for (const directory of [...bunApps.map((app) => `apps/${app.id}`), ...packageDirectories]) {
     const path = `${directory}/knip.json`;
     if (!files.has(path)) continue;
     const config = parsePlannedJson(files, path);
@@ -2210,11 +2223,7 @@ async function planMonorepoRoot(
     // one that is not there; list the Bun members explicitly in that case.
     workspaces: [
       ...(rustApps.length === 0 ? ["apps/*"] : bunApps.map((app) => `apps/${app.id}`)),
-      ...(memberPackages.length === 0
-        ? []
-        : manifest.packages.includes("config")
-          ? memberPackages
-          : ["packages/*"]),
+      ...(packageDirectories.length === 0 ? [] : ["packages/*"]),
     ],
     scripts: {
       check: `bun run check:structure && bun run check:unused && bun run --filter '*' check${rustApps.length === 0 ? "" : " && bun run check:rust"}`,

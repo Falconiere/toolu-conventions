@@ -37,7 +37,7 @@ test("monorepo eval installs one workspace and passes the root gate", async () =
       name: "agavus-io",
       // The config package ships lint bases only, so members are listed one
       // by one rather than globbed.
-      workspaces: ["apps/*", "packages/database", "packages/ui", "packages/types"],
+      workspaces: ["apps/*", "packages/*"],
     });
     const apiPackage: unknown = JSON.parse(
       await readFile(join(target, "apps/api/package.json"), "utf8"),
