@@ -1966,10 +1966,7 @@ async function addMonorepoOperations(
     services,
   };
   if (manifest.operations.includes("cloudflare")) {
-    const deployable =
-      manifest.apps.find((app) => app.stack.id === "backend-ts") ??
-      manifest.apps.find((app) => app.stack.id === "console") ??
-      manifest.apps.find((app) => app.stack.id === "marketing");
+    const deployable = cloudflareDeployable(manifest);
     if (deployable !== undefined) {
       const worker = appWorkerName(manifest, deployable);
       const filter = appPackageName(manifest, deployable);
@@ -2101,6 +2098,14 @@ ${typegenSteps}
 ${deploySteps}${rustSteps}`;
 }
 
+function cloudflareDeployable(manifest: MonorepoManifest): ManifestApp | undefined {
+  return (
+    manifest.apps.find((app) => app.stack.id === "backend-ts") ??
+    manifest.apps.find((app) => app.stack.id === "console") ??
+    manifest.apps.find((app) => app.stack.id === "marketing")
+  );
+}
+
 function monorepoReadme(manifest: MonorepoManifest): string {
   const apps = manifest.apps
     .map((app) => `- \`apps/${app.id}\` — ${app.stack.id} (port ${app.port})`)
@@ -2109,6 +2114,36 @@ function monorepoReadme(manifest: MonorepoManifest): string {
     manifest.packages.length === 0
       ? "None yet."
       : manifest.packages.map((entry) => `- \`packages/${entry}\``).join("\n");
+  // operations.config.json names ONE worker pair — the schema allows no more —
+  // so say which app it is rather than leaving the other deployables to be
+  // discovered as missing.
+  const deployable = manifest.operations.includes("cloudflare")
+    ? cloudflareDeployable(manifest)
+    : undefined;
+  const others =
+    deployable === undefined
+      ? []
+      : manifest.apps.filter(
+          (app) =>
+            app.id !== deployable.id &&
+            (app.stack.id === "backend-ts" ||
+              app.stack.id === "console" ||
+              app.stack.id === "marketing"),
+        );
+  const deploySection =
+    deployable === undefined
+      ? ""
+      : `\n## Deploys\n\n\`operations.config.json\` carries one Cloudflare worker pair, and it is\n\`apps/${deployable.id}\`. ${
+          others.length === 0
+            ? "It is the only app here that deploys to a Worker."
+            : `The other deployable app${
+                others.length === 1
+                  ? " deploys with its own script"
+                  : "s deploy with their own scripts"
+              }: ${others
+                .map((app) => `\`bun run --filter ${appPackageName(manifest, app)} deploy\``)
+                .join(", ")}.`
+        }\n`;
   return `# ${manifest.project.displayName}
 
 A Bun workspace. Every app and package owns its own quality gate; the root fans
@@ -2130,7 +2165,7 @@ ${packages}
 | \`bun run check\` | The full gate: structure, unused, then each member's own check |
 | \`bun run test\` | Every member's tests |
 | \`bun run --filter <package> dev\` | Run one app |
-`;
+${deploySection}`;
 }
 
 async function planMonorepoRoot(

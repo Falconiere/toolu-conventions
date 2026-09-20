@@ -368,6 +368,20 @@ describe("monorepo plan", () => {
     expect(plannedContent(files, ".gitignore")).toContain("target/");
   });
 
+  test("names the single Cloudflare deploy target and the apps it leaves out", async () => {
+    const manifest = resolveWorkspace({ operations: ["cloudflare"] });
+    const files = await planRecipe(manifest, resolve("."));
+    const readme = plannedContent(files, "README.md");
+    // The operations schema carries one worker pair, so the choice is forced —
+    // the README is where the apps it did not pick get their instruction.
+    expect(readme).toContain("carries one Cloudflare worker pair, and it is\n`apps/api`");
+    expect(readme).toContain("bun run --filter @agavus-io/console deploy");
+    expect(readme).toContain("bun run --filter @agavus-io/marketing deploy");
+
+    const quiet = await planRecipe(resolveWorkspace({ operations: ["local-dev"] }), resolve("."));
+    expect(plannedContent(quiet, "README.md")).not.toContain("## Deploys");
+  });
+
   test("summarises the workspace for the interactive review", () => {
     expect(renderSummary(resolveWorkspace())).toContain("Layout: monorepo");
     expect(renderSummary(resolveWorkspace())).toContain("App apps/api: backend-ts · port 8787");
