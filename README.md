@@ -135,7 +135,7 @@ Every `stacks/<stack>/` holds the same four things:
 | `SETUP.md` | The step-by-step scaffold prompt |
 | `STRUCTURE.md` | Folder tree + hard conventions |
 | `LIBRARIES.md` | Reach-for-these list + AVOID list |
-| `templates/` | Copy-ready files under their real filenames (only `CLAUDE.md.template` is suffixed) |
+| `templates/` | Copy-ready files under their real filenames (only `AGENTS.md.template` is suffixed) |
 
 What is *not* in `templates/` is anything identical across stacks: the guardrails module comes
 from [`guardrails/`](./guardrails/) and the agent-hook `settings.json` from
@@ -181,7 +181,7 @@ Every generated project ships five layers, and the kit treats all five as mandat
 
 | Layer | Where | When it fires |
 | --- | --- | --- |
-| 1. Written rules | `CLAUDE.md` | Every agent turn, as context |
+| 1. Written rules | `AGENTS.md` | Every agent turn, as context |
 | 2. Agent hooks | `.claude/settings.json` (from [`shared/`](./shared/)) | On every file an agent writes (`PostToolUse`) and again before it finishes a turn (`Stop`) |
 | 3. Pre-commit | `lefthook.yml` | `git commit` |
 | 4. CI gate | `.github/workflows/ci.yml` | Every PR — steps mirror `bun run check` one-for-one and end in a real build |

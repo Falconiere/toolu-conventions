@@ -240,7 +240,7 @@ Then:
    `$KIT/shared/folder-README.md`
    (fill in the folder's purpose + a short "what's inside" list — seed it now,
    keep it updated as you add files).
-7. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the app name +
+7. Copy `templates/AGENTS.md.template` → `AGENTS.md` and fill in the app name +
    one-line description. This is the rulebook + repo map agents read first.
 
 Add a first real test so the suite has something to run — a route test that
@@ -495,7 +495,7 @@ five layers fit together.
 
 Generate the project `README.md` from `templates/README.md`: fill in the app name
 + description; keep the layout table, config table, and scripts. Cross-link
-`CLAUDE.md`.
+`AGENTS.md`.
 
 ---
 

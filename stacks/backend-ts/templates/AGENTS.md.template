@@ -1,4 +1,4 @@
-# CLAUDE.md — {{TOOLU_DISPLAY_NAME}}
+# AGENTS.md — {{TOOLU_DISPLAY_NAME}}
 
 {{TOOLU_DESCRIPTION}} HTTP service on **Cloudflare Workers**. Hono ·
 TypeScript (strict) · Turso · Vitest in the real runtime · oxlint + oxfmt. Read

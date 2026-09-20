@@ -1,4 +1,4 @@
-# CLAUDE.md — {{TOOLU_DISPLAY_NAME}}
+# AGENTS.md — {{TOOLU_DISPLAY_NAME}}
 
 {{TOOLU_DESCRIPTION}} — a React Native app. Expo · TypeScript (strict) · Expo
 Router · bun · Jest · oxlint + oxfmt. Read this file first — it is the map and

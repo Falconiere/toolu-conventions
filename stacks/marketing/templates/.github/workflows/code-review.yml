@@ -1,7 +1,7 @@
 # GitHub Actions — automated AI code review on every pull request.
 #
 # The third guard rail, after the agent's own `bun run check` and the CI job.
-# It reads the repo's own convention files (CLAUDE.md and friends) from the BASE
+# It reads the repo's own convention files (AGENTS.md and friends) from the BASE
 # ref and reviews the diff against them, so the rules this kit installs are the
 # rules the bot enforces — and a PR cannot rewrite the rules it is judged by.
 #
@@ -44,4 +44,4 @@ jobs:
             Astro static marketing site. Pages compose sections; sections are the
             only place markup lives. Styling reads --tone-* custom properties so
             components work in both the dark and light band — a literal hex in a
-            component is a bug. See CLAUDE.md and docs/design-language.md.
+            component is a bug. See AGENTS.md and docs/design-language.md.

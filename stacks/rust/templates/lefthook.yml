@@ -1,5 +1,5 @@
 # Lefthook — fast local git gates. The full quality gate lives in CI and in the
-# one command documented in CLAUDE.md; hooks stay fast so commits don't stall.
+# one command documented in AGENTS.md; hooks stay fast so commits don't stall.
 #
 # Install after copying this file:  lefthook install   (or: bunx lefthook install)
 

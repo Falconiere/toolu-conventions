@@ -47,7 +47,7 @@ import points at the file that holds the thing), and thin route files.
 ├── jest.config.js · jest.setup.ts
 ├── .oxlintrc.json · .oxfmtrc.json · lefthook.yml
 ├── .env.example
-├── CLAUDE.md                 # agent rules + repo map (read first)
+├── AGENTS.md                 # agent rules + repo map (read first)
 └── README.md                 # human + agent entry point
 ```
 
@@ -74,7 +74,7 @@ tsconfig paths). Always import via `@/` or same-directory `./` — never parent-
 ## Hard conventions
 
 These are **machine-enforced** — the gate (`bun run check`) fails on a violation,
-not just review. See [`templates/CLAUDE.md.template`](./templates/CLAUDE.md.template)
+not just review. See [`templates/AGENTS.md.template`](./templates/AGENTS.md.template)
 for the full "blocked patterns" list. What enforces what:
 
 - **No barrel imports / no parent-relative imports / domain isolation** — oxlint
@@ -216,7 +216,7 @@ already?" without reading the whole tree. We get that from:
   `src/api`, `src/utilities`, `src/providers`, `assets`). Each lists what belongs
   there, what's currently inside (one line each), and where NOT to put things.
   Use [`templates/folder-README.md`](./templates/folder-README.md).
-- **`CLAUDE.md` at the root** acts as the map + rulebook, read first by agents.
+- **`AGENTS.md` at the root** acts as the map + rulebook, read first by agents.
 - **No barrels + filename ↔ content** means grep for a symbol lands on its
   definition immediately.
 - **Path aliases** make import sites self-describing (`@/utilities/format-money`

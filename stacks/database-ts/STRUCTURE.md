@@ -56,7 +56,7 @@ packages/database/
 ├── .oxlintrc.json · .oxfmtrc.json
 ├── .dev.vars.example     # test credentials (.dev.vars is git-ignored)
 ├── .env.example          # migration credentials — drizzle-kit runs in Node
-├── CLAUDE.md · README.md
+├── AGENTS.md · README.md
 ```
 
 No `app.ts`, no `index.ts`, no `src/index.ts`. This package has no entry point.

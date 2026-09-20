@@ -1,4 +1,4 @@
-# CLAUDE.md — {{TOOLU_DISPLAY_NAME}}
+# AGENTS.md — {{TOOLU_DISPLAY_NAME}}
 
 Read-first rules for any agent working in this repo. These are enforced by
 `clippy`, `rustfmt`, and Lefthook; treat them as hard constraints, not

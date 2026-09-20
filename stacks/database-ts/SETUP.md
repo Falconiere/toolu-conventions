@@ -12,7 +12,7 @@ no gate, no bindings and nothing to be typed against.
 
 Read [`STRUCTURE.md`](./STRUCTURE.md) and [`LIBRARIES.md`](./LIBRARIES.md) first.
 Templates live in [`templates/`](./templates/) under their real filenames; only
-`CLAUDE.md.template` is suffixed — rename it to `CLAUDE.md` when copying.
+`AGENTS.md.template` is suffixed — rename it to `AGENTS.md` when copying.
 Substitute `<project-name>` with the intake project name everywhere it appears.
 
 Set the anchors once, then every path below resolves:
@@ -58,7 +58,7 @@ From `$ROOT`:
 ```bash
 mkdir -p packages/database
 cp -R "$KIT/stacks/database-ts/templates/." packages/database/
-mv packages/database/CLAUDE.md.template packages/database/CLAUDE.md
+mv packages/database/AGENTS.md.template packages/database/AGENTS.md
 ```
 
 Both `.oxlintrc.json` and `base.oxlintrc.json` ship, and neither is renamed:

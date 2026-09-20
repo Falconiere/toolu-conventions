@@ -92,7 +92,7 @@ function portableRelative(from: string, to: string): string {
 
 function consoleDestination(templateRoot: string, source: string): string | undefined {
   const path = portableRelative(templateRoot, source);
-  if (path === "CLAUDE.md.template") return "CLAUDE.md";
+  if (path === "AGENTS.md.template") return "AGENTS.md";
   if (path === "env.ts") return "src/constants/env.ts";
   if (path === "globals.css") return "src/ui/globals.css";
   if (path.startsWith("theme/")) return `src/ui/${path}`;
@@ -103,21 +103,21 @@ function consoleDestination(templateRoot: string, source: string): string | unde
 
 function marketingDestination(templateRoot: string, source: string): string {
   const path = portableRelative(templateRoot, source);
-  if (path === "CLAUDE.md.template") return "CLAUDE.md";
+  if (path === "AGENTS.md.template") return "AGENTS.md";
   if (path === "env.ts") return "src/constants/env.ts";
   return path;
 }
 
 function backendDestination(templateRoot: string, source: string): string {
   const path = portableRelative(templateRoot, source);
-  if (path === "CLAUDE.md.template") return "CLAUDE.md";
+  if (path === "AGENTS.md.template") return "AGENTS.md";
   if (path === "env.ts") return "src/constants/env.ts";
   return path;
 }
 
 function expoDestination(templateRoot: string, source: string): string | undefined {
   const path = portableRelative(templateRoot, source);
-  if (path === "CLAUDE.md.template") return "CLAUDE.md";
+  if (path === "AGENTS.md.template") return "AGENTS.md";
   if (path === "folder-README.md") return undefined;
   if (path === "env.ts") return "src/constants/env.ts";
   if (path.startsWith("theme/")) return `src/ui/${path}`;
@@ -128,14 +128,14 @@ function expoDestination(templateRoot: string, source: string): string | undefin
 
 function rustDestination(templateRoot: string, source: string): string | undefined {
   const path = portableRelative(templateRoot, source);
-  if (path === "CLAUDE.md.template") return "CLAUDE.md";
+  if (path === "AGENTS.md.template") return "AGENTS.md";
   if (path === "folder-README.md") return undefined;
   return path;
 }
 
 function databaseDestination(templateRoot: string, source: string): string {
   const path = portableRelative(templateRoot, source);
-  return path === "CLAUDE.md.template" ? "CLAUDE.md" : path;
+  return path === "AGENTS.md.template" ? "AGENTS.md" : path;
 }
 
 function jsonContent(value: unknown): string {
@@ -1807,7 +1807,7 @@ async function addPackageTemplates(
     templateRoot,
     (source) => {
       const path = portableRelative(templateRoot, source);
-      return `${directory}/${path === "CLAUDE.md.template" ? "CLAUDE.md" : path}`;
+      return `${directory}/${path === "AGENTS.md.template" ? "AGENTS.md" : path}`;
     },
     values,
   );

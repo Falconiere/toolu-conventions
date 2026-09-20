@@ -1,4 +1,4 @@
-# CLAUDE.md — {{TOOLU_DISPLAY_NAME}}
+# AGENTS.md — {{TOOLU_DISPLAY_NAME}}
 
 {{TOOLU_DESCRIPTION}} Astro marketing site. Static output · TypeScript
 (strictest) · TailwindCSS · bun · Vitest · oxlint + oxfmt + `astro check` ·
@@ -118,7 +118,7 @@ adding files, and add a line when you add something notable.
 - **Doc line required**: every module and public symbol carries a concise
   `/** … */` doc line; `.astro` components carry one in their frontmatter.
 - **Docs in sync**: a change to a user-facing surface updates the prose
-  describing it (README, the relevant `src/*/README.md`, `CLAUDE.md`) in the
+  describing it (README, the relevant `src/*/README.md`, `AGENTS.md`) in the
   **same** change.
 - **Commits**: `type(scope): description` (conventional). Push to feature
   branches; never directly to main.

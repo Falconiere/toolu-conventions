@@ -95,7 +95,7 @@ Two stacks are named exceptions and keep their own shape:
 ## Platform defaults
 
 The kit has one answer per job. Deviating is allowed — documenting the deviation
-in the project's `CLAUDE.md` is not optional.
+in the project's `AGENTS.md` is not optional.
 
 | Job | The house choice | Notes |
 | --- | --- | --- |
@@ -139,8 +139,8 @@ They are ordered by how early they catch a mistake, and the earliest is the
 cheapest: a rule that fires while the agent is still writing the file costs one
 edit, the same rule at PR time costs a review cycle.
 
-**1. The rules, in the repo.** Every generated project ships a `CLAUDE.md` (from
-the stack kit's `CLAUDE.md.template`) — the agent's read-first file, encoding
+**1. The rules, in the repo.** Every generated project ships a `AGENTS.md` (from
+the stack kit's `AGENTS.md.template`) — the agent's read-first file, encoding
 these core rules, the stack's hard conventions and blocked patterns, a repo map,
 and the exact gate commands. Rules an agent can't see are rules that don't exist.
 

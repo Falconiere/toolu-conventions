@@ -35,10 +35,10 @@ lefthook install
 - `src/cli.rs` / `src/http.rs` — delivery adapters (not domains).
 - `src/**/tests/` — colocated module tests (sibling `tests/` folders; never in-file).
 - `tests/` — crate-root integration tests, one file per surface.
-- `CLAUDE.md` — conventions and blocked patterns (read first if you are an agent).
+- `AGENTS.md` — conventions and blocked patterns (read first if you are an agent).
 
 ## Conventions
 
-See [`CLAUDE.md`](./CLAUDE.md). The short version: no barrel modules, filename
+See [`AGENTS.md`](./AGENTS.md). The short version: no barrel modules, filename
 matches its primary item, no `unwrap()`/`expect()` outside tests and `main`, a
 doc line on every public item, real-data tests only, 500-line file ceiling.

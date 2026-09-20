@@ -86,7 +86,7 @@ for them now:
      (Phase 8b).
    - **Local storage** — `@react-native-async-storage/async-storage` (Phase 8c).
 4. **Design context** — free-text brand/look (colors, tone, reference apps). Feeds
-   the theme token values (Phase 7) and the `CLAUDE.md` design-notes section.
+   the theme token values (Phase 7) and the `AGENTS.md` design-notes section.
 
 Echo back a short summary before scaffolding.
 
@@ -112,8 +112,8 @@ bun install
 
 The current SDK (57) `default` template scaffolds routes under **`src/app/`** and
 ships demo content (example screens, components, hooks, a reset script, an
-`AGENTS.md`, its own `CLAUDE.md`, a `.claude/` dir). This kit uses a **top-level
-`app/`** for routes (see [`STRUCTURE.md`](./STRUCTURE.md)) and its own `CLAUDE.md`
+`AGENTS.md`, its own `AGENTS.md`, a `.claude/` dir). This kit uses a **top-level
+`app/`** for routes (see [`STRUCTURE.md`](./STRUCTURE.md)) and its own `AGENTS.md`
 (Phase 3), so move the router dir up and strip the demo files first:
 
 ```bash
@@ -122,7 +122,7 @@ ships demo content (example screens, components, hooks, a reset script, an
 
 # Remove template demo content (keep app/_layout.tsx only).
 rm -rf src/components src/hooks src/constants src/global.css .claude
-rm -f AGENTS.md CLAUDE.md scripts/reset-project.js
+rm -f AGENTS.md AGENTS.md scripts/reset-project.js
 rm -f app/explore.tsx   # demo tab route — imports the deleted demo modules
 
 # Remove unreferenced template art (app.json is gone; app.config.ts uses assets/icons/*).
@@ -293,7 +293,7 @@ Confirm `bun run type-check` and `bun run lint` pass on the bare project.
 
 ---
 
-## Phase 3 — Folder skeleton, theme, primitives, CLAUDE.md
+## Phase 3 — Folder skeleton, theme, primitives, AGENTS.md
 
 Build the tree from [`STRUCTURE.md`](./STRUCTURE.md):
 
@@ -328,7 +328,7 @@ Then:
 2. Copy `$KIT/DESIGN.md` ([view](../../DESIGN.md)) → `docs/design-language.md`
    (`mkdir -p docs` first) **verbatim**. The kit is not on disk once this project
    is scaffolded, so without this copy the design rules — which the token files
-   only carry values for — never reach the agents who build here. `CLAUDE.md`
+   only carry values for — never reach the agents who build here. `AGENTS.md`
    points at it for UI work; keep it out of the always-loaded context.
 3. Copy the primitives:
    `templates/ui/button.tsx` → `src/ui/button.tsx`,
@@ -348,7 +348,7 @@ Then:
    `providers`, this stack's `requireReadme` — and `scripts/guardrails/run.sh`
    fails without those. `constants`, `types`, and `assets` get one by house
    convention; `assets` sits outside `src/`, so the check never looks at it.
-6. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` (drop the `.template`
+6. Copy `templates/AGENTS.md.template` → `AGENTS.md` (drop the `.template`
    suffix). Fill in the project name + one-line description. This is the rulebook
    + repo map agents read first.
 
@@ -589,7 +589,7 @@ bunx expo run:ios     # or: bunx expo run:android
 5. Icons need a renderer: `bunx expo install react-native-svg`, then one
    `src/ui/icon.tsx` wrapper over `theme/icons.ts` that owns the stroke width,
    square caps and mitred joins so no mark can drift from the construction rules.
-6. Record the direction in the `## Design notes` section of `CLAUDE.md` (audience,
+6. Record the direction in the `## Design notes` section of `AGENTS.md` (audience,
    tone, palette/type rationale, and any deviation from `DESIGN.md`) so future
    agents inherit the "why".
 
@@ -647,7 +647,7 @@ and add it as its own provider/module — never as a default.
 
 Copy `templates/README.md` → `README.md` and fill in: project description, the
 env/build matrix, the per-directory content breakdown, and how to run/test/build.
-Cross-link `CLAUDE.md` (the design direction lives in its **Design notes**
+Cross-link `AGENTS.md` (the design direction lives in its **Design notes**
 section).
 
 ---
