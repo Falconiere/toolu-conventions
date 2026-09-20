@@ -1,8 +1,8 @@
 /** The smallest layout primitive: a div that forwards className and children. */
-import type { ComponentPropsWithoutRef, ReactNode } from 'react';
-import { classNames } from '@/utilities/class-names';
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { classNames } from "@/utilities/class-names";
 
-export interface SurfaceProps extends ComponentPropsWithoutRef<'div'> {
+export interface SurfaceProps extends ComponentPropsWithoutRef<"div"> {
   children?: ReactNode;
 }
 

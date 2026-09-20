@@ -1,23 +1,23 @@
 // Runtime-validated environment — the app's single typed source of truth for env.
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
-import * as z from 'zod';
+import Constants from "expo-constants";
+import { Platform } from "react-native";
+import * as z from "zod";
 
 // All public config flows through here so the app has ONE typed source of truth
 // for env, declared as a Zod schema: one place to read the shape, one error that
 // names every bad field at once, and types inferred from the same declaration
 // instead of restated beside it.
 
-type AppVariant = 'prod' | 'test';
+type AppVariant = "prod" | "test";
 
 function appVariant(): AppVariant {
   const extra: { appVariant?: string } = Constants.expoConfig?.extra ?? {};
-  return extra.appVariant === 'prod' ? 'prod' : 'test';
+  return extra.appVariant === "prod" ? "prod" : "test";
 }
 
 function devDefaultApiUrl(): string {
   // Android emulator reaches the host machine via 10.0.2.2, not localhost.
-  return Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
+  return Platform.OS === "android" ? "http://10.0.2.2:8000" : "http://localhost:8000";
 }
 
 /** Treats an unset OR empty var as absent, so `.default()` applies to both. */
@@ -34,15 +34,15 @@ function optional(value: string | undefined): string | undefined {
 // schema wholesale, and never use a loop or a dynamic `process.env[name]`.
 const EnvSchema = z.object({
   EXPO_PUBLIC_ENV: z
-    .enum(['development', 'staging', 'production'])
-    .default(__DEV__ ? 'development' : 'production'),
+    .enum(["development", "staging", "production"])
+    .default(__DEV__ ? "development" : "production"),
   // `z.url()` rather than a hand-rolled regex: Zod does not lean on Hermes'
   // partial `URL` implementation, so this behaves the same on device as in a test.
   EXPO_PUBLIC_API_URL: z.url().default(devDefaultApiUrl()),
 });
 
 /** The logical environment this build targets. */
-export type AppEnv = z.infer<typeof EnvSchema>['EXPO_PUBLIC_ENV'];
+export type AppEnv = z.infer<typeof EnvSchema>["EXPO_PUBLIC_ENV"];
 
 const parsed = EnvSchema.safeParse({
   EXPO_PUBLIC_ENV: optional(process.env.EXPO_PUBLIC_ENV),

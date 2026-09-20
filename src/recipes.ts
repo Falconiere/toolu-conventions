@@ -20,7 +20,7 @@ import {
 import {
   assertNoReservedPlaceholders,
   escapeMarkup,
-  escapeSingleQuotedString,
+  escapeDoubleQuotedString,
   renderTemplate,
 } from "./render";
 import { readVerifiedImportedThemeFile } from "./theme";
@@ -50,7 +50,7 @@ function placeholderValues(manifest: ScaffoldManifest): Record<string, string> {
   return {
     TOOLU_PROJECT_NAME: manifest.project.name,
     TOOLU_DISPLAY_NAME: manifest.project.displayName,
-    TOOLU_DISPLAY_NAME_JS: escapeSingleQuotedString(manifest.project.displayName),
+    TOOLU_DISPLAY_NAME_JS: escapeDoubleQuotedString(manifest.project.displayName),
     TOOLU_DISPLAY_NAME_HTML: escapeMarkup(manifest.project.displayName),
     TOOLU_DESCRIPTION: projectDescription(manifest),
     TOOLU_DESCRIPTION_HTML: escapeMarkup(projectDescription(manifest)),
@@ -473,35 +473,35 @@ function backendApplication(manifest: StandaloneManifest, workspace: boolean): s
   const logging = manifest.integrations.includes("structured-logging");
   const drizzle = manifest.integrations.includes("drizzle");
   return `/** The assembled Hono and oRPC application. */
-import { RPCHandler } from '@orpc/server/fetch';
-import { Hono } from 'hono';
-${auth ? "import { auth } from '@/domains/auth/auth';\n" : ""}${
-    drizzle && !workspace ? "import { createOrm } from '@/utilities/drizzle-service';\n" : ""
-  }import { router } from '@/rpc/router';
-import { createDatabase } from '@/utilities/database-service';
-${logging ? "import { logEvent } from '@/utilities/logger';\n" : ""}
+import { RPCHandler } from "@orpc/server/fetch";
+import { Hono } from "hono";
+${auth ? 'import { auth } from "@/domains/auth/auth";\n' : ""}${
+    drizzle && !workspace ? 'import { createOrm } from "@/utilities/drizzle-service";\n' : ""
+  }import { router } from "@/rpc/router";
+import { createDatabase } from "@/utilities/database-service";
+${logging ? 'import { logEvent } from "@/utilities/logger";\n' : ""}
 const rpc = new RPCHandler(router);
 
 export const app = new Hono<{ Bindings: Env }>();
 
-app.get('/health', (context) => {
-  ${logging ? "logEvent('health.checked');\n  " : ""}return context.json({ status: 'ok' });
+app.get("/health", (context) => {
+  ${logging ? 'logEvent("health.checked");\n  ' : ""}return context.json({ status: "ok" });
 });
 
-app.get('/database/health', async (context) => {
+app.get("/database/health", async (context) => {
   ${drizzle && !workspace ? "createOrm();\n  " : ""}await ${
     workspace
-      ? "createDatabase().$client.execute('select 1')"
+      ? 'createDatabase().$client.execute("select 1")'
       : drizzle
-        ? "createDatabase().execute('select 1')"
-        : "(await createDatabase().prepare('select 1')).get()"
+        ? 'createDatabase().execute("select 1")'
+        : '(await createDatabase().prepare("select 1")).get()'
   };
   return context.json({ status: 'ok' });
 });
-${auth ? "\napp.all('/api/auth/*', (context) => auth.handler(context.req.raw));\n" : ""}
-app.all('/rpc/*', async (context) => {
+${auth ? '\napp.all("/api/auth/*", (context) => auth.handler(context.req.raw));\n' : ""}
+app.all("/rpc/*", async (context) => {
   const { matched, response } = await rpc.handle(context.req.raw, {
-    prefix: '/rpc',
+    prefix: "/rpc",
     context: { env: context.env, headers: context.req.raw.headers },
   });
   return matched ? response : context.notFound();
@@ -904,14 +904,14 @@ async function planConsole(
   if (manifest.integrations.includes("auth")) {
     files.set("src/api/auth-client.ts", {
       path: "src/api/auth-client.ts",
-      content: `/** Browser authentication client. */\nimport { createAuthClient } from 'better-auth/react';\n\nexport const authClient = createAuthClient();\n`,
+      content: `/** Browser authentication client. */\nimport { createAuthClient } from "better-auth/react";\n\nexport const authClient = createAuthClient();\n`,
     });
     addPackageDependencies(files, ["better-auth"]);
   }
   if (manifest.integrations.includes("worker-api")) {
     files.set("src/worker.ts", {
       path: "src/worker.ts",
-      content: `/** Same-project Worker API. */\nimport { Hono } from 'hono';\n\nconst app = new Hono();\napp.get('/api/health', (context) => context.json({ status: 'ok' }));\n\nexport default app;\n`,
+      content: `/** Same-project Worker API. */\nimport { Hono } from "hono";\n\nconst app = new Hono();\napp.get("/api/health", (context) => context.json({ status: "ok" }));\n\nexport default app;\n`,
     });
     const lint = parsePlannedJson(files, ".oxlintrc.json");
     const overrides = objectArrayProperty(lint, "overrides");
@@ -1019,7 +1019,7 @@ async function planMarketing(
     const pagePath = `src/pages/${slug}.astro`;
     files.set(pagePath, {
       path: pagePath,
-      content: `---\n/** /${slug} — generated route shell. */\nimport BaseLayout from '@/layouts/base-layout.astro';\nimport ${componentName} from '@/sections/${sectionStem}.astro';\n---\n\n<BaseLayout title="${title} — ${displayName}" description="${title} for ${displayName}.">\n  <${componentName} />\n</BaseLayout>\n`,
+      content: `---\n/** /${slug} — generated route shell. */\nimport BaseLayout from "@/layouts/base-layout.astro";\nimport ${componentName} from "@/sections/${sectionStem}.astro";\n---\n\n<BaseLayout title="${title} — ${displayName}" description="${title} for ${displayName}.">\n  <${componentName} />\n</BaseLayout>\n`,
     });
     const sectionPath = `src/sections/${sectionStem}.astro`;
     files.set(sectionPath, {
@@ -1043,11 +1043,11 @@ async function planMarketing(
   if (manifest.integrations.includes("blog")) {
     files.set("src/pages/blog/index.astro", {
       path: "src/pages/blog/index.astro",
-      content: `---\nimport BaseLayout from '@/layouts/base-layout.astro';\n---\n\n<BaseLayout title="Blog — ${displayName}" description="Updates from ${displayName}.">\n  <main class="band px-gutter py-section-y"><h1 class="type-display-lg">Blog</h1></main>\n</BaseLayout>\n`,
+      content: `---\nimport BaseLayout from "@/layouts/base-layout.astro";\n---\n\n<BaseLayout title="Blog — ${displayName}" description="Updates from ${displayName}.">\n  <main class="band px-gutter py-section-y"><h1 class="type-display-lg">Blog</h1></main>\n</BaseLayout>\n`,
     });
     files.set("src/content.config.ts", {
       path: "src/content.config.ts",
-      content: `import { defineCollection } from 'astro:content';\nimport { z } from 'astro/zod';\n\nexport const collections = {\n  blog: defineCollection({ schema: z.object({ title: z.string(), publishedAt: z.date() }) }),\n};\n`,
+      content: `import { defineCollection } from "astro:content";\nimport { z } from "astro/zod";\n\nexport const collections = {\n  blog: defineCollection({ schema: z.object({ title: z.string(), publishedAt: z.date() }) }),\n};\n`,
     });
     files.set("src/content/blog/welcome.md", {
       path: "src/content/blog/welcome.md",
@@ -1071,17 +1071,17 @@ async function planMarketing(
   if (manifest.integrations.includes("changelog")) {
     files.set("src/pages/changelog/index.astro", {
       path: "src/pages/changelog/index.astro",
-      content: `---\nimport BaseLayout from '@/layouts/base-layout.astro';\n---\n\n<BaseLayout title="Changelog — ${displayName}" description="Product changes from ${displayName}.">\n  <main class="band px-gutter py-section-y"><h1 class="type-display-lg">Changelog</h1></main>\n</BaseLayout>\n`,
+      content: `---\nimport BaseLayout from "@/layouts/base-layout.astro";\n---\n\n<BaseLayout title="Changelog — ${displayName}" description="Product changes from ${displayName}.">\n  <main class="band px-gutter py-section-y"><h1 class="type-display-lg">Changelog</h1></main>\n</BaseLayout>\n`,
     });
   }
   if (manifest.integrations.includes("react-island")) {
     files.set("src/ui/signup-island.tsx", {
       path: "src/ui/signup-island.tsx",
-      content: `/** An opt-in hydrated island. */\nimport { useState } from 'react';\n\nexport function SignupIsland() {\n  const [submitted, setSubmitted] = useState(false);\n  return <button type="button" onClick={() => setSubmitted(true)}>{submitted ? 'Thanks' : 'Join updates'}</button>;\n}\n`,
+      content: `/** An opt-in hydrated island. */\nimport { useState } from "react";\n\nexport function SignupIsland() {\n  const [submitted, setSubmitted] = useState(false);\n  return <button type="button" onClick={() => setSubmitted(true)}>{submitted ? "Thanks" : "Join updates"}</button>;\n}\n`,
     });
     files.set("src/pages/index.astro", {
       path: "src/pages/index.astro",
-      content: `---\n/** Home page with one opt-in hydrated React island. */\nimport BaseLayout from '@/layouts/base-layout.astro';\nimport HeroSection from '@/sections/hero-section.astro';\nimport { SignupIsland } from '@/ui/signup-island';\n---\n\n<BaseLayout title="${displayName}" description="${description}">\n  <HeroSection />\n  <SignupIsland client:visible />\n</BaseLayout>\n`,
+      content: `---\n/** Home page with one opt-in hydrated React island. */\nimport BaseLayout from "@/layouts/base-layout.astro";\nimport HeroSection from "@/sections/hero-section.astro";\nimport { SignupIsland } from "@/ui/signup-island";\n---\n\n<BaseLayout title="${displayName}" description="${description}">\n  <HeroSection />\n  <SignupIsland client:visible />\n</BaseLayout>\n`,
     });
     addPackageDependencies(
       files,
@@ -1105,14 +1105,14 @@ async function planMarketing(
     const integrations = ["sitemap()", ...(needsReact ? ["react()"] : [])];
     files.set("astro.config.mjs", {
       path: "astro.config.mjs",
-      content: `// @ts-check\n${imports.join("\n")}\n\nconst site = process.env.SITE_URL ?? 'https://${manifest.runtime.domain ?? defaultDomain(manifest.project.name)}';\n\nexport default defineConfig({\n  site,\n  output: '${needsCloudflare ? "server" : "static"}',\n  ${needsCloudflare ? "adapter: cloudflare(),\n  " : ""}integrations: [${integrations.join(", ")}],\n  vite: { plugins: [tailwindcss()] },\n  build: { format: 'directory' },\n  trailingSlash: 'ignore',\n});\n`,
+      content: `// @ts-check\n${imports.join("\n")}\n\nconst site = process.env.SITE_URL ?? "https://${manifest.runtime.domain ?? defaultDomain(manifest.project.name)}";\n\nexport default defineConfig({\n  site,\n  output: "${needsCloudflare ? "server" : "static"}",\n  ${needsCloudflare ? "adapter: cloudflare(),\n  " : ""}integrations: [${integrations.join(", ")}],\n  vite: { plugins: [tailwindcss()] },\n  build: { format: "directory" },\n  trailingSlash: "ignore",\n});\n`,
     });
   }
 
   const layout = files.get("src/layouts/base-layout.astro");
   if (layout !== undefined) {
     const analytics = manifest.integrations.includes("analytics-posthog")
-      ? `    <script>\n      import posthog from 'posthog-js';\n      posthog.init(import.meta.env.PUBLIC_POSTHOG_KEY, { api_host: 'https://us.i.posthog.com' });\n    </script>\n`
+      ? `    <script>\n      import posthog from "posthog-js";\n      posthog.init(import.meta.env.PUBLIC_POSTHOG_KEY, { api_host: "https://us.i.posthog.com" });\n    </script>\n`
       : manifest.integrations.includes("analytics-plausible")
         ? `    <script defer data-domain="${manifest.runtime.domain ?? defaultDomain(manifest.project.name)}" src="https://plausible.io/js/script.js"></script>\n`
         : manifest.integrations.includes("analytics-fathom")
@@ -1186,7 +1186,7 @@ async function planBackend(
     });
     files.set("src/domains/auth/auth.ts", {
       path: "src/domains/auth/auth.ts",
-      content: `/** Better Auth server instance. */\nimport { betterAuth } from 'better-auth';\n\nexport const auth = betterAuth({});\n`,
+      content: `/** Better Auth server instance. */\nimport { betterAuth } from "better-auth";\n\nexport const auth = betterAuth({});\n`,
     });
     addPackageDependencies(files, ["better-auth"]);
   }
@@ -1210,12 +1210,12 @@ async function planBackend(
       setPlannedJson(files, "package.json", packageFile);
       files.set("src/utilities/database-service.ts", {
         path: "src/utilities/database-service.ts",
-        content: `/** Request-scoped Turso client used by Drizzle. */\nimport { createClient } from '@libsql/client/web';\nimport { tursoConfig } from '@/constants/env';\n\nexport function createDatabase() {\n  return createClient(tursoConfig());\n}\n`,
+        content: `/** Request-scoped Turso client used by Drizzle. */\nimport { createClient } from "@libsql/client/web";\nimport { tursoConfig } from "@/constants/env";\n\nexport function createDatabase() {\n  return createClient(tursoConfig());\n}\n`,
       });
     }
     files.set("src/utilities/drizzle-service.ts", {
       path: "src/utilities/drizzle-service.ts",
-      content: `/** Creates a Drizzle facade over the request-scoped Turso client. */\nimport { drizzle } from 'drizzle-orm/libsql';\nimport { createDatabase } from '@/utilities/database-service';\n\nexport function createOrm() {\n  return drizzle(createDatabase());\n}\n`,
+      content: `/** Creates a Drizzle facade over the request-scoped Turso client. */\nimport { drizzle } from "drizzle-orm/libsql";\nimport { createDatabase } from "@/utilities/database-service";\n\nexport function createOrm() {\n  return drizzle(createDatabase());\n}\n`,
     });
     addPackageDependencies(files, ["drizzle-orm"]);
   }
@@ -1246,7 +1246,7 @@ function wireApiToDatabasePackage(
   setPlannedJson(files, "package.json", packageFile);
   files.set("src/utilities/database-service.ts", {
     path: "src/utilities/database-service.ts",
-    content: `/** Request-scoped database shared by API domains. */\nimport { createDatabase as createClient } from '${databasePackage}/client';\nimport { tursoConfig } from '@/constants/env';\n\nexport function createDatabase() {\n  return createClient(tursoConfig());\n}\n`,
+    content: `/** Request-scoped database shared by API domains. */\nimport { createDatabase as createClient } from "${databasePackage}/client";\nimport { tursoConfig } from "@/constants/env";\n\nexport function createDatabase() {\n  return createClient(tursoConfig());\n}\n`,
   });
   files.delete("src/utilities/drizzle-service.ts");
   const knip = parsePlannedJson(files, "knip.json");
@@ -1436,21 +1436,21 @@ async function planExpo(
     });
     files.set("src/api/orpc.ts", {
       path: "src/api/orpc.ts",
-      content: `/** Typed transport for the application API. */\nimport { createORPCClient } from '@orpc/client';\nimport { RPCLink } from '@orpc/client/fetch';\nimport { BASE_API_URL } from '@/constants/env';\nimport type { AppRouter } from '@/types/api-contract';\n\nconst link = new RPCLink({ url: \`${"${BASE_API_URL}"}/rpc\` });\nexport const api = createORPCClient<AppRouter>(link);\n`,
+      content: `/** Typed transport for the application API. */\nimport { createORPCClient } from "@orpc/client";\nimport { RPCLink } from "@orpc/client/fetch";\nimport { BASE_API_URL } from "@/constants/env";\nimport type { AppRouter } from "@/types/api-contract";\n\nconst link = new RPCLink({ url: \`${"${BASE_API_URL}"}/rpc\` });\nexport const api = createORPCClient<AppRouter>(link);\n`,
     });
     addPackageDependencies(files, ["@orpc/client"]);
   }
   if (manifest.integrations.includes("auth")) {
     files.set("src/api/auth-client.ts", {
       path: "src/api/auth-client.ts",
-      content: `/** Mobile authentication client with SecureStore-backed credentials. */\nimport * as SecureStore from 'expo-secure-store';\nimport { createAuthClient } from 'better-auth/react';\n\nexport const authClient = createAuthClient({\n  fetchOptions: {\n    auth: {\n      type: 'Bearer',\n      token: async () => (await SecureStore.getItemAsync('session-token')) ?? undefined,\n    },\n  },\n});\n`,
+      content: `/** Mobile authentication client with SecureStore-backed credentials. */\nimport * as SecureStore from "expo-secure-store";\nimport { createAuthClient } from "better-auth/react";\n\nexport const authClient = createAuthClient({\n  fetchOptions: {\n    auth: {\n      type: "Bearer",\n      token: async () => (await SecureStore.getItemAsync("session-token")) ?? undefined,\n    },\n  },\n});\n`,
     });
     addPackageDependencies(files, ["better-auth", "expo-secure-store"]);
   }
   if (manifest.integrations.includes("async-storage")) {
     files.set("src/utilities/storage.ts", {
       path: "src/utilities/storage.ts",
-      content: `/** Non-sensitive persistent device storage. */\nimport AsyncStorage from '@react-native-async-storage/async-storage';\n\nexport const storage = AsyncStorage;\n`,
+      content: `/** Non-sensitive persistent device storage. */\nimport AsyncStorage from "@react-native-async-storage/async-storage";\n\nexport const storage = AsyncStorage;\n`,
     });
     addPackageDependencies(files, ["@react-native-async-storage/async-storage"]);
   }

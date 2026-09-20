@@ -6,7 +6,7 @@
 // react-native-gesture-handler ships a jest setup that registers no-op handlers.
 // Guarded so a version without this path doesn't fail the whole suite.
 try {
-  require('react-native-gesture-handler/jestSetup');
+  require("react-native-gesture-handler/jestSetup");
 } catch {
   // gesture-handler not installed yet — fine for the bare baseline.
 }

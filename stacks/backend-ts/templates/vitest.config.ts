@@ -1,6 +1,6 @@
 /** Vitest config — runs every test inside the real Workers runtime (workerd). */
-import { cloudflareTest } from '@cloudflare/vitest-pool-workers';
-import { defineConfig } from 'vitest/config';
+import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
+import { defineConfig } from "vitest/config";
 
 // Tests execute in workerd, not Node, and read the SAME wrangler config the
 // deploy uses. That is the point: a service whose tests run in a different
@@ -12,11 +12,11 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   plugins: [
     cloudflareTest({
-      wrangler: { configPath: './wrangler.jsonc' },
+      wrangler: { configPath: "./wrangler.jsonc" },
     }),
   ],
   test: {
-    include: ['src/**/__tests__/**/*.test.ts'],
+    include: ["src/**/__tests__/**/*.test.ts"],
     passWithNoTests: true,
     restoreMocks: true,
   },

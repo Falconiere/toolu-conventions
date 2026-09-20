@@ -1,15 +1,15 @@
 // TextInput primitive — labeled input with focus + error states.
-import { useState } from 'react';
+import { useState } from "react";
 import {
   StyleSheet,
   TextInput as RNTextInput,
   type TextInputProps as RNTextInputProps,
   View,
-} from 'react-native';
-import { Text } from '@/ui/text';
-import { colors } from '@/ui/theme/colors';
-import { borderWidth, layout, radii, spacing } from '@/ui/theme/spacing';
-import { fontFamily, typography } from '@/ui/theme/typography';
+} from "react-native";
+import { Text } from "@/ui/text";
+import { colors } from "@/ui/theme/colors";
+import { borderWidth, layout, radii, spacing } from "@/ui/theme/spacing";
+import { fontFamily, typography } from "@/ui/theme/typography";
 
 interface TextInputProps extends RNTextInputProps {
   label?: string;
@@ -39,7 +39,7 @@ export function TextInput({ label, error, style, onFocus, onBlur, ...rest }: Tex
       )}
       {/* Focus is a 1pt signal border PLUS a 3pt wash ring; the ring is always
           laid out (transparent when idle) so focusing never shifts the layout. */}
-      <View style={[styles.ring, { borderColor: focused ? colors.focusRing : 'transparent' }]}>
+      <View style={[styles.ring, { borderColor: focused ? colors.focusRing : "transparent" }]}>
         <RNTextInput
           placeholderTextColor={colors.textSoft}
           style={[styles.input, { borderColor }, style]}

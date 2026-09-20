@@ -1,10 +1,11 @@
 const RESERVED_PLACEHOLDER = /\{\{(TOOLU_[A-Z0-9_]+)\}\}/g;
 
-/** Escapes the contents of an existing single-quoted JavaScript string. */
-export function escapeSingleQuotedString(value: string): string {
-  // JSON preserves backslashes/control characters. Only the outer delimiter
-  // changes: double quotes are literal in single-quoted strings; apostrophes aren't.
-  return JSON.stringify(value).slice(1, -1).replaceAll('\\"', '"').replaceAll("'", "\\'");
+/** Escapes the contents of an existing double-quoted JavaScript string. */
+export function escapeDoubleQuotedString(value: string): string {
+  // Generated sources are formatted with `singleQuote: false`, so the string a
+  // display name lands in is double-quoted — which is exactly what JSON emits:
+  // quotes, backslashes and control characters escaped, apostrophes literal.
+  return JSON.stringify(value).slice(1, -1);
 }
 
 /** Safe in HTML text/attributes and Astro text (where braces start expressions). */

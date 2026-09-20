@@ -1,5 +1,5 @@
 /** The database's own config boundary — parsed, never trusted raw. */
-import * as z from 'zod';
+import * as z from "zod";
 
 // The package takes config as an argument rather than reading it. It has no
 // bindings of its own: on workerd `process.env` does not exist, and the API is
@@ -11,7 +11,7 @@ import * as z from 'zod';
 const DatabaseConfig = z.object({
   url: z
     .string()
-    .regex(/^libsql:\/\/.+/i, 'must be a libsql:// URL — Turso over HTTP is not this client'),
+    .regex(/^libsql:\/\/.+/i, "must be a libsql:// URL — Turso over HTTP is not this client"),
   authToken: z.string().min(1).optional(),
 });
 

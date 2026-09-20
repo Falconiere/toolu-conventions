@@ -36,6 +36,15 @@ root (breaking that resolution) or duplicating the rules into every package
 keeps one copy and lets each package's `.oxlintrc.json` still declare its own
 `env`, `ignorePatterns`, and overrides.
 
+## How the paths in these files resolve
+
+The `jsPlugins` entry in `base.oxlintrc.json` and the `extends` entries in every
+consuming package point two levels up, at the workspace root — the initializer
+writes them that way when it generates the workspace. A package that does not
+extend this one keeps its own copy of the bases instead, with the same paths
+rewritten for its own depth, so both shapes resolve from the directory oxlint
+actually runs in: the package.
+
 ## What does NOT go here
 
 - Application code, contracts, or components. Those are `packages/ui` and

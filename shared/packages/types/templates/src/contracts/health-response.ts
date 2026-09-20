@@ -1,11 +1,11 @@
 /** The example contract. Replace it with your own, or add beside it. */
-import * as z from 'zod';
+import * as z from "zod";
 
 // One schema per concern, its type inferred rather than hand-written beside
 // it — a declared interface next to the real thing is a second source of
 // truth that drifts the first time a field changes.
 export const HealthResponse = z.object({
-  status: z.enum(['ok', 'degraded', 'down']),
+  status: z.enum(["ok", "degraded", "down"]),
   checkedAt: z.iso.datetime(),
 });
 

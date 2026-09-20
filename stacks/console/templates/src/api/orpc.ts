@@ -1,11 +1,11 @@
 /** The typed API client and its TanStack Query bindings — created once, used everywhere. */
 
-import { createORPCClient } from '@orpc/client';
-import { RPCLink } from '@orpc/client/fetch';
-import { createTanstackQueryUtils } from '@orpc/tanstack-query';
-import type { RouterClient } from '@orpc/server';
-import type { AppRouter } from '@/types/api-contract';
-import { BASE_API_URL } from '@/constants/env';
+import { createORPCClient } from "@orpc/client";
+import { RPCLink } from "@orpc/client/fetch";
+import { createTanstackQueryUtils } from "@orpc/tanstack-query";
+import type { RouterClient } from "@orpc/server";
+import type { AppRouter } from "@/types/api-contract";
+import { BASE_API_URL } from "@/constants/env";
 
 // Replace the local starter contract with the deployed API's AppRouter type.
 // This is a TYPE-ONLY import, so no server code enters the browser bundle.

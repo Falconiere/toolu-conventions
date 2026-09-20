@@ -1,6 +1,6 @@
 /** The base oRPC builder — every procedure in this service starts from it. */
 
-import { os } from '@orpc/server';
+import { os } from "@orpc/server";
 
 /** What every procedure receives: the Worker bindings and the request headers. */
 export interface RpcContext {

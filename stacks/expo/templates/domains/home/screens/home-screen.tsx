@@ -1,12 +1,12 @@
 // HomeScreen — starter domain screen rendered by the app/index.tsx route.
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { APP_ENV } from '@/constants/env';
-import { integrationCount } from './integration-status';
-import { Icon } from '@/ui/icon';
-import { Text } from '@/ui/text';
-import { TextInput } from '@/ui/text-input';
-import { spacing } from '@/ui/theme/spacing';
+import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { APP_ENV } from "@/constants/env";
+import { integrationCount } from "./integration-status";
+import { Icon } from "@/ui/icon";
+import { Text } from "@/ui/text";
+import { TextInput } from "@/ui/text-input";
+import { spacing } from "@/ui/theme/spacing";
 
 /**
  * Starter home screen. Composes the Text primitive + safe-area insets — replace

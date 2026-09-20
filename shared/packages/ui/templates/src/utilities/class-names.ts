@@ -7,5 +7,5 @@ export type ClassValue = string | false | null | undefined;
 // not a string-join problem, and reaching for `clsx`/`tailwind-merge` at that
 // point is the right call rather than growing this function to match.
 export function classNames(...values: ClassValue[]): string {
-  return values.filter((value): value is string => Boolean(value)).join(' ');
+  return values.filter((value): value is string => Boolean(value)).join(" ");
 }

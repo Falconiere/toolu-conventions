@@ -1,10 +1,10 @@
 /** Procedures under `health.*` — the template for every other domain. */
 
-import * as z from 'zod';
-import { base } from '@/rpc/base';
+import * as z from "zod";
+import { base } from "@/rpc/base";
 
 const HealthStatus = z.object({
-  status: z.literal('ok'),
+  status: z.literal("ok"),
 });
 
 // A procedure declares its input and output as Zod schemas, and oRPC validates
@@ -16,7 +16,7 @@ const HealthStatus = z.object({
 // result. The real work lives in src/domains/.
 /** `health.check` — liveness, callable by a typed client. */
 export const check = base.output(HealthStatus).handler(() => {
-  return { status: 'ok' };
+  return { status: "ok" };
 });
 
 /** The `health.*` namespace, mounted into the router. */

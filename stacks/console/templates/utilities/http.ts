@@ -71,7 +71,7 @@ export class HttpError extends Error {
 
   constructor(status: number, url: string, body: unknown) {
     super(`HTTP ${status} for ${url}`);
-    this.name = 'HttpError';
+    this.name = "HttpError";
     this.status = status;
     this.url = url;
     this.body = body;
@@ -84,7 +84,7 @@ export class HttpAbortError extends Error {
 
   constructor(url: string, timedOut: boolean) {
     super(timedOut ? `HTTP request timed out: ${url}` : `HTTP request aborted: ${url}`);
-    this.name = 'HttpAbortError';
+    this.name = "HttpAbortError";
     this.url = url;
   }
 }
@@ -95,18 +95,18 @@ const DEFAULT_TIMEOUT_MS = 8_000;
 // not expose DOMException, and every runtime we target names the abort rejection
 // 'AbortError'.
 function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === 'AbortError';
+  return error instanceof Error && error.name === "AbortError";
 }
 
 // `JSON.parse` retyped to hand back `unknown`. Assigning the *function* (not its
 // result) keeps `any` from ever entering the module.
 const parseJson: (text: string) => unknown = JSON.parse;
 
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 function buildUrl(baseUrl: string, path: string, query: HttpQuery | undefined): string {
-  const base = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
-  const url = new URL(path.replace(/^\/+/, ''), base);
+  const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  const url = new URL(path.replace(/^\/+/, ""), base);
   if (query !== undefined) {
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined) {
@@ -122,8 +122,8 @@ async function decode(response: Response): Promise<unknown> {
   if (text.length === 0) {
     return undefined;
   }
-  const contentType = response.headers.get('content-type') ?? '';
-  return contentType.includes('json') ? parseJson(text) : text;
+  const contentType = response.headers.get("content-type") ?? "";
+  return contentType.includes("json") ? parseJson(text) : text;
 }
 
 /** Builds a client bound to one base URL. Export one instance per API, not per call. */
@@ -154,10 +154,10 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     if (options?.signal?.aborted === true) {
       controller.abort();
     } else {
-      options?.signal?.addEventListener('abort', forwardAbort);
+      options?.signal?.addEventListener("abort", forwardAbort);
     }
 
-    const headers: Record<string, string> = { accept: 'application/json' };
+    const headers: Record<string, string> = { accept: "application/json" };
     const configured = await config.headers?.();
     if (configured !== undefined) {
       Object.assign(headers, configured);
@@ -168,8 +168,8 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
 
     let payload: string | undefined;
     if (body !== undefined) {
-      payload = typeof body === 'string' ? body : JSON.stringify(body);
-      headers['content-type'] ??= 'application/json';
+      payload = typeof body === "string" ? body : JSON.stringify(body);
+      headers["content-type"] ??= "application/json";
     }
 
     try {
@@ -195,7 +195,7 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       throw error;
     } finally {
       clearTimeout(timer);
-      options?.signal?.removeEventListener('abort', forwardAbort);
+      options?.signal?.removeEventListener("abort", forwardAbort);
     }
   }
 
@@ -213,31 +213,31 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
   function get(path: string, options?: HttpOptions): Promise<unknown>;
   function get<T>(path: string, options: ParsedHttpOptions<T>): Promise<T>;
   function get(path: string, options?: HttpOptions): Promise<unknown> {
-    return run('GET', path, undefined, options);
+    return run("GET", path, undefined, options);
   }
 
   function del(path: string, options?: HttpOptions): Promise<unknown>;
   function del<T>(path: string, options: ParsedHttpOptions<T>): Promise<T>;
   function del(path: string, options?: HttpOptions): Promise<unknown> {
-    return run('DELETE', path, undefined, options);
+    return run("DELETE", path, undefined, options);
   }
 
   function post(path: string, body?: unknown, options?: HttpOptions): Promise<unknown>;
   function post<T>(path: string, body: unknown, options: ParsedHttpOptions<T>): Promise<T>;
   function post(path: string, body?: unknown, options?: HttpOptions): Promise<unknown> {
-    return run('POST', path, body, options);
+    return run("POST", path, body, options);
   }
 
   function put(path: string, body?: unknown, options?: HttpOptions): Promise<unknown>;
   function put<T>(path: string, body: unknown, options: ParsedHttpOptions<T>): Promise<T>;
   function put(path: string, body?: unknown, options?: HttpOptions): Promise<unknown> {
-    return run('PUT', path, body, options);
+    return run("PUT", path, body, options);
   }
 
   function patch(path: string, body?: unknown, options?: HttpOptions): Promise<unknown>;
   function patch<T>(path: string, body: unknown, options: ParsedHttpOptions<T>): Promise<T>;
   function patch(path: string, body?: unknown, options?: HttpOptions): Promise<unknown> {
-    return run('PATCH', path, body, options);
+    return run("PATCH", path, body, options);
   }
 
   return { get, delete: del, post, put, patch };
@@ -247,5 +247,5 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
 function readParser(
   options: HttpOptions | ParsedHttpOptions<unknown>,
 ): HttpParser<unknown> | undefined {
-  return 'parse' in options ? options.parse : undefined;
+  return "parse" in options ? options.parse : undefined;
 }

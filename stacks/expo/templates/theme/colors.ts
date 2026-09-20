@@ -17,43 +17,43 @@
 
 export const palette = {
   // Dark band ramp — near-black through to full ink.
-  bandDark: '#0e0f0d',
-  panelDark: '#1f1f1f',
-  hoverDark: '#131511',
-  ruleDark: '#191b17', // vertical band rules — the quarter-width grid
-  lineHeaderDark: '#1a1c18', // section header rules
-  disabledDark: '#1a1c18',
-  lineDark: '#1e201c', // inner rules inside a panel
-  linePanelDark: '#23251f', // panel borders, inset borders
-  seamDark: '#262922', // crosshair marks at band seams
-  lineStrongDark: '#33362e', // secondary-button border, unchecked box, key caps
-  inkDisabledDark: '#3e4139',
-  inkFaintDark: '#52554e',
-  inkSoftDark: '#6c6f68',
-  inkMutedDark: '#8a8d86',
-  inkDark: '#f2f2ef',
-  inkHoverDark: '#d0d1ce', // ink @ 86% over the dark band — the primary pressed fill
+  bandDark: "#0e0f0d",
+  panelDark: "#1f1f1f",
+  hoverDark: "#131511",
+  ruleDark: "#191b17", // vertical band rules — the quarter-width grid
+  lineHeaderDark: "#1a1c18", // section header rules
+  disabledDark: "#1a1c18",
+  lineDark: "#1e201c", // inner rules inside a panel
+  linePanelDark: "#23251f", // panel borders, inset borders
+  seamDark: "#262922", // crosshair marks at band seams
+  lineStrongDark: "#33362e", // secondary-button border, unchecked box, key caps
+  inkDisabledDark: "#3e4139",
+  inkFaintDark: "#52554e",
+  inkSoftDark: "#6c6f68",
+  inkMutedDark: "#8a8d86",
+  inkDark: "#f2f2ef",
+  inkHoverDark: "#d0d1ce", // ink @ 86% over the dark band — the primary pressed fill
 
   // Light band ramp — warm paper through to full ink.
-  bandLight: '#f2f2ee',
-  panelLight: '#ffffff',
-  hoverLight: '#f7f7f3',
-  disabledLight: '#f7f7f3',
-  skeletonLight: '#f0f0ea',
-  lineInnerLight: '#ecece5', // inner rules, skeleton bars, rest-state meter track
-  ruleLight: '#e6e6df', // vertical band rules
-  lineLight: '#e3e3dc', // panel borders
-  seamLight: '#dcdcd4',
-  inkDisabledLight: '#b3b5ab',
-  inkFaintLight: '#8c8e85',
-  inkMutedLight: '#55574f',
-  inkLight: '#16170f',
-  inkHoverLight: '#2c2e24', // the primary pressed fill on a light band
+  bandLight: "#f2f2ee",
+  panelLight: "#ffffff",
+  hoverLight: "#f7f7f3",
+  disabledLight: "#f7f7f3",
+  skeletonLight: "#f0f0ea",
+  lineInnerLight: "#ecece5", // inner rules, skeleton bars, rest-state meter track
+  ruleLight: "#e6e6df", // vertical band rules
+  lineLight: "#e3e3dc", // panel borders
+  seamLight: "#dcdcd4",
+  inkDisabledLight: "#b3b5ab",
+  inkFaintLight: "#8c8e85",
+  inkMutedLight: "#55574f",
+  inkLight: "#16170f",
+  inkHoverLight: "#2c2e24", // the primary pressed fill on a light band
 
   // Status. FIXED — these never theme, because a reader has to learn them once.
   // `live` is the one status that takes the signal, so it is not listed here.
-  degraded: '#c99a3a',
-  incident: '#c9553a',
+  degraded: "#c99a3a",
+  incident: "#c9553a",
 } as const;
 
 /** One signal temperature. `wash` backs dark bands, `washLight` backs light ones. */
@@ -76,49 +76,49 @@ export interface SignalTheme {
 export const signalThemes = {
   /** Default. Delivery, health, uptime. */
   jade: {
-    signal: '#43c98b',
-    lift: '#7be0b0',
-    dim: '#2e9c6b',
-    wash: '#12241c',
-    washLight: '#e6f2eb',
+    signal: "#43c98b",
+    lift: "#7be0b0",
+    dim: "#2e9c6b",
+    wash: "#12241c",
+    washLight: "#e6f2eb",
   },
   /** Data-dense tools, read-only surfaces. */
   blueprint: {
-    signal: '#45b4cc',
-    lift: '#7ed6e6',
-    dim: '#2c8aa0',
-    wash: '#0f2229',
-    washLight: '#e3eff3',
+    signal: "#45b4cc",
+    lift: "#7ed6e6",
+    dim: "#2c8aa0",
+    wash: "#0f2229",
+    washLight: "#e3eff3",
   },
   /** Internal and AI surfaces. Never marketing. */
   ion: {
-    signal: '#9a8cf0',
-    lift: '#c0b6ff',
-    dim: '#6c5dd0',
-    wash: '#17142b',
-    washLight: '#ebe8fa',
+    signal: "#9a8cf0",
+    lift: "#c0b6ff",
+    dim: "#6c5dd0",
+    wash: "#17142b",
+    washLight: "#ebe8fa",
   },
   /** The no-signal theme: contrast does the pointing. Print, docs, one-ink output. */
   chalk: {
-    signal: '#f2f2ef',
-    lift: '#ffffff',
-    dim: '#16170f',
-    wash: '#1f211c',
-    washLight: '#e6e6df',
+    signal: "#f2f2ef",
+    lift: "#ffffff",
+    dim: "#16170f",
+    wash: "#1f211c",
+    washLight: "#e6e6df",
   },
 } as const satisfies Record<string, SignalTheme>;
 
 export type SignalThemeName = keyof typeof signalThemes;
 
 function resolveDefaultSignal(value: string): SignalThemeName {
-  if (value === 'jade' || value === 'blueprint' || value === 'ion' || value === 'chalk') {
+  if (value === "jade" || value === "blueprint" || value === "ion" || value === "chalk") {
     return value;
   }
   throw new Error(`Unsupported signal theme: ${value}`);
 }
 
 /** The shipped default. One signal per product — change it here, in one place. */
-export const defaultSignal = resolveDefaultSignal('{{TOOLU_THEME_PRESET}}');
+export const defaultSignal = resolveDefaultSignal("{{TOOLU_THEME_PRESET}}");
 
 const signal = signalThemes[defaultSignal];
 
@@ -286,7 +286,7 @@ interface ShadowToken {
 export const shadow = {
   /** Cards, form groups. */
   card: {
-    shadowColor: '#14160f',
+    shadowColor: "#14160f",
     shadowOffset: { width: 0, height: 18 },
     shadowOpacity: 0.07,
     shadowRadius: 44,
@@ -294,7 +294,7 @@ export const shadow = {
   },
   /** The standard panel. */
   panel: {
-    shadowColor: '#14160f',
+    shadowColor: "#14160f",
     shadowOffset: { width: 0, height: 24 },
     shadowOpacity: 0.09,
     shadowRadius: 60,

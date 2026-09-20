@@ -1,6 +1,6 @@
 /** Worker entry — the Cloudflare runtime calls this default export for every request. */
 
-import { app } from '@/app';
+import { app } from "@/app";
 
 // The ONE default export in this codebase. The Workers runtime requires the
 // module's fetch handler to be the default export, so `src/index.ts` is the
