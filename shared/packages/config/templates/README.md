@@ -40,4 +40,6 @@ keeps one copy and lets each package's `.oxlintrc.json` still declare its own
 
 - Application code, contracts, or components. Those are `packages/ui` and
   `packages/types`.
-- A `package.json`. The workspace generator writes it, with pinned versions.
+- A `package.json`. This package is not a workspace member — it has no
+  dependencies and no scripts, so the root's `bun run --filter '*'` fan-out has
+  nothing to call here. Consumers reach these files by path.

@@ -202,14 +202,36 @@ function requestedApps(
   }));
 }
 
+/**
+ * Ports the user typed, reserved before defaults are handed out so a default
+ * never lands on one. Two apps asking for the same port is a mistake to report,
+ * not one to silently resolve.
+ */
+function explicitPorts(requested: readonly AppFlags[]): Map<string, number> {
+  const ports = new Map<string, number>();
+  for (const app of requested) {
+    if (app.port === undefined) continue;
+    const owner = [...ports.entries()].find(([, port]) => port === app.port);
+    if (owner !== undefined) {
+      throw new Error(`Duplicate app port: ${app.port} is requested by ${owner[0]} and ${app.id}`);
+    }
+    ports.set(app.id, app.port);
+  }
+  return ports;
+}
+
 function resolveApps(
   requested: readonly AppFlags[],
   packages: readonly WorkspacePackageId[],
 ): ManifestApp[] {
-  const usedPorts = new Set<number>();
+  const reserved = explicitPorts(requested);
+  const usedPorts = new Set<number>(reserved.values());
   const apps: ManifestApp[] = [];
   for (const app of requested) {
     if (!isStackId(app.stack)) throw new Error(`Unsupported stack: ${app.stack}`);
+    if (app.pages !== undefined && app.stack !== "marketing") {
+      throw new Error(`Routes are a marketing stack feature: ${app.id} is ${app.stack}`);
+    }
     const integrations = [...(app.integrations ?? [])];
     if (
       app.stack === "backend-ts" &&
@@ -223,7 +245,7 @@ function resolveApps(
       throw new Error(`Duplicate app directory: ${id}`);
     }
     let port = app.port ?? defaultPort(app.stack);
-    while (usedPorts.has(port)) port += 1;
+    while (app.port === undefined && usedPorts.has(port)) port += 1;
     usedPorts.add(port);
     apps.push({
       id,

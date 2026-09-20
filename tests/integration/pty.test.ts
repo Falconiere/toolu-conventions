@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -73,6 +73,12 @@ describe("Clack wizard PTY eval", () => {
     const target = join(temporary, "pty-eval-workspace");
     expect(await Bun.file(join(target, "apps/console/package.json")).exists()).toBe(true);
     expect(await Bun.file(join(target, "package.json")).exists()).toBe(true);
+    // The packages multiselect really selected one, rather than only rendering.
+    expect(await Bun.file(join(target, "packages/database/package.json")).exists()).toBe(true);
+    const manifest: unknown = JSON.parse(
+      await readFile(join(target, "toolu.scaffold.json"), "utf8"),
+    );
+    expect(manifest).toMatchObject({ layout: "monorepo", packages: ["database"] });
   }, 60_000);
 
   test("maps Ctrl+C to a graceful cancellation exit", () => {

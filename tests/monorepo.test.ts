@@ -90,6 +90,39 @@ describe("monorepo configuration", () => {
     ).toThrow("Duplicate app directory: web");
   });
 
+  test("rejects a port two apps both asked for, and routes on a stack without them", () => {
+    expect(() =>
+      resolveWorkspace({
+        apps: [
+          { id: "console", stack: "console", integrations: [], port: 4000 },
+          { id: "api", stack: "backend-ts", integrations: [], port: 4000 },
+        ],
+        packages: [],
+      }),
+    ).toThrow("Duplicate app port: 4000 is requested by console and api");
+    expect(() =>
+      resolveWorkspace({
+        apps: [{ id: "console", stack: "console", integrations: [], pages: ["pricing"] }],
+        packages: [],
+      }),
+    ).toThrow("Routes are a marketing stack feature: console is console");
+  });
+
+  test("keeps a requested port and moves the defaulted app instead", () => {
+    const manifest = resolveWorkspace({
+      apps: [
+        { id: "one", stack: "console", integrations: [] },
+        { id: "two", stack: "console", integrations: [], port: 5173 },
+      ],
+      packages: [],
+    });
+    if (manifest.layout !== "monorepo") throw new Error("expected a monorepo manifest");
+    expect(manifest.apps.map((app) => [app.id, app.port])).toEqual([
+      ["one", 5174],
+      ["two", 5173],
+    ]);
+  });
+
   test("allows an operations module any single app can host", () => {
     const manifest = resolveWorkspace({ operations: ["infisical"] });
     expect(manifest.operations).toEqual(["infisical"]);
@@ -295,6 +328,24 @@ describe("monorepo plan", () => {
         { name: "marketing", runtime: "static", port: 4321 },
       ],
     });
+  });
+
+  test("wires an operations module only into the apps that can host it", async () => {
+    const manifest = resolveWorkspace({ operations: ["infisical"] });
+    const files = await planRecipe(manifest, resolve("."));
+    const operations: unknown = JSON.parse(plannedContent(files, "operations.config.json"));
+    expect(operations).toMatchObject({
+      services: [
+        // A client app has no server runtime to read .dev.vars, and marketing
+        // is statically rendered — neither gets a secrets target.
+        { name: "console", runtime: "client" },
+        { name: "api", runtime: "server", secretsTarget: "apps/api/.dev.vars" },
+        { name: "marketing", runtime: "static" },
+      ],
+    });
+    const services = (operations as { services: Record<string, unknown>[] }).services;
+    expect(services[0]).not.toHaveProperty("secretsTarget");
+    expect(services[2]).not.toHaveProperty("secretsTarget");
   });
 
   test("lists Bun members explicitly when a Rust app joins the workspace", async () => {

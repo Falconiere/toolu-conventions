@@ -19,7 +19,7 @@ export function visualStack(stack: StackId): boolean {
   return stack === "console" || stack === "marketing" || stack === "expo";
 }
 
-interface AppSurface {
+export interface AppSurface {
   stack: ManifestApp["stack"];
   integrations: readonly string[];
 }
@@ -64,7 +64,7 @@ function validateOperationSet(operations: readonly string[]): void {
 }
 
 /** Why one app cannot host an operations module, or undefined when it can. */
-function operationBlocker(app: AppSurface, operation: string): string | undefined {
+export function operationBlocker(app: AppSurface, operation: string): string | undefined {
   const { stack, integrations } = app;
   if (stack.id === "console" && operation === "infisical" && !integrations.includes("worker-api")) {
     return "console Infisical operations require worker-api";

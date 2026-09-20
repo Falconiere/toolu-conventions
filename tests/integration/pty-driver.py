@@ -57,7 +57,9 @@ def main() -> int:
         wait_for("Select integrations")
         send(b"\r")
         wait_for("Select shared packages")
-        send(b"\r")
+        # Space selects the first option (database) so the run really exercises
+        # a package choice made through the prompt, not just the prompt itself.
+        send(b" \r")
         wait_for("Select operations modules")
         send(b"\r")
         wait_for("Choose a theme preset")

@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, posix, relative, resolve, sep } from "node:path";
 import type { StackId } from "./contracts";
-import { visualStack } from "./compatibility";
+import { operationBlocker, visualStack } from "./compatibility";
 import { pinned, type KnownDependency } from "./dependencies";
 import {
   isMonorepo,
@@ -1912,16 +1912,22 @@ async function addMonorepoOperations(
   const domain = manifest.runtime.domain ?? defaultDomain(manifest.project.name);
   const services = manifest.apps.map((app) => {
     const runtime = runtimeFor(app.stack.id, app.integrations);
+    // Only the modules this app can actually host: a static site has no
+    // Infisical target and a Rust crate has no Worker hostname, and writing
+    // either would point the dev tooling at a file that is never generated.
+    const hosted = manifest.operations.filter(
+      (operation) => operationBlocker(app, operation) === undefined,
+    );
     const entry = serviceEntry({
       name: app.id,
       runtime: runtime === "mixed" ? "server" : runtime,
       command: appDevCommand(manifest, app),
       port: app.port,
       healthPath: app.stack.id === "console" ? "/api/health" : "/health",
-      operations: manifest.operations,
+      operations: hosted,
       domain,
     });
-    return manifest.operations.includes("infisical")
+    return hosted.includes("infisical")
       ? { ...entry, secretsTarget: `apps/${app.id}/.dev.vars` }
       : entry;
   });
