@@ -4,3 +4,4 @@ dist/
 .claude/tmp/
 .worktrees/
 .claude/settings.local.json
+docs/toolu/*
