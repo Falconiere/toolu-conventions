@@ -15,4 +15,10 @@ pre-commit:
       run: bun run --filter '*' lint
     - name: format
       glob: '*.{ts,tsx,json,jsonc}'
-      run: bunx oxfmt --check {staged_files}
+      exclude:
+        - "**/*.gen.ts"
+        - "**/worker-configuration.d.ts"
+        - "**/.astro/**"
+        - "scripts/guardrails/**"
+        - "**/src/ui/theme/**"
+      run: bunx oxfmt --check --ignore-path .oxfmtignore {staged_files}

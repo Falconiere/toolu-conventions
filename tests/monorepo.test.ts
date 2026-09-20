@@ -323,6 +323,17 @@ describe("monorepo plan", () => {
       expect(paths.has(path)).toBe(false);
     }
 
+    const gitignore = plannedContent(files, ".gitignore");
+    expect(gitignore).toContain(".astro/");
+    expect(gitignore).toContain(".claude/settings.local.json");
+    const oxfmtignore = plannedContent(files, ".oxfmtignore");
+    expect(oxfmtignore).toContain("**/*.gen.ts");
+    expect(oxfmtignore).toContain("**/worker-configuration.d.ts");
+    const lefthook = plannedContent(files, "lefthook.yml");
+    expect(lefthook).toContain("--ignore-path .oxfmtignore");
+    expect(lefthook).toContain("**/*.gen.ts");
+    expect(lefthook).toContain("**/worker-configuration.d.ts");
+
     const apiPackage: unknown = JSON.parse(plannedContent(files, "apps/api/package.json"));
     expect(apiPackage).toMatchObject({
       name: "@agavus-io/api",
