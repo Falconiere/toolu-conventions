@@ -1,3 +1,10 @@
+## [0.9.1](https://github.com/Falconiere/toolu-conventions/compare/v0.9.0...v0.9.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* **scaffold:** Bun 1.4 filter order and 1.4.2 pin ([cc88d24](https://github.com/Falconiere/toolu-conventions/commit/cc88d244f584ad48eda7659639f7f035f3201c96)), closes [#30](https://github.com/Falconiere/toolu-conventions/issues/30) [#31](https://github.com/Falconiere/toolu-conventions/issues/31)
+
 # [0.9.0](https://github.com/Falconiere/toolu-conventions/compare/v0.8.1...v0.9.0) (2026-09-20)
 
 
