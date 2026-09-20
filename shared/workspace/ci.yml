@@ -31,7 +31,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.14
+          bun-version: 1.4.2
 
       # One install for the whole workspace — that is what workspaces are for.
       - name: Install dependencies
@@ -48,7 +48,7 @@ jobs:
           git diff --exit-code -- worker-configuration.d.ts
 
       - name: Type-check
-        run: bun --filter '*' run type-check
+        run: bun run --filter '*' type-check
 
       # Fanned out on purpose, and it is not merely tidiness: the guardrails
       # oxlint plugin resolves guardrails.config.json from the working
@@ -57,10 +57,10 @@ jobs:
       # no such file — fail closed at plugin load. Neither is what you want in
       # CI; run it inside each package.
       - name: Lint
-        run: bun --filter '*' run lint
+        run: bun run --filter '*' lint
 
       - name: Format check
-        run: bun --filter '*' run fmt:check
+        run: bun run --filter '*' fmt:check
 
       # Repo mode from the root. run.sh reads guardrails.workspace.json, checks
       # the root-level rules here, and re-execs itself once per package.
@@ -74,14 +74,14 @@ jobs:
         run: bunx knip
 
       - name: Copy-paste detection (jscpd)
-        run: bun --filter '*' run check:dupes
+        run: bun run --filter '*' check:dupes
 
       # Runs inside workerd via @cloudflare/vitest-pool-workers. The database
       # package needs real Turso credentials, so its round-trip tests are the
       # one thing CI cannot cover without them — set the repo secrets, or
       # accept that the schema is proven only by type-checking here.
       - name: Test
-        run: bun --filter '*' run test
+        run: bun run --filter '*' test
 
       # A dry-run deploy: bundles the Worker and validates the config without
       # publishing. Catches an unsupported import or a bad binding before merge

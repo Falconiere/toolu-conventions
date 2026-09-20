@@ -149,7 +149,7 @@ repeatedly against a shared development database.
 
 ## The gate, in a workspace
 
-`bun run check` inside the package; `bun --filter '*' run check` from the root.
+`bun run check` inside the package; `bun run --filter '*' check` from the root.
 
 **Never run oxlint from the workspace root.** The house plugin resolves
 `guardrails.config.json` from the working directory, and a workspace root

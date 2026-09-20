@@ -133,7 +133,7 @@ it here.
 From `$ROOT`:
 
 ```bash
-bun --filter '*' run check
+bun run --filter '*' check
 ```
 
 Dead code has no naming escape hatch. Every package enables `noUnusedLocals` and

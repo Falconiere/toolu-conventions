@@ -5,7 +5,7 @@
   },
   "build": {
     "development": {
-      "bun": "1.3.14",
+      "bun": "1.4.2",
       "developmentClient": true,
       "channel": "development",
       "distribution": "internal",
@@ -19,7 +19,7 @@
       }
     },
     "staging": {
-      "bun": "1.3.14",
+      "bun": "1.4.2",
       "developmentClient": true,
       "channel": "staging",
       "distribution": "internal",
@@ -33,7 +33,7 @@
       }
     },
     "production": {
-      "bun": "1.3.14",
+      "bun": "1.4.2",
       "channel": "production",
       "autoIncrement": true,
       "env": {

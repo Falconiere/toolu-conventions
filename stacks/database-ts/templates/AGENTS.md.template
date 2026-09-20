@@ -43,7 +43,7 @@ Worker entry and no `index.ts`** — its public surface is the `exports` map in
 ## Gate
 
 `bun run check` — typecheck, lint, format-check, guardrails, knip, jscpd, and
-tests. From the workspace root, `bun --filter '*' run check` runs it for every
+tests. From the workspace root, `bun run --filter '*' check` runs it for every
 package.
 
 Never run oxlint from the workspace root: it resolves `guardrails.config.json`
