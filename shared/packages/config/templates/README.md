@@ -47,9 +47,8 @@ actually runs in: the package.
 
 ## What does NOT go here
 
-- Application code, contracts, or components. Those are `packages/ui` and
-  `packages/types`.
-- Source code, contracts or components. The `package.json` here declares the
-  two bases in its `exports` map and one script, the format check: a package
-  with no code has nothing else to gate. Consumers still resolve the bases by
-  path, because oxlint reads `extends` as a path rather than through Node.
+Application code, contracts, or components. Those belong in `packages/ui` and
+`packages/types`. The `package.json` here declares the two bases in its
+`exports` map and one script, the format check: a package with no code has
+nothing else to gate. Consumers still resolve the bases by path, because
+oxlint reads `extends` as a path rather than through Node.

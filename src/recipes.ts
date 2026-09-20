@@ -1895,6 +1895,9 @@ async function planConfigPackage(
     const path = `packages/config/${name}`;
     const config = parsePlannedJson(files, path);
     config.jsPlugins = ["./../../scripts/guardrails/oxlint-plugin/index.js"];
+    // The config package does not install oxlint. The schema resolves from the
+    // workspace root, where the members that extend these bases hoist it.
+    config.$schema = "../../node_modules/oxlint/configuration_schema.json";
     setPlannedJson(files, path, config);
   }
   for (const directory of members) {

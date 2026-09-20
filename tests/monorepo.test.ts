@@ -264,6 +264,34 @@ describe("monorepo plan", () => {
     ]);
   });
 
+  test("points shared lint bases at the workspace root and drops the per-package copies", async () => {
+    const manifest = resolveWorkspace({
+      packages: ["database", "ui", "types", "config"],
+    });
+    const files = await planRecipe(manifest, resolve("."));
+    const schema = "../../node_modules/oxlint/configuration_schema.json";
+    expect(JSON.parse(plannedContent(files, "packages/config/base.oxlintrc.json"))).toMatchObject({
+      $schema: schema,
+      jsPlugins: ["./../../scripts/guardrails/oxlint-plugin/index.js"],
+    });
+    expect(
+      JSON.parse(plannedContent(files, "packages/config/base-react.oxlintrc.json")),
+    ).toMatchObject({
+      $schema: schema,
+    });
+    expect(JSON.parse(plannedContent(files, "packages/types/.oxlintrc.json")).extends).toEqual([
+      "../../packages/config/base.oxlintrc.json",
+    ]);
+    expect(JSON.parse(plannedContent(files, "packages/ui/.oxlintrc.json")).extends).toEqual([
+      "../../packages/config/base.oxlintrc.json",
+      "../../packages/config/base-react.oxlintrc.json",
+    ]);
+    const paths = new Set(files.map((file) => file.path));
+    expect(paths.has("packages/types/base.oxlintrc.json")).toBe(false);
+    expect(paths.has("packages/ui/base.oxlintrc.json")).toBe(false);
+    expect(paths.has("packages/ui/base-react.oxlintrc.json")).toBe(false);
+  });
+
   test("moves each app under apps/ and leaves the shared files at the root", async () => {
     const manifest = resolveWorkspace({ operations: ["local-dev"] });
     const files = await planRecipe(manifest, resolve("."));

@@ -9,7 +9,7 @@ import {
   type StackId,
   type WorkspacePackageId,
 } from "./contracts";
-import { isStackId, validateCompatibility } from "./compatibility";
+import { isStackId, validateCompatibility, visualStack } from "./compatibility";
 import { titleCaseProjectName } from "./identity";
 import {
   parseManifest,
@@ -82,10 +82,6 @@ function stackFor(
   if (stack === "rust")
     return { id: stack, mode: integrations.includes("axum") ? "service" : "cli" };
   return { id: stack };
-}
-
-function visualStack(stack: StackId): boolean {
-  return stack === "console" || stack === "marketing" || stack === "expo";
 }
 
 function recipesFor(

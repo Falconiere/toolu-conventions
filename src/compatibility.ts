@@ -168,11 +168,7 @@ function validateMonorepo(manifest: Extract<ScaffoldManifest, { layout: "monorep
   }
   const [target] = [...targets];
   const themed = manifest.apps.find((app) => visualStack(app.stack.id));
-  validateTheme(
-    manifest.theme,
-    target === "native" ? "native" : target === "web" ? "web" : "none",
-    themed?.stack.id ?? "this workspace",
-  );
+  validateTheme(manifest.theme, target ?? "none", themed?.stack.id ?? "this workspace");
 }
 
 export function validateCompatibility(manifest: ScaffoldManifest): void {
