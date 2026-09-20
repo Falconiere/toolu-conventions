@@ -1743,10 +1743,16 @@ function applyRustCrateName(
   const path = `${directory}/Cargo.toml`;
   const file = files.get(path);
   if (file === undefined) return;
-  files.set(path, {
-    ...file,
-    content: file.content.replace(/^name = ".*"$/m, `name = "${crateName}"`),
-  });
+  // Anchored to the [package] table: a bare `^name = ` would also match a
+  // `name` key in any other table a future manifest grows.
+  const content = file.content.replace(
+    /(\[package\]\n(?:[^[]*\n)?)name = ".*"/,
+    (_match, header: string) => `${header}name = "${crateName}"`,
+  );
+  if (content === file.content) {
+    throw new Error(`Cargo.toml has no [package] name to rewrite: ${path}`);
+  }
+  files.set(path, { ...file, content });
 }
 
 interface SharedPackageShape {

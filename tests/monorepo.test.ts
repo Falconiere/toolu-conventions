@@ -360,7 +360,11 @@ describe("monorepo plan", () => {
     expect(JSON.parse(plannedContent(files, "package.json"))).toMatchObject({
       workspaces: ["apps/api"],
     });
-    expect(plannedContent(files, "apps/cli/Cargo.toml")).toContain('name = "agavus-io-cli"');
+    const cargo = plannedContent(files, "apps/cli/Cargo.toml");
+    // The rename lands in [package], not on a key that happens to be called
+    // `name` somewhere else in the manifest.
+    expect(/\[package\]\n(?:[^[]*\n)?name = "agavus-io-cli"/.test(cargo)).toBe(true);
+    expect(cargo).not.toContain('name = "agavus-io"');
     expect(plannedContent(files, ".gitignore")).toContain("target/");
   });
 
