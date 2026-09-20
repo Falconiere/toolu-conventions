@@ -409,7 +409,7 @@ describe("planRecipe", () => {
     expect(paths).toContain("src/domains/home/screens/integration-status.ts");
     expect(
       files.find((file) => file.path === "src/domains/home/screens/integration-status.ts")?.content,
-    ).toContain("import { storage } from '@/utilities/storage'");
+    ).toContain('import { storage } from "@/utilities/storage"');
     expect(
       files.find((file) => file.path === "src/domains/home/screens/home-screen.tsx")?.content,
     ).toContain("integrationCount");

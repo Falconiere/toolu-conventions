@@ -496,7 +496,7 @@ app.get("/database/health", async (context) => {
         ? 'createDatabase().execute("select 1")'
         : '(await createDatabase().prepare("select 1")).get()'
   };
-  return context.json({ status: 'ok' });
+  return context.json({ status: "ok" });
 });
 ${auth ? '\napp.all("/api/auth/*", (context) => auth.handler(context.req.raw));\n' : ""}
 app.all("/rpc/*", async (context) => {
@@ -938,9 +938,9 @@ async function planConsole(
     addPackageDependencies(files, ["hono"]);
   }
   const integrationImports = [
-    ...(manifest.integrations.includes("api") ? ["import { orpc } from '@/api/orpc';"] : []),
+    ...(manifest.integrations.includes("api") ? ['import { orpc } from "@/api/orpc";'] : []),
     ...(manifest.integrations.includes("auth")
-      ? ["import { authClient } from '@/api/auth-client';"]
+      ? ['import { authClient } from "@/api/auth-client";']
       : []),
   ];
   const integrationValues = [
@@ -1077,7 +1077,7 @@ async function planMarketing(
   if (manifest.integrations.includes("react-island")) {
     files.set("src/ui/signup-island.tsx", {
       path: "src/ui/signup-island.tsx",
-      content: `/** An opt-in hydrated island. */\nimport { useState } from "react";\n\nexport function SignupIsland() {\n  const [submitted, setSubmitted] = useState(false);\n  return <button type="button" onClick={() => setSubmitted(true)}>{submitted ? "Thanks" : "Join updates"}</button>;\n}\n`,
+      content: `/** An opt-in hydrated island. */\nimport { useState } from "react";\n\nexport function SignupIsland() {\n  const [submitted, setSubmitted] = useState(false);\n  return (\n    <button type="button" onClick={() => setSubmitted(true)}>\n      {submitted ? "Thanks" : "Join updates"}\n    </button>\n  );\n}\n`,
     });
     files.set("src/pages/index.astro", {
       path: "src/pages/index.astro",
@@ -1096,11 +1096,11 @@ async function planMarketing(
   const needsReact = manifest.integrations.includes("react-island");
   if (needsCloudflare || needsReact) {
     const imports = [
-      "import { defineConfig } from 'astro/config';",
-      "import sitemap from '@astrojs/sitemap';",
-      "import tailwindcss from '@tailwindcss/vite';",
-      ...(needsCloudflare ? ["import cloudflare from '@astrojs/cloudflare';"] : []),
-      ...(needsReact ? ["import react from '@astrojs/react';"] : []),
+      'import { defineConfig } from "astro/config";',
+      'import sitemap from "@astrojs/sitemap";',
+      'import tailwindcss from "@tailwindcss/vite";',
+      ...(needsCloudflare ? ['import cloudflare from "@astrojs/cloudflare";'] : []),
+      ...(needsReact ? ['import react from "@astrojs/react";'] : []),
     ];
     const integrations = ["sitemap()", ...(needsReact ? ["react()"] : [])];
     files.set("astro.config.mjs", {
@@ -1455,12 +1455,12 @@ async function planExpo(
     addPackageDependencies(files, ["@react-native-async-storage/async-storage"]);
   }
   const integrationImports = [
-    ...(manifest.integrations.includes("api") ? ["import { api } from '@/api/orpc';"] : []),
+    ...(manifest.integrations.includes("api") ? ['import { api } from "@/api/orpc";'] : []),
     ...(manifest.integrations.includes("auth")
-      ? ["import { authClient } from '@/api/auth-client';"]
+      ? ['import { authClient } from "@/api/auth-client";']
       : []),
     ...(manifest.integrations.includes("async-storage")
-      ? ["import { storage } from '@/utilities/storage';"]
+      ? ['import { storage } from "@/utilities/storage";']
       : []),
   ];
   const integrationValues = [
