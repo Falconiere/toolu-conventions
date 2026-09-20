@@ -1,3 +1,10 @@
+## [0.9.2](https://github.com/Falconiere/toolu-conventions/compare/v0.9.1...v0.9.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* **scaffold:** ignore generated fmt paths and Astro cache ([55ef443](https://github.com/Falconiere/toolu-conventions/commit/55ef443a849b4d0ed430adf1f79a306e7f507a61)), closes [#32](https://github.com/Falconiere/toolu-conventions/issues/32) [#33](https://github.com/Falconiere/toolu-conventions/issues/33) [#34](https://github.com/Falconiere/toolu-conventions/issues/34)
+
 ## [0.9.1](https://github.com/Falconiere/toolu-conventions/compare/v0.9.0...v0.9.1) (2026-09-20)
 
 
