@@ -1,3 +1,10 @@
+# [0.9.0](https://github.com/Falconiere/toolu-conventions/compare/v0.8.1...v0.9.0) (2026-09-20)
+
+
+### Features
+
+* **scaffold:** monorepo layout and dotted project names ([#29](https://github.com/Falconiere/toolu-conventions/issues/29)) ([9c4a5ae](https://github.com/Falconiere/toolu-conventions/commit/9c4a5ae3603fde8e4620cff042f0f179286b0cc9))
+
 ## [0.8.1](https://github.com/Falconiere/toolu-conventions/compare/v0.8.0...v0.8.1) (2026-09-17)
 
 
