@@ -92,7 +92,7 @@ Two rules that are load-bearing rather than stylistic:
   name would let a root-level oxlint run lint every package against one config
   and silently disable whatever each package declares `ownedByLinter`. Under
   the manifest's own name, a root-level oxlint run fails closed at plugin load
-  instead. Run oxlint per package (`bun --filter '*' run lint`). Having both
+  instead. Run oxlint per package (`bun run --filter '*' lint`). Having both
   files at the root exits 3.
 - **Each package guards its own secrets.** wrangler reads `.dev.vars` beside
   each `wrangler.jsonc`, so every package config lists its own; the manifest

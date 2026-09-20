@@ -6,14 +6,14 @@
     "packages/*"
   ],
   "scripts": {
-    "check": "bun run check:structure && bun run check:unused && bun --filter '*' run check",
-    "type-check": "bun --filter '*' run type-check",
-    "lint": "bun --filter '*' run lint",
-    "fmt:check": "bun --filter '*' run fmt:check",
+    "check": "bun run check:structure && bun run check:unused && bun run --filter '*' check",
+    "type-check": "bun run --filter '*' type-check",
+    "lint": "bun run --filter '*' lint",
+    "fmt:check": "bun run --filter '*' fmt:check",
     "check:structure": "bash scripts/guardrails/run.sh",
     "check:unused": "knip",
-    "check:dupes": "bun --filter '*' run check:dupes",
-    "test": "bun --filter '*' run test"
+    "check:dupes": "bun run --filter '*' check:dupes",
+    "test": "bun run --filter '*' test"
   },
   "devDependencies": {
     "knip": "^5.64.4",

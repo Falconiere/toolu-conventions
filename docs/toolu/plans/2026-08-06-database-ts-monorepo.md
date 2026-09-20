@@ -180,7 +180,7 @@ become true once C has landed.
   {
     "id": "core-monorepo",
     "title": "CORE.md monorepo section",
-    "check": "grep -q 'guardrails.workspace.json' CORE.md && grep -q 'bun --filter' CORE.md",
+    "check": "grep -q 'guardrails.workspace.json' CORE.md && grep -q 'bun run --filter' CORE.md",
     "ac_refs": ["AC-16"],
     "model": "sonnet",
     "depends_on": ["ws-dispatch"],

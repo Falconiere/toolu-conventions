@@ -12,7 +12,7 @@ pre-commit:
     - name: guardrails
       run: bash scripts/guardrails/run.sh
     - name: lint
-      run: bun --filter '*' run lint
+      run: bun run --filter '*' lint
     - name: format
       glob: '*.{ts,tsx,json,jsonc}'
       run: bunx oxfmt --check {staged_files}

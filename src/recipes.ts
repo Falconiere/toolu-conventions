@@ -568,7 +568,7 @@ function stackRuntime(manifest: StandaloneManifest): "client" | "static" | "serv
 function serviceCommand(manifest: StandaloneManifest): string {
   if (manifest.stack.id === "rust") return "cargo run";
   if (manifest.stack.id === "backend-ts" && manifest.stack.workspace) {
-    return `bun --filter ${workspacePackageName(manifest.project.name, "api")} run dev`;
+    return `bun run --filter ${workspacePackageName(manifest.project.name, "api")} dev`;
   }
   if (manifest.stack.id === "expo") return "bun run start";
   return "bun run dev";
@@ -2074,21 +2074,21 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.14
+          bun-version: 1.4.2
 ${rustSetup}
       - name: Install dependencies
         run: bun install --frozen-lockfile
 ${typegenSteps}
       - name: Type-check
-        run: bun --filter '*' run type-check
+        run: bun run --filter '*' type-check
 
       # The guardrails oxlint plugin resolves guardrails.config.json from the
       # working directory, so lint runs inside each member, never at the root.
       - name: Lint
-        run: bun --filter '*' run lint
+        run: bun run --filter '*' lint
 
       - name: Format check
-        run: bun --filter '*' run fmt:check
+        run: bun run --filter '*' fmt:check
 
       - name: Structure check
         run: bash scripts/guardrails/run.sh
@@ -2097,10 +2097,10 @@ ${typegenSteps}
         run: bunx knip
 
       - name: Copy-paste detection (jscpd)
-        run: bun --filter '*' run check:dupes
+        run: bun run --filter '*' check:dupes
 
       - name: Test
-        run: bun --filter '*' run test
+        run: bun run --filter '*' test
 ${deploySteps}${rustSteps}`;
 }
 

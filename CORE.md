@@ -312,7 +312,7 @@ gate that enforces and a gate that reports green over unchecked code.
    would let a root-level lint run check every package against it and silently
    disable whatever each package declares `ownedByLinter`. Its absence makes a
    root-level run fail closed at plugin load. Having both files there exits 3.
-3. **Fan the gate out per package** — `bun --filter '*' run check`. Never run
+3. **Fan the gate out per package** — `bun run --filter '*' check`. Never run
    `oxlint` from the workspace root, for the reason in rule 2.
 4. **Each package guards its own secrets.** wrangler reads `.dev.vars` beside
    each `wrangler.jsonc`; the manifest lists only root-level ones. Listing a
