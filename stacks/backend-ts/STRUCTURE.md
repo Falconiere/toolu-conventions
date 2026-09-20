@@ -52,7 +52,7 @@ it. `LIBRARIES.md` names the ones that do.
 ├── .oxlintrc.json · .oxfmtrc.json · lefthook.yml
 ├── .dev.vars.example     # local SECRETS template (.dev.vars itself is git-ignored)
 ├── .github/workflows/    # ci.yml (the gate) + code-review.yml (AI review)
-├── CLAUDE.md             # agent rules + repo map (read first)
+├── AGENTS.md             # agent rules + repo map (read first)
 └── README.md             # human + agent entry point
 ```
 
@@ -143,7 +143,7 @@ These inherit CORE. Most are **machine-enforced** by `bun run check` — via
 pre-commit — so the gate fails on a violation rather than a reviewer catching it.
 Each rule below names its enforcer; `(review)` means it's a convention a human/agent
 upholds, not yet a machine check. See
-[`templates/CLAUDE.md.template`](./templates/CLAUDE.md.template) for the full
+[`templates/AGENTS.md.template`](./templates/AGENTS.md.template) for the full
 blocked-patterns list.
 
 1. **No barrel files.** Never an `index.ts` that only re-exports. Import the
@@ -251,7 +251,7 @@ Clients are typed against the router, which means the type has to travel:
 | **Monorepo** (API + console in one repo) | The client does `import type { AppRouter } from '@acme/api'` | Type-only, erased at build — no server code reaches the client bundle. Simplest; use it if the repos can live together. |
 | **Separate repos** (this kit's default) | Publish a small **contract** package (`@orpc/contract` + the shared Zod schemas) that both sides depend on | The API implements the contract; clients are typed as `ContractRouterClient<typeof contract>`. Versioning the contract is what makes a breaking change visible instead of a 3am surprise. |
 
-Pick one deliberately and write the choice into `CLAUDE.md`. What does **not**
+Pick one deliberately and write the choice into `AGENTS.md`. What does **not**
 work is hand-copying types into the client: they drift the first time someone is
 in a hurry, and nothing tells you.
 
@@ -289,7 +289,7 @@ without reading the whole tree. We get that from:
 - **A README in every `src/*` folder** (from
   [`templates/folder-README.md`](./templates/folder-README.md)) listing what
   belongs there, what's inside (one line each), and where NOT to put things.
-- **`CLAUDE.md` at the root** as the map + rulebook, read first by agents.
+- **`AGENTS.md` at the root** as the map + rulebook, read first by agents.
 - **No barrels + filename ↔ content** — grep for a symbol lands on its definition.
 - **The `@/` alias** makes import sites self-describing
   (`@/domains/health/health-service` tells you exactly where it is).

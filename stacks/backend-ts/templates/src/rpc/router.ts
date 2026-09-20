@@ -1,6 +1,6 @@
 /** The API's public surface — the one type every client is generated from. */
 
-import { healthProcedures } from '@/rpc/health-procedures';
+import { healthProcedures } from "@/rpc/health-procedures";
 
 // Composed by hand, and NOT a barrel file: a barrel exists only to re-export, so
 // it hides where things live. This file builds a value — the router — and its

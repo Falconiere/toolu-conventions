@@ -40,7 +40,7 @@ below — it never relaxes a CORE rule.
 ├── .oxlintrc.json · .oxfmtrc.json · lefthook.yml
 ├── .env.example
 ├── .github/workflows/        # ci.yml (the gate) + code-review.yml (AI review)
-├── CLAUDE.md                 # agent rules + repo map (read first)
+├── AGENTS.md                 # agent rules + repo map (read first)
 └── README.md                 # human + agent entry point
 ```
 
@@ -182,7 +182,7 @@ without reading the whole tree. We get that from:
 
 - **A README in every `src/*` folder** except `pages` (whose structure *is* the
   documentation), from [`templates/folder-README.md`](./templates/folder-README.md).
-- **`CLAUDE.md` at the root** as the map + rulebook, read first by agents.
+- **`AGENTS.md` at the root** as the map + rulebook, read first by agents.
 - **No barrels + filename ↔ content** — grep for a symbol lands on its definition.
 - **The `@/` alias** makes import sites self-describing.
 

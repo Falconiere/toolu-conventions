@@ -1,4 +1,4 @@
-# CLAUDE.md — {{TOOLU_DISPLAY_NAME}}
+# AGENTS.md — {{TOOLU_DISPLAY_NAME}}
 
 {{TOOLU_DESCRIPTION}} React + Vite console app. TanStack Router (file-based)
 · TypeScript (strict) · TailwindCSS · bun · Vitest + Testing Library · oxlint +
@@ -124,7 +124,7 @@ before adding files, and add a line when you add something notable.
   `/** … */` doc line — brief, but not optional.
 - **Docs in sync**: a change to a user-facing surface (behavior, public API,
   routes, config) updates the prose describing it (README, the relevant
-  `src/*/README.md`, `CLAUDE.md`) in the **same** change.
+  `src/*/README.md`, `AGENTS.md`) in the **same** change.
 - **Commits**: `type(scope): description` (conventional). Push to feature
   branches; never directly to main.
 

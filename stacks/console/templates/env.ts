@@ -1,5 +1,5 @@
 /** Runtime-validated public environment — one typed source of truth for config. */
-import * as z from 'zod';
+import * as z from "zod";
 
 // All public config flows through here so the app validates env in ONE place,
 // with a schema rather than a pile of hand-written guards: one place to read the
@@ -22,13 +22,13 @@ function optional(value: string | undefined): string | undefined {
 
 const EnvSchema = z.object({
   VITE_ENV: z
-    .enum(['development', 'staging', 'production'])
-    .default(import.meta.env.PROD ? 'production' : 'development'),
-  VITE_API_URL: z.url().default('http://localhost:8787'),
+    .enum(["development", "staging", "production"])
+    .default(import.meta.env.PROD ? "production" : "development"),
+  VITE_API_URL: z.url().default("http://localhost:8787"),
 });
 
 /** The logical environment this build targets. */
-export type AppEnv = z.infer<typeof EnvSchema>['VITE_ENV'];
+export type AppEnv = z.infer<typeof EnvSchema>["VITE_ENV"];
 
 const parsed = EnvSchema.safeParse({
   VITE_ENV: optional(import.meta.env.VITE_ENV),
@@ -42,6 +42,6 @@ if (!parsed.success) {
 }
 
 export const APP_ENV: AppEnv = parsed.data.VITE_ENV;
-export const IS_PROD: boolean = APP_ENV === 'production';
+export const IS_PROD: boolean = APP_ENV === "production";
 export const BASE_API_URL: string = parsed.data.VITE_API_URL;
 export const REQUEST_TIMEOUT_MS = 8_000;

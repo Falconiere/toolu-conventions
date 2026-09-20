@@ -1,0 +1,35 @@
+# AGENTS.md — @{{TOOLU_PROJECT_SLUG}}/config
+
+Read this first. This package is shared lint configuration and nothing else.
+
+## What this package is
+
+Two oxlint bases, extended by every other workspace package and app:
+
+| Path | Holds |
+| --- | --- |
+| `base.oxlintrc.json` | The house rules: type-aware correctness, no barrels, no deep relative imports, kebab-case filenames, the `house/*` plugin rules. |
+| `base-react.oxlintrc.json` | React additions (`react/*`, `react-hooks/*`) for anything that renders JSX. |
+
+There is **no `src/`, no `vitest.config.ts`, and no `guardrails.config.json`** —
+a lint-config package ships no code for a structure check or a test runner to
+have an opinion about.
+
+## Hard rules
+
+1. **No source tree.** If this package ever needs one, it has stopped being a
+   config package — split the new code into `packages/ui` or `packages/types`,
+   or a new package, instead of growing one here.
+2. **No source tree, and the `package.json` stays minimal.** It declares the
+   two bases in its `exports` map and one script — the format check — because
+   that is the only gate a package with no code can honestly run. The packages
+   that extend these bases install `oxlint` themselves.
+3. **Extend, do not fork.** A consuming package's `.oxlintrc.json` points its
+   `extends` array at these files rather than copying rules into its own
+   config — one copy of the rules, not one per package.
+
+## Gate
+
+There is no `bun run check` here — nothing to type-check, lint, or test. The
+workspace root's gate does not list this package because it carries no
+`guardrails.config.json`.

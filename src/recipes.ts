@@ -1,11 +1,26 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, posix, relative, resolve, sep } from "node:path";
+import type { StackId } from "./contracts";
+import { operationBlocker, visualStack } from "./compatibility";
 import { pinned, type KnownDependency } from "./dependencies";
-import type { ScaffoldManifest } from "./manifest";
+import {
+  isMonorepo,
+  type ManifestApp,
+  type MonorepoManifest,
+  type ScaffoldManifest,
+  type StandaloneManifest,
+} from "./manifest";
+import {
+  bundleIdentifier,
+  compactName,
+  defaultDomain,
+  projectSlug,
+  workspacePackageName,
+} from "./identity";
 import {
   assertNoReservedPlaceholders,
   escapeMarkup,
-  escapeSingleQuotedString,
+  escapeDoubleQuotedString,
   renderTemplate,
 } from "./render";
 import { readVerifiedImportedThemeFile } from "./theme";
@@ -35,7 +50,7 @@ function placeholderValues(manifest: ScaffoldManifest): Record<string, string> {
   return {
     TOOLU_PROJECT_NAME: manifest.project.name,
     TOOLU_DISPLAY_NAME: manifest.project.displayName,
-    TOOLU_DISPLAY_NAME_JS: escapeSingleQuotedString(manifest.project.displayName),
+    TOOLU_DISPLAY_NAME_JS: escapeDoubleQuotedString(manifest.project.displayName),
     TOOLU_DISPLAY_NAME_HTML: escapeMarkup(manifest.project.displayName),
     TOOLU_DESCRIPTION: projectDescription(manifest),
     TOOLU_DESCRIPTION_HTML: escapeMarkup(projectDescription(manifest)),
@@ -47,15 +62,15 @@ function placeholderValues(manifest: ScaffoldManifest): Record<string, string> {
         ? `Theme tokens imported from ${manifest.theme.source}.`
         : `Theme preset: ${preset}.`,
     TOOLU_THEME_PRESET: preset,
-    TOOLU_SITE_DOMAIN: manifest.runtime.domain ?? `${manifest.project.name}.example.com`,
+    TOOLU_SITE_DOMAIN: manifest.runtime.domain ?? defaultDomain(manifest.project.name),
     TOOLU_SECTION_MARKER: "01 / HOME",
     TOOLU_HEADLINE_LINE_ONE: "Build with clarity.",
     TOOLU_HEADLINE_LINE_TWO_HTML: escapeMarkup(manifest.project.displayName),
     TOOLU_SUBHEAD_HTML: escapeMarkup(projectDescription(manifest)),
-    TOOLU_PROJECT_SLUG: manifest.project.name,
-    TOOLU_URL_SCHEME: manifest.project.name.replaceAll("-", ""),
-    TOOLU_BUNDLE_ID: `com.${manifest.project.name.replaceAll("-", "")}.app`,
-    TOOLU_ANDROID_PACKAGE: `com.${manifest.project.name.replaceAll("-", "")}.app`,
+    TOOLU_PROJECT_SLUG: projectSlug(manifest.project.name),
+    TOOLU_URL_SCHEME: compactName(manifest.project.name),
+    TOOLU_BUNDLE_ID: bundleIdentifier(manifest.project.name),
+    TOOLU_ANDROID_PACKAGE: bundleIdentifier(manifest.project.name),
     TOOLU_EAS_PROJECT_ID: "00000000-0000-0000-0000-000000000000",
   };
 }
@@ -77,7 +92,7 @@ function portableRelative(from: string, to: string): string {
 
 function consoleDestination(templateRoot: string, source: string): string | undefined {
   const path = portableRelative(templateRoot, source);
-  if (path === "CLAUDE.md.template") return "CLAUDE.md";
+  if (path === "AGENTS.md.template") return "AGENTS.md";
   if (path === "env.ts") return "src/constants/env.ts";
   if (path === "globals.css") return "src/ui/globals.css";
   if (path.startsWith("theme/")) return `src/ui/${path}`;
@@ -88,21 +103,21 @@ function consoleDestination(templateRoot: string, source: string): string | unde
 
 function marketingDestination(templateRoot: string, source: string): string {
   const path = portableRelative(templateRoot, source);
-  if (path === "CLAUDE.md.template") return "CLAUDE.md";
+  if (path === "AGENTS.md.template") return "AGENTS.md";
   if (path === "env.ts") return "src/constants/env.ts";
   return path;
 }
 
 function backendDestination(templateRoot: string, source: string): string {
   const path = portableRelative(templateRoot, source);
-  if (path === "CLAUDE.md.template") return "CLAUDE.md";
+  if (path === "AGENTS.md.template") return "AGENTS.md";
   if (path === "env.ts") return "src/constants/env.ts";
   return path;
 }
 
 function expoDestination(templateRoot: string, source: string): string | undefined {
   const path = portableRelative(templateRoot, source);
-  if (path === "CLAUDE.md.template") return "CLAUDE.md";
+  if (path === "AGENTS.md.template") return "AGENTS.md";
   if (path === "folder-README.md") return undefined;
   if (path === "env.ts") return "src/constants/env.ts";
   if (path.startsWith("theme/")) return `src/ui/${path}`;
@@ -113,14 +128,14 @@ function expoDestination(templateRoot: string, source: string): string | undefin
 
 function rustDestination(templateRoot: string, source: string): string | undefined {
   const path = portableRelative(templateRoot, source);
-  if (path === "CLAUDE.md.template") return "CLAUDE.md";
+  if (path === "AGENTS.md.template") return "AGENTS.md";
   if (path === "folder-README.md") return undefined;
   return path;
 }
 
 function databaseDestination(templateRoot: string, source: string): string {
   const path = portableRelative(templateRoot, source);
-  return path === "CLAUDE.md.template" ? "CLAUDE.md" : path;
+  return path === "AGENTS.md.template" ? "AGENTS.md" : path;
 }
 
 function jsonContent(value: unknown): string {
@@ -205,7 +220,7 @@ function addPackageDependencies(
   setPlannedJson(files, packagePath, packageFile);
 }
 
-function consolePackage(manifest: ScaffoldManifest): string {
+function consolePackage(manifest: StandaloneManifest): string {
   const dependencies: KnownDependency[] = [
     "@fontsource-variable/archivo",
     "@fontsource-variable/jetbrains-mono",
@@ -239,7 +254,7 @@ function consolePackage(manifest: ScaffoldManifest): string {
   ];
   return `${JSON.stringify(
     {
-      name: manifest.project.name,
+      name: projectSlug(manifest.project.name),
       version: "0.1.0",
       private: true,
       type: "module",
@@ -270,7 +285,7 @@ function consolePackage(manifest: ScaffoldManifest): string {
   )}\n`;
 }
 
-function marketingPackage(manifest: ScaffoldManifest): string {
+function marketingPackage(manifest: StandaloneManifest): string {
   const dependencies: KnownDependency[] = [
     "@astrojs/sitemap",
     "@fontsource-variable/archivo",
@@ -293,7 +308,7 @@ function marketingPackage(manifest: ScaffoldManifest): string {
   ];
   return `${JSON.stringify(
     {
-      name: manifest.project.name,
+      name: projectSlug(manifest.project.name),
       version: "0.1.0",
       private: true,
       type: "module",
@@ -325,7 +340,7 @@ function marketingPackage(manifest: ScaffoldManifest): string {
   )}\n`;
 }
 
-function backendPackage(manifest: ScaffoldManifest): string {
+function backendPackage(manifest: StandaloneManifest): string {
   const dependencies: KnownDependency[] = [
     "@orpc/server",
     "@tursodatabase/serverless",
@@ -346,7 +361,7 @@ function backendPackage(manifest: ScaffoldManifest): string {
   ];
   return `${JSON.stringify(
     {
-      name: manifest.project.name,
+      name: projectSlug(manifest.project.name),
       version: "0.1.0",
       private: true,
       type: "module",
@@ -378,7 +393,7 @@ function backendPackage(manifest: ScaffoldManifest): string {
   )}\n`;
 }
 
-function expoPackage(manifest: ScaffoldManifest): string {
+function expoPackage(manifest: StandaloneManifest): string {
   const dependencies = {
     ...pinned([
       "expo",
@@ -417,7 +432,7 @@ function expoPackage(manifest: ScaffoldManifest): string {
   ];
   return `${JSON.stringify(
     {
-      name: manifest.project.name,
+      name: projectSlug(manifest.project.name),
       version: "1.0.0",
       private: true,
       main: "expo-router/entry",
@@ -453,40 +468,40 @@ function folderReadme(path: string): string {
   return `# ${path}\n\nOwns the ${purpose} surface. Keep this inventory current as files are added.\n`;
 }
 
-function backendApplication(manifest: ScaffoldManifest, workspace: boolean): string {
+function backendApplication(manifest: StandaloneManifest, workspace: boolean): string {
   const auth = manifest.integrations.includes("auth");
   const logging = manifest.integrations.includes("structured-logging");
   const drizzle = manifest.integrations.includes("drizzle");
   return `/** The assembled Hono and oRPC application. */
-import { RPCHandler } from '@orpc/server/fetch';
-import { Hono } from 'hono';
-${auth ? "import { auth } from '@/domains/auth/auth';\n" : ""}${
-    drizzle && !workspace ? "import { createOrm } from '@/utilities/drizzle-service';\n" : ""
-  }import { router } from '@/rpc/router';
-import { createDatabase } from '@/utilities/database-service';
-${logging ? "import { logEvent } from '@/utilities/logger';\n" : ""}
+import { RPCHandler } from "@orpc/server/fetch";
+import { Hono } from "hono";
+${auth ? 'import { auth } from "@/domains/auth/auth";\n' : ""}${
+    drizzle && !workspace ? 'import { createOrm } from "@/utilities/drizzle-service";\n' : ""
+  }import { router } from "@/rpc/router";
+import { createDatabase } from "@/utilities/database-service";
+${logging ? 'import { logEvent } from "@/utilities/logger";\n' : ""}
 const rpc = new RPCHandler(router);
 
 export const app = new Hono<{ Bindings: Env }>();
 
-app.get('/health', (context) => {
-  ${logging ? "logEvent('health.checked');\n  " : ""}return context.json({ status: 'ok' });
+app.get("/health", (context) => {
+  ${logging ? 'logEvent("health.checked");\n  ' : ""}return context.json({ status: "ok" });
 });
 
-app.get('/database/health', async (context) => {
+app.get("/database/health", async (context) => {
   ${drizzle && !workspace ? "createOrm();\n  " : ""}await ${
     workspace
-      ? "createDatabase().$client.execute('select 1')"
+      ? 'createDatabase().$client.execute("select 1")'
       : drizzle
-        ? "createDatabase().execute('select 1')"
-        : "(await createDatabase().prepare('select 1')).get()"
+        ? 'createDatabase().execute("select 1")'
+        : '(await createDatabase().prepare("select 1")).get()'
   };
-  return context.json({ status: 'ok' });
+  return context.json({ status: "ok" });
 });
-${auth ? "\napp.all('/api/auth/*', (context) => auth.handler(context.req.raw));\n" : ""}
-app.all('/rpc/*', async (context) => {
+${auth ? '\napp.all("/api/auth/*", (context) => auth.handler(context.req.raw));\n' : ""}
+app.all("/rpc/*", async (context) => {
   const { matched, response } = await rpc.handle(context.req.raw, {
-    prefix: '/rpc',
+    prefix: "/rpc",
     context: { env: context.env, headers: context.req.raw.headers },
   });
   return matched ? response : context.notFound();
@@ -535,47 +550,107 @@ async function addGuardrails(files: Map<string, PlannedFile>, assetRoot: string)
   }
 }
 
-function stackRuntime(manifest: ScaffoldManifest): "client" | "static" | "server" | "mixed" {
-  if (manifest.stack.id === "console") {
-    return manifest.integrations.includes("worker-api") ? "mixed" : "client";
-  }
-  if (manifest.stack.id === "marketing") {
-    return manifest.integrations.includes("ssr-cloudflare") ? "server" : "static";
-  }
-  if (manifest.stack.id === "backend-ts") return "server";
-  if (manifest.stack.id === "expo") return "client";
-  return manifest.integrations.includes("axum") ? "server" : "client";
+function runtimeFor(
+  stack: StackId,
+  integrations: readonly string[],
+): "client" | "static" | "server" | "mixed" {
+  if (stack === "console") return integrations.includes("worker-api") ? "mixed" : "client";
+  if (stack === "marketing") return integrations.includes("ssr-cloudflare") ? "server" : "static";
+  if (stack === "backend-ts") return "server";
+  if (stack === "expo") return "client";
+  return integrations.includes("axum") ? "server" : "client";
 }
 
-function serviceCommand(manifest: ScaffoldManifest): string {
+function stackRuntime(manifest: StandaloneManifest): "client" | "static" | "server" | "mixed" {
+  return runtimeFor(manifest.stack.id, manifest.integrations);
+}
+
+function serviceCommand(manifest: StandaloneManifest): string {
   if (manifest.stack.id === "rust") return "cargo run";
   if (manifest.stack.id === "backend-ts" && manifest.stack.workspace) {
-    return `bun --filter @${manifest.project.name}/api run dev`;
+    return `bun --filter ${workspacePackageName(manifest.project.name, "api")} run dev`;
   }
   if (manifest.stack.id === "expo") return "bun run start";
   return "bun run dev";
 }
 
-function serviceName(manifest: ScaffoldManifest): string {
+function serviceName(manifest: StandaloneManifest): string {
   if (manifest.stack.id === "console") return "console";
   if (manifest.stack.id === "marketing") return "site";
   if (manifest.stack.id === "expo") return "app";
   return "api";
 }
 
-function serviceRuntime(manifest: ScaffoldManifest): "client" | "static" | "server" {
+function serviceRuntime(manifest: StandaloneManifest): "client" | "static" | "server" {
   const runtime = stackRuntime(manifest);
   if (runtime === "mixed") return "server";
   return runtime;
 }
 
-async function addOperations(
+interface ServiceOptions {
+  name: string;
+  runtime: "client" | "static" | "server";
+  command: string;
+  port: number;
+  healthPath: string;
+  operations: readonly string[];
+  domain: string;
+  /** Where Infisical writes this service's secrets, relative to the repo root. */
+  secretsTarget?: string;
+}
+
+/**
+ * One entry of operations.config.json `services`. `localHostname` is bound to a
+ * healthcheck by the operations schema, so both are gated on a server runtime.
+ */
+function serviceEntry(options: ServiceOptions): Record<string, unknown> {
+  const server = options.runtime === "server";
+  return {
+    name: options.name,
+    runtime: options.runtime,
+    command: options.command,
+    port: options.port,
+    ...(server
+      ? {
+          healthcheck: `http://127.0.0.1:${options.port}${options.healthPath}`,
+          ...(options.operations.includes("cloudflare")
+            ? { localHostname: `local-${options.name}.${options.domain}` }
+            : {}),
+        }
+      : {}),
+    ...(options.operations.includes("infisical")
+      ? { secretsTarget: options.secretsTarget ?? ".dev.vars" }
+      : {}),
+  };
+}
+
+interface DeployTarget {
+  worker: string;
+  command: string;
+}
+
+function cloudflareSection(
+  manifest: ScaffoldManifest,
+  domain: string,
+  development: DeployTarget,
+  production: DeployTarget,
+): Record<string, unknown> {
+  return {
+    zone: domain,
+    tunnelName: `${projectSlug(manifest.project.name)}-local`,
+    deploy: {
+      development: { worker: development.worker, command: development.command },
+      production: { worker: production.worker, command: production.command },
+    },
+  };
+}
+
+/** Copies the operations module trees every layout shares. */
+async function addOperationTemplates(
   files: Map<string, PlannedFile>,
   manifest: ScaffoldManifest,
   assetRoot: string,
 ): Promise<void> {
-  if (manifest.operations.length === 0) return;
-
   const sharedRoot = resolve(assetRoot, "conventions/shared/templates/scripts/operations");
   await addTree(
     files,
@@ -583,49 +658,7 @@ async function addOperations(
     (source) => `scripts/operations/${portableRelative(sharedRoot, source)}`,
     {},
   );
-  const name = serviceName(manifest);
-  const runtime = serviceRuntime(manifest);
-  const server = runtime === "server";
-  const domain = manifest.runtime.domain ?? `${manifest.project.name}.example.com`;
-  const service: Record<string, unknown> = {
-    name,
-    runtime,
-    command: serviceCommand(manifest),
-    port: manifest.runtime.port,
-    ...(server
-      ? {
-          healthcheck: `http://127.0.0.1:${manifest.runtime.port}/${manifest.stack.id === "console" ? "api/" : ""}health`,
-        }
-      : {}),
-    ...(manifest.operations.includes("cloudflare")
-      ? { localHostname: `local-${name}.${domain}` }
-      : {}),
-    ...(manifest.operations.includes("infisical") ? { secretsTarget: ".dev.vars" } : {}),
-  };
-  const operations: Record<string, unknown> = {
-    $schema: "./scripts/operations/schema.json",
-    version: 1,
-    stack:
-      manifest.stack.id === "backend-ts" && manifest.stack.workspace
-        ? "workspace"
-        : manifest.stack.id,
-    runtime: stackRuntime(manifest),
-    environments: ["local", "development", "production"],
-    services: [service],
-  };
-
   if (manifest.operations.includes("cloudflare")) {
-    operations.cloudflare = {
-      zone: domain,
-      tunnelName: `${manifest.project.name}-local`,
-      deploy: {
-        development: {
-          worker: `${manifest.project.name}-dev`,
-          command: "bun run deploy --env development",
-        },
-        production: { worker: manifest.project.name, command: "bun run deploy" },
-      },
-    };
     const root = resolve(assetRoot, "conventions/cloudflare-infra/templates");
     await addTree(
       files,
@@ -646,7 +679,6 @@ async function addOperations(
     });
   }
   if (manifest.operations.includes("infisical")) {
-    operations.infisical = { secretPath: "/" };
     const root = resolve(
       assetRoot,
       "conventions/infisical-secrets/templates/scripts/operations/infisical",
@@ -677,6 +709,49 @@ async function addOperations(
       {},
     );
   }
+}
+
+async function addOperations(
+  files: Map<string, PlannedFile>,
+  manifest: StandaloneManifest,
+  assetRoot: string,
+): Promise<void> {
+  if (manifest.operations.length === 0) return;
+  await addOperationTemplates(files, manifest, assetRoot);
+
+  const name = serviceName(manifest);
+  const domain = manifest.runtime.domain ?? defaultDomain(manifest.project.name);
+  const slug = projectSlug(manifest.project.name);
+  const operations: Record<string, unknown> = {
+    $schema: "./scripts/operations/schema.json",
+    version: 1,
+    stack:
+      manifest.stack.id === "backend-ts" && manifest.stack.workspace
+        ? "workspace"
+        : manifest.stack.id,
+    runtime: stackRuntime(manifest),
+    environments: ["local", "development", "production"],
+    services: [
+      serviceEntry({
+        name,
+        runtime: serviceRuntime(manifest),
+        command: serviceCommand(manifest),
+        port: manifest.runtime.port,
+        healthPath: manifest.stack.id === "console" ? "/api/health" : "/health",
+        operations: manifest.operations,
+        domain,
+      }),
+    ],
+  };
+  if (manifest.operations.includes("cloudflare")) {
+    operations.cloudflare = cloudflareSection(
+      manifest,
+      domain,
+      { worker: `${slug}-dev`, command: "bun run deploy --env development" },
+      { worker: slug, command: "bun run deploy" },
+    );
+  }
+  if (manifest.operations.includes("infisical")) operations.infisical = { secretPath: "/" };
   files.set("operations.config.json", {
     path: "operations.config.json",
     content: jsonContent(operations),
@@ -685,7 +760,7 @@ async function addOperations(
 
 async function applyImportedTheme(
   files: Map<string, PlannedFile>,
-  manifest: ScaffoldManifest,
+  manifest: StandaloneManifest,
 ): Promise<void> {
   if (manifest.theme.kind !== "import") return;
   for (const file of manifest.theme.files) {
@@ -698,19 +773,19 @@ async function applyImportedTheme(
 }
 
 function cloudflareEnvironments(
-  manifest: ScaffoldManifest,
+  manifest: StandaloneManifest,
   includeVars: boolean,
 ): Record<string, unknown> | undefined {
   const environments: Record<string, unknown> = {};
   if (manifest.operations.includes("cloudflare")) {
     environments.development = {
-      name: `${manifest.project.name}-dev`,
+      name: `${projectSlug(manifest.project.name)}-dev`,
       ...(includeVars ? { vars: { APP_ENV: "development" } } : {}),
     };
   }
   if (manifest.staging) {
     environments.staging = {
-      name: `${manifest.project.name}-staging`,
+      name: `${projectSlug(manifest.project.name)}-staging`,
       ...(includeVars ? { vars: { APP_ENV: "staging" } } : {}),
     };
   }
@@ -719,14 +794,15 @@ function cloudflareEnvironments(
 
 function applyDeploymentConfiguration(
   files: Map<string, PlannedFile>,
-  manifest: ScaffoldManifest,
+  manifest: StandaloneManifest,
+  backendWranglerPath: string,
 ): void {
   if (manifest.stack.id === "console") {
     const worker = manifest.integrations.includes("worker-api");
     const environments = cloudflareEnvironments(manifest, false);
     setPlannedJson(files, "wrangler.jsonc", {
       $schema: "./node_modules/wrangler/config-schema.json",
-      name: manifest.project.name,
+      name: projectSlug(manifest.project.name),
       compatibility_date: "2026-07-30",
       ...(worker ? { main: "./src/worker.ts" } : {}),
       assets: {
@@ -744,7 +820,7 @@ function applyDeploymentConfiguration(
     const environments = cloudflareEnvironments(manifest, false);
     setPlannedJson(files, "wrangler.jsonc", {
       $schema: "./node_modules/wrangler/config-schema.json",
-      name: manifest.project.name,
+      name: projectSlug(manifest.project.name),
       compatibility_date: "2026-07-30",
       ...(serverRendered
         ? { main: "./dist/_worker.js/index.js", compatibility_flags: ["nodejs_compat"] }
@@ -760,11 +836,10 @@ function applyDeploymentConfiguration(
     return;
   }
   if (manifest.stack.id === "backend-ts") {
-    const path = manifest.stack.workspace ? "packages/api/wrangler.jsonc" : "wrangler.jsonc";
     const environments = cloudflareEnvironments(manifest, true);
-    setPlannedJson(files, path, {
+    setPlannedJson(files, backendWranglerPath, {
       $schema: "./node_modules/wrangler/config-schema.json",
-      name: manifest.project.name,
+      name: projectSlug(manifest.project.name),
       main: "./src/index.ts",
       compatibility_date: "2026-07-30",
       compatibility_flags: ["nodejs_compat"],
@@ -790,7 +865,7 @@ function applyDeploymentConfiguration(
 }
 
 async function planConsole(
-  manifest: ScaffoldManifest,
+  manifest: StandaloneManifest,
   assetRoot: string,
   files: Map<string, PlannedFile>,
 ) {
@@ -833,14 +908,14 @@ async function planConsole(
   if (manifest.integrations.includes("auth")) {
     files.set("src/api/auth-client.ts", {
       path: "src/api/auth-client.ts",
-      content: `/** Browser authentication client. */\nimport { createAuthClient } from 'better-auth/react';\n\nexport const authClient = createAuthClient();\n`,
+      content: `/** Browser authentication client. */\nimport { createAuthClient } from "better-auth/react";\n\nexport const authClient = createAuthClient();\n`,
     });
     addPackageDependencies(files, ["better-auth"]);
   }
   if (manifest.integrations.includes("worker-api")) {
     files.set("src/worker.ts", {
       path: "src/worker.ts",
-      content: `/** Same-project Worker API. */\nimport { Hono } from 'hono';\n\nconst app = new Hono();\napp.get('/api/health', (context) => context.json({ status: 'ok' }));\n\nexport default app;\n`,
+      content: `/** Same-project Worker API. */\nimport { Hono } from "hono";\n\nconst app = new Hono();\napp.get("/api/health", (context) => context.json({ status: "ok" }));\n\nexport default app;\n`,
     });
     const lint = parsePlannedJson(files, ".oxlintrc.json");
     const overrides = objectArrayProperty(lint, "overrides");
@@ -853,7 +928,7 @@ async function planConsole(
       path: "wrangler.jsonc",
       content: jsonContent({
         $schema: "./node_modules/wrangler/config-schema.json",
-        name: manifest.project.name,
+        name: projectSlug(manifest.project.name),
         compatibility_date: "2026-07-30",
         main: "./src/worker.ts",
         assets: {
@@ -867,9 +942,9 @@ async function planConsole(
     addPackageDependencies(files, ["hono"]);
   }
   const integrationImports = [
-    ...(manifest.integrations.includes("api") ? ["import { orpc } from '@/api/orpc';"] : []),
+    ...(manifest.integrations.includes("api") ? ['import { orpc } from "@/api/orpc";'] : []),
     ...(manifest.integrations.includes("auth")
-      ? ["import { authClient } from '@/api/auth-client';"]
+      ? ['import { authClient } from "@/api/auth-client";']
       : []),
   ];
   const integrationValues = [
@@ -893,7 +968,7 @@ function pageTitle(slug: string): string {
 }
 
 async function planMarketing(
-  manifest: ScaffoldManifest,
+  manifest: StandaloneManifest,
   assetRoot: string,
   files: Map<string, PlannedFile>,
 ) {
@@ -948,7 +1023,7 @@ async function planMarketing(
     const pagePath = `src/pages/${slug}.astro`;
     files.set(pagePath, {
       path: pagePath,
-      content: `---\n/** /${slug} — generated route shell. */\nimport BaseLayout from '@/layouts/base-layout.astro';\nimport ${componentName} from '@/sections/${sectionStem}.astro';\n---\n\n<BaseLayout title="${title} — ${displayName}" description="${title} for ${displayName}.">\n  <${componentName} />\n</BaseLayout>\n`,
+      content: `---\n/** /${slug} — generated route shell. */\nimport BaseLayout from "@/layouts/base-layout.astro";\nimport ${componentName} from "@/sections/${sectionStem}.astro";\n---\n\n<BaseLayout title="${title} — ${displayName}" description="${title} for ${displayName}.">\n  <${componentName} />\n</BaseLayout>\n`,
     });
     const sectionPath = `src/sections/${sectionStem}.astro`;
     files.set(sectionPath, {
@@ -959,7 +1034,7 @@ async function planMarketing(
 
   files.set("public/robots.txt", {
     path: "public/robots.txt",
-    content: `User-agent: *\nAllow: /\nSitemap: https://${manifest.runtime.domain ?? `${manifest.project.name}.example.com`}/sitemap-index.xml\n`,
+    content: `User-agent: *\nAllow: /\nSitemap: https://${manifest.runtime.domain ?? defaultDomain(manifest.project.name)}/sitemap-index.xml\n`,
   });
   files.set("public/favicon.svg", {
     path: "public/favicon.svg",
@@ -972,11 +1047,11 @@ async function planMarketing(
   if (manifest.integrations.includes("blog")) {
     files.set("src/pages/blog/index.astro", {
       path: "src/pages/blog/index.astro",
-      content: `---\nimport BaseLayout from '@/layouts/base-layout.astro';\n---\n\n<BaseLayout title="Blog — ${displayName}" description="Updates from ${displayName}.">\n  <main class="band px-gutter py-section-y"><h1 class="type-display-lg">Blog</h1></main>\n</BaseLayout>\n`,
+      content: `---\nimport BaseLayout from "@/layouts/base-layout.astro";\n---\n\n<BaseLayout title="Blog — ${displayName}" description="Updates from ${displayName}.">\n  <main class="band px-gutter py-section-y"><h1 class="type-display-lg">Blog</h1></main>\n</BaseLayout>\n`,
     });
     files.set("src/content.config.ts", {
       path: "src/content.config.ts",
-      content: `import { defineCollection } from 'astro:content';\nimport { z } from 'astro/zod';\n\nexport const collections = {\n  blog: defineCollection({ schema: z.object({ title: z.string(), publishedAt: z.date() }) }),\n};\n`,
+      content: `import { defineCollection } from "astro:content";\nimport { z } from "astro/zod";\n\nexport const collections = {\n  blog: defineCollection({ schema: z.object({ title: z.string(), publishedAt: z.date() }) }),\n};\n`,
     });
     files.set("src/content/blog/welcome.md", {
       path: "src/content/blog/welcome.md",
@@ -1000,17 +1075,17 @@ async function planMarketing(
   if (manifest.integrations.includes("changelog")) {
     files.set("src/pages/changelog/index.astro", {
       path: "src/pages/changelog/index.astro",
-      content: `---\nimport BaseLayout from '@/layouts/base-layout.astro';\n---\n\n<BaseLayout title="Changelog — ${displayName}" description="Product changes from ${displayName}.">\n  <main class="band px-gutter py-section-y"><h1 class="type-display-lg">Changelog</h1></main>\n</BaseLayout>\n`,
+      content: `---\nimport BaseLayout from "@/layouts/base-layout.astro";\n---\n\n<BaseLayout title="Changelog — ${displayName}" description="Product changes from ${displayName}.">\n  <main class="band px-gutter py-section-y"><h1 class="type-display-lg">Changelog</h1></main>\n</BaseLayout>\n`,
     });
   }
   if (manifest.integrations.includes("react-island")) {
     files.set("src/ui/signup-island.tsx", {
       path: "src/ui/signup-island.tsx",
-      content: `/** An opt-in hydrated island. */\nimport { useState } from 'react';\n\nexport function SignupIsland() {\n  const [submitted, setSubmitted] = useState(false);\n  return <button type="button" onClick={() => setSubmitted(true)}>{submitted ? 'Thanks' : 'Join updates'}</button>;\n}\n`,
+      content: `/** An opt-in hydrated island. */\nimport { useState } from "react";\n\nexport function SignupIsland() {\n  const [submitted, setSubmitted] = useState(false);\n  return (\n    <button type="button" onClick={() => setSubmitted(true)}>\n      {submitted ? "Thanks" : "Join updates"}\n    </button>\n  );\n}\n`,
     });
     files.set("src/pages/index.astro", {
       path: "src/pages/index.astro",
-      content: `---\n/** Home page with one opt-in hydrated React island. */\nimport BaseLayout from '@/layouts/base-layout.astro';\nimport HeroSection from '@/sections/hero-section.astro';\nimport { SignupIsland } from '@/ui/signup-island';\n---\n\n<BaseLayout title="${displayName}" description="${description}">\n  <HeroSection />\n  <SignupIsland client:visible />\n</BaseLayout>\n`,
+      content: `---\n/** Home page with one opt-in hydrated React island. */\nimport BaseLayout from "@/layouts/base-layout.astro";\nimport HeroSection from "@/sections/hero-section.astro";\nimport { SignupIsland } from "@/ui/signup-island";\n---\n\n<BaseLayout title="${displayName}" description="${description}">\n  <HeroSection />\n  <SignupIsland client:visible />\n</BaseLayout>\n`,
     });
     addPackageDependencies(
       files,
@@ -1025,25 +1100,25 @@ async function planMarketing(
   const needsReact = manifest.integrations.includes("react-island");
   if (needsCloudflare || needsReact) {
     const imports = [
-      "import { defineConfig } from 'astro/config';",
-      "import sitemap from '@astrojs/sitemap';",
-      "import tailwindcss from '@tailwindcss/vite';",
-      ...(needsCloudflare ? ["import cloudflare from '@astrojs/cloudflare';"] : []),
-      ...(needsReact ? ["import react from '@astrojs/react';"] : []),
+      'import { defineConfig } from "astro/config";',
+      'import sitemap from "@astrojs/sitemap";',
+      'import tailwindcss from "@tailwindcss/vite";',
+      ...(needsCloudflare ? ['import cloudflare from "@astrojs/cloudflare";'] : []),
+      ...(needsReact ? ['import react from "@astrojs/react";'] : []),
     ];
     const integrations = ["sitemap()", ...(needsReact ? ["react()"] : [])];
     files.set("astro.config.mjs", {
       path: "astro.config.mjs",
-      content: `// @ts-check\n${imports.join("\n")}\n\nconst site = process.env.SITE_URL ?? 'https://${manifest.runtime.domain ?? `${manifest.project.name}.example.com`}';\n\nexport default defineConfig({\n  site,\n  output: '${needsCloudflare ? "server" : "static"}',\n  ${needsCloudflare ? "adapter: cloudflare(),\n  " : ""}integrations: [${integrations.join(", ")}],\n  vite: { plugins: [tailwindcss()] },\n  build: { format: 'directory' },\n  trailingSlash: 'ignore',\n});\n`,
+      content: `// @ts-check\n${imports.join("\n")}\n\nconst site = process.env.SITE_URL ?? "https://${manifest.runtime.domain ?? defaultDomain(manifest.project.name)}";\n\nexport default defineConfig({\n  site,\n  output: "${needsCloudflare ? "server" : "static"}",\n  ${needsCloudflare ? "adapter: cloudflare(),\n  " : ""}integrations: [${integrations.join(", ")}],\n  vite: { plugins: [tailwindcss()] },\n  build: { format: "directory" },\n  trailingSlash: "ignore",\n});\n`,
     });
   }
 
   const layout = files.get("src/layouts/base-layout.astro");
   if (layout !== undefined) {
     const analytics = manifest.integrations.includes("analytics-posthog")
-      ? `    <script>\n      import posthog from 'posthog-js';\n      posthog.init(import.meta.env.PUBLIC_POSTHOG_KEY, { api_host: 'https://us.i.posthog.com' });\n    </script>\n`
+      ? `    <script>\n      import posthog from "posthog-js";\n      posthog.init(import.meta.env.PUBLIC_POSTHOG_KEY, { api_host: "https://us.i.posthog.com" });\n    </script>\n`
       : manifest.integrations.includes("analytics-plausible")
-        ? `    <script defer data-domain="${manifest.runtime.domain ?? manifest.project.name}" src="https://plausible.io/js/script.js"></script>\n`
+        ? `    <script defer data-domain="${manifest.runtime.domain ?? defaultDomain(manifest.project.name)}" src="https://plausible.io/js/script.js"></script>\n`
         : manifest.integrations.includes("analytics-fathom")
           ? '    <script src="https://cdn.usefathom.com/script.js" data-site="SITE_ID" defer></script>\n'
           : "";
@@ -1056,7 +1131,7 @@ async function planMarketing(
 }
 
 async function planBackend(
-  manifest: ScaffoldManifest,
+  manifest: StandaloneManifest,
   assetRoot: string,
   files: Map<string, PlannedFile>,
 ) {
@@ -1115,7 +1190,7 @@ async function planBackend(
     });
     files.set("src/domains/auth/auth.ts", {
       path: "src/domains/auth/auth.ts",
-      content: `/** Better Auth server instance. */\nimport { betterAuth } from 'better-auth';\n\nexport const auth = betterAuth({});\n`,
+      content: `/** Better Auth server instance. */\nimport { betterAuth } from "better-auth";\n\nexport const auth = betterAuth({});\n`,
     });
     addPackageDependencies(files, ["better-auth"]);
   }
@@ -1139,12 +1214,12 @@ async function planBackend(
       setPlannedJson(files, "package.json", packageFile);
       files.set("src/utilities/database-service.ts", {
         path: "src/utilities/database-service.ts",
-        content: `/** Request-scoped Turso client used by Drizzle. */\nimport { createClient } from '@libsql/client/web';\nimport { tursoConfig } from '@/constants/env';\n\nexport function createDatabase() {\n  return createClient(tursoConfig());\n}\n`,
+        content: `/** Request-scoped Turso client used by Drizzle. */\nimport { createClient } from "@libsql/client/web";\nimport { tursoConfig } from "@/constants/env";\n\nexport function createDatabase() {\n  return createClient(tursoConfig());\n}\n`,
       });
     }
     files.set("src/utilities/drizzle-service.ts", {
       path: "src/utilities/drizzle-service.ts",
-      content: `/** Creates a Drizzle facade over the request-scoped Turso client. */\nimport { drizzle } from 'drizzle-orm/libsql';\nimport { createDatabase } from '@/utilities/database-service';\n\nexport function createOrm() {\n  return drizzle(createDatabase());\n}\n`,
+      content: `/** Creates a Drizzle facade over the request-scoped Turso client. */\nimport { drizzle } from "drizzle-orm/libsql";\nimport { createDatabase } from "@/utilities/database-service";\n\nexport function createOrm() {\n  return drizzle(createDatabase());\n}\n`,
     });
     addPackageDependencies(files, ["drizzle-orm"]);
   }
@@ -1161,66 +1236,48 @@ async function planBackend(
   }
 }
 
-async function planBackendWorkspace(
+/** Points one API app at the workspace database package instead of its own client. */
+function wireApiToDatabasePackage(
+  manifest: StandaloneManifest,
+  files: Map<string, PlannedFile>,
+): void {
+  const databasePackage = workspacePackageName(manifest.project.name, "database");
+  const packageFile = parsePlannedJson(files, "package.json");
+  const dependencies = stringRecordProperty(packageFile, "dependencies");
+  delete dependencies["@tursodatabase/serverless"];
+  delete dependencies["drizzle-orm"];
+  dependencies[databasePackage] = "workspace:*";
+  setPlannedJson(files, "package.json", packageFile);
+  files.set("src/utilities/database-service.ts", {
+    path: "src/utilities/database-service.ts",
+    content: `/** Request-scoped database shared by API domains. */\nimport { createDatabase as createClient } from "${databasePackage}/client";\nimport { tursoConfig } from "@/constants/env";\n\nexport function createDatabase() {\n  return createClient(tursoConfig());\n}\n`,
+  });
+  files.delete("src/utilities/drizzle-service.ts");
+  const knip = parsePlannedJson(files, "knip.json");
+  knip.ignoreDependencies = [
+    ...optionalStringArrayProperty(knip, "ignoreDependencies"),
+    databasePackage,
+  ];
+  setPlannedJson(files, "knip.json", knip);
+}
+
+/** The Turso + Drizzle package, rooted at any workspace member directory. */
+async function planDatabasePackage(
   manifest: ScaffoldManifest,
   assetRoot: string,
   files: Map<string, PlannedFile>,
-) {
-  const apiFiles = new Map<string, PlannedFile>();
-  await planBackend(manifest, assetRoot, apiFiles);
-  const apiPackage = parsePlannedJson(apiFiles, "package.json");
-  const apiDependencies = stringRecordProperty(apiPackage, "dependencies");
-  delete apiDependencies["@tursodatabase/serverless"];
-  apiDependencies[`@${manifest.project.name}/database`] = "workspace:*";
-  delete apiDependencies["drizzle-orm"];
-  apiPackage.name = `@${manifest.project.name}/api`;
-  const apiScripts = stringRecordProperty(apiPackage, "scripts");
-  apiScripts["check:structure"] = "bash ../../scripts/guardrails/run.sh";
-  apiScripts.fmt = "oxfmt --ignore-path ../../.oxfmtignore";
-  apiScripts["fmt:check"] = "oxfmt --check --ignore-path ../../.oxfmtignore";
-  setPlannedJson(apiFiles, "package.json", apiPackage);
-  apiFiles.set("src/utilities/database-service.ts", {
-    path: "src/utilities/database-service.ts",
-    content: `/** Request-scoped database shared by API domains. */\nimport { createDatabase as createClient } from '@${manifest.project.name}/database/client';\nimport { tursoConfig } from '@/constants/env';\n\nexport function createDatabase() {\n  return createClient(tursoConfig());\n}\n`,
-  });
-  apiFiles.delete("src/utilities/drizzle-service.ts");
-
-  for (const file of apiFiles.values()) {
-    if (file.path.startsWith(".github/") || file.path === "lefthook.yml") continue;
-    const destination = `packages/api/${file.path}`;
-    const content = file.content;
-    files.set(destination, { ...file, path: destination, content });
-  }
-
-  for (const packagePath of [
-    "packages/api/base.oxlintrc.json",
-    "packages/api/guardrails.config.json",
-  ]) {
-    const config = parsePlannedJson(files, packagePath);
-    if (packagePath.endsWith("base.oxlintrc.json")) {
-      config.jsPlugins = ["./../../scripts/guardrails/oxlint-plugin/index.js"];
-    } else {
-      config.$schema = "./../../scripts/guardrails/schema.json";
-    }
-    setPlannedJson(files, packagePath, config);
-  }
-  const apiKnip = parsePlannedJson(files, "packages/api/knip.json");
-  apiKnip.ignoreDependencies = [
-    ...optionalStringArrayProperty(apiKnip, "ignoreDependencies"),
-    `@${manifest.project.name}/database`,
-  ];
-  setPlannedJson(files, "packages/api/knip.json", apiKnip);
-
+  directory: string,
+): Promise<void> {
   const databaseRoot = resolve(assetRoot, "stacks/database-ts/templates");
   const values = placeholderValues(manifest);
   await addTree(
     files,
     databaseRoot,
-    (source) => `packages/database/${databaseDestination(databaseRoot, source)}`,
+    (source) => `${directory}/${databaseDestination(databaseRoot, source)}`,
     values,
   );
-  const databasePackage = {
-    name: `@${manifest.project.name}/database`,
+  setPlannedJson(files, `${directory}/package.json`, {
+    name: workspacePackageName(manifest.project.name, "database"),
     version: "0.1.0",
     private: true,
     type: "module",
@@ -1231,12 +1288,11 @@ async function planBackendWorkspace(
     },
     scripts: {
       check:
-        "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run check:unused && bun run check:dupes && bun run test",
+        "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run check:dupes && bun run test",
       "type-check": "tsc --noEmit",
       lint: "oxlint --type-aware --deny-warnings",
       "fmt:check": "oxfmt --check . --ignore-path ../../.oxfmtignore",
       "check:structure": "bash ../../scripts/guardrails/run.sh",
-      "check:unused": "knip --no-config-hints",
       "check:dupes": "jscpd",
       test: "vitest run",
       "db:generate": "drizzle-kit generate",
@@ -1247,7 +1303,6 @@ async function planBackendWorkspace(
       "@cloudflare/vitest-pool-workers",
       "drizzle-kit",
       "jscpd",
-      "knip",
       "oxfmt",
       "oxlint",
       "oxlint-tsgolint",
@@ -1255,21 +1310,41 @@ async function planBackendWorkspace(
       "vitest",
       "wrangler",
     ]),
-  };
-  setPlannedJson(files, "packages/database/package.json", databasePackage);
-  for (const packagePath of [
-    "packages/database/base.oxlintrc.json",
-    "packages/database/guardrails.config.json",
-  ]) {
-    const config = parsePlannedJson(files, packagePath);
-    if (packagePath.endsWith("base.oxlintrc.json")) {
+  });
+  for (const name of ["base.oxlintrc.json", "guardrails.config.json"]) {
+    const path = `${directory}/${name}`;
+    const config = parsePlannedJson(files, path);
+    if (name === "base.oxlintrc.json") {
       config.jsPlugins = ["./../../scripts/guardrails/oxlint-plugin/index.js"];
     } else {
       config.$schema = "./../../scripts/guardrails/schema.json";
     }
-    setPlannedJson(files, packagePath, config);
+    setPlannedJson(files, path, config);
   }
+}
 
+async function planBackendWorkspace(
+  manifest: StandaloneManifest,
+  assetRoot: string,
+  files: Map<string, PlannedFile>,
+) {
+  const apiFiles = new Map<string, PlannedFile>();
+  await planBackend(manifest, assetRoot, apiFiles);
+  wireApiToDatabasePackage(manifest, apiFiles);
+  for (const file of apiFiles.values()) {
+    if (file.path.startsWith(".github/") || file.path === "lefthook.yml") continue;
+    const destination = `packages/api/${file.path}`;
+    files.set(destination, { ...file, path: destination });
+  }
+  applyWorkspaceMemberPaths(
+    files,
+    "packages/api",
+    workspacePackageName(manifest.project.name, "api"),
+  );
+
+  await planDatabasePackage(manifest, assetRoot, files, "packages/database");
+
+  const values = placeholderValues(manifest);
   const workspaceRoot = resolve(assetRoot, "shared/workspace");
   const workspaceMappings: Record<string, string> = {
     "guardrails.workspace.json": "guardrails.workspace.json",
@@ -1307,7 +1382,7 @@ async function planBackendWorkspace(
     },
   });
   setPlannedJson(files, "package.json", {
-    name: manifest.project.name,
+    name: projectSlug(manifest.project.name),
     private: true,
     type: "module",
     workspaces: ["packages/*"],
@@ -1328,7 +1403,7 @@ async function planBackendWorkspace(
 }
 
 async function planExpo(
-  manifest: ScaffoldManifest,
+  manifest: StandaloneManifest,
   assetRoot: string,
   files: Map<string, PlannedFile>,
 ) {
@@ -1363,31 +1438,31 @@ async function planExpo(
     });
     files.set("src/api/orpc.ts", {
       path: "src/api/orpc.ts",
-      content: `/** Typed transport for the application API. */\nimport { createORPCClient } from '@orpc/client';\nimport { RPCLink } from '@orpc/client/fetch';\nimport { BASE_API_URL } from '@/constants/env';\nimport type { AppRouter } from '@/types/api-contract';\n\nconst link = new RPCLink({ url: \`${"${BASE_API_URL}"}/rpc\` });\nexport const api = createORPCClient<AppRouter>(link);\n`,
+      content: `/** Typed transport for the application API. */\nimport { createORPCClient } from "@orpc/client";\nimport { RPCLink } from "@orpc/client/fetch";\nimport { BASE_API_URL } from "@/constants/env";\nimport type { AppRouter } from "@/types/api-contract";\n\nconst link = new RPCLink({ url: \`${"${BASE_API_URL}"}/rpc\` });\nexport const api = createORPCClient<AppRouter>(link);\n`,
     });
     addPackageDependencies(files, ["@orpc/client"]);
   }
   if (manifest.integrations.includes("auth")) {
     files.set("src/api/auth-client.ts", {
       path: "src/api/auth-client.ts",
-      content: `/** Mobile authentication client with SecureStore-backed credentials. */\nimport * as SecureStore from 'expo-secure-store';\nimport { createAuthClient } from 'better-auth/react';\n\nexport const authClient = createAuthClient({\n  fetchOptions: {\n    auth: {\n      type: 'Bearer',\n      token: async () => (await SecureStore.getItemAsync('session-token')) ?? undefined,\n    },\n  },\n});\n`,
+      content: `/** Mobile authentication client with SecureStore-backed credentials. */\nimport * as SecureStore from "expo-secure-store";\nimport { createAuthClient } from "better-auth/react";\n\nexport const authClient = createAuthClient({\n  fetchOptions: {\n    auth: {\n      type: "Bearer",\n      token: async () => (await SecureStore.getItemAsync("session-token")) ?? undefined,\n    },\n  },\n});\n`,
     });
     addPackageDependencies(files, ["better-auth", "expo-secure-store"]);
   }
   if (manifest.integrations.includes("async-storage")) {
     files.set("src/utilities/storage.ts", {
       path: "src/utilities/storage.ts",
-      content: `/** Non-sensitive persistent device storage. */\nimport AsyncStorage from '@react-native-async-storage/async-storage';\n\nexport const storage = AsyncStorage;\n`,
+      content: `/** Non-sensitive persistent device storage. */\nimport AsyncStorage from "@react-native-async-storage/async-storage";\n\nexport const storage = AsyncStorage;\n`,
     });
     addPackageDependencies(files, ["@react-native-async-storage/async-storage"]);
   }
   const integrationImports = [
-    ...(manifest.integrations.includes("api") ? ["import { api } from '@/api/orpc';"] : []),
+    ...(manifest.integrations.includes("api") ? ['import { api } from "@/api/orpc";'] : []),
     ...(manifest.integrations.includes("auth")
-      ? ["import { authClient } from '@/api/auth-client';"]
+      ? ['import { authClient } from "@/api/auth-client";']
       : []),
     ...(manifest.integrations.includes("async-storage")
-      ? ["import { storage } from '@/utilities/storage';"]
+      ? ['import { storage } from "@/utilities/storage";']
       : []),
   ];
   const integrationValues = [
@@ -1404,7 +1479,7 @@ async function planExpo(
 }
 
 async function planRust(
-  manifest: ScaffoldManifest,
+  manifest: StandaloneManifest,
   assetRoot: string,
   files: Map<string, PlannedFile>,
 ) {
@@ -1458,7 +1533,7 @@ async function planRust(
   }
   files.set("Cargo.toml", {
     path: "Cargo.toml",
-    content: `[package]\nname = "${manifest.project.name}"\nversion = "0.1.0"\nedition = "2024"\n\n[dependencies]\n${dependencies.join("\n")}\n\n${templateCargo.slice(lintStart)}`,
+    content: `[package]\nname = "${projectSlug(manifest.project.name)}"\nversion = "0.1.0"\nedition = "2024"\n\n[dependencies]\n${dependencies.join("\n")}\n\n${templateCargo.slice(lintStart)}`,
   });
 
   if (manifest.integrations.includes("clap")) {
@@ -1501,7 +1576,7 @@ async function planRust(
       : String(manifest.runtime.port);
     files.set("src/main.rs", {
       path: "src/main.rs",
-      content: `//! Binary entry point for \`${manifest.project.name}\`.\n\n${cliImports}\n/// Starts the HTTP service.\n#[tokio::main]\nasync fn main() {\n    let address = (std::net::Ipv4Addr::LOCALHOST, ${port});\n    let listener = match tokio::net::TcpListener::bind(address).await {\n        Ok(listener) => listener,\n        Err(error) => {\n            eprintln!("failed to bind HTTP listener: {error}");\n            return;\n        }\n    };\n    if let Err(error) = axum::serve(listener, http::router::app()).await {\n        eprintln!("HTTP service failed: {error}");\n    }\n}\n`,
+      content: `//! Binary entry point for \`${projectSlug(manifest.project.name)}\`.\n\n${cliImports}\n/// Starts the HTTP service.\n#[tokio::main]\nasync fn main() {\n    let address = (std::net::Ipv4Addr::LOCALHOST, ${port});\n    let listener = match tokio::net::TcpListener::bind(address).await {\n        Ok(listener) => listener,\n        Err(error) => {\n            eprintln!("failed to bind HTTP listener: {error}");\n            return;\n        }\n    };\n    if let Err(error) = axum::serve(listener, http::router::app()).await {\n        eprintln!("HTTP service failed: {error}");\n    }\n}\n`,
     });
   } else if (manifest.integrations.includes("clap")) {
     files.set("src/domains.rs", {
@@ -1510,9 +1585,727 @@ async function planRust(
     });
     files.set("src/main.rs", {
       path: "src/main.rs",
-      content: `//! Binary entry point for \`${manifest.project.name}\`.\n\nmod cli;\nmod domains;\n\nuse clap::Parser;\nuse cli::Cli;\nuse domains::greeting::greeting;\n\n/// Program entry point.\nfn main() {\n    let cli = Cli::parse();\n    println!("{}", greeting(&cli.name));\n}\n`,
+      content: `//! Binary entry point for \`${projectSlug(manifest.project.name)}\`.\n\nmod cli;\nmod domains;\n\nuse clap::Parser;\nuse cli::Cli;\nuse domains::greeting::greeting;\n\n/// Program entry point.\nfn main() {\n    let cli = Cli::parse();\n    println!("{}", greeting(&cli.name));\n}\n`,
     });
   }
+}
+
+/** One app at the root of its own directory — never a nested workspace. */
+async function planAppTree(
+  manifest: StandaloneManifest,
+  assetRoot: string,
+  files: Map<string, PlannedFile>,
+): Promise<void> {
+  if (manifest.stack.id === "console") await planConsole(manifest, assetRoot, files);
+  else if (manifest.stack.id === "marketing") await planMarketing(manifest, assetRoot, files);
+  else if (manifest.stack.id === "backend-ts") {
+    await planBackend(manifest, assetRoot, files);
+    // The app consumes a sibling database package rather than its own client.
+    if (manifest.stack.workspace) wireApiToDatabasePackage(manifest, files);
+  } else if (manifest.stack.id === "expo") await planExpo(manifest, assetRoot, files);
+  else if (manifest.stack.id === "rust") await planRust(manifest, assetRoot, files);
+  else throw new Error("recipe not implemented");
+  applyDeploymentConfiguration(files, manifest, "wrangler.jsonc");
+  await applyImportedTheme(files, manifest);
+}
+
+async function planStandalone(
+  manifest: StandaloneManifest,
+  assetRoot: string,
+  files: Map<string, PlannedFile>,
+): Promise<void> {
+  if (manifest.stack.id === "backend-ts" && manifest.stack.workspace) {
+    await planBackendWorkspace(manifest, assetRoot, files);
+    applyDeploymentConfiguration(files, manifest, "packages/api/wrangler.jsonc");
+    await applyImportedTheme(files, manifest);
+    return;
+  }
+  await planAppTree(manifest, assetRoot, files);
+}
+
+// ---------------------------------------------------------------------------
+// Monorepo layout: every app is planned as if it were standalone, then moved
+// under apps/<id> and re-pointed at the workspace root that owns the hooks,
+// the guardrails manifest and the formatter ignore list.
+// ---------------------------------------------------------------------------
+
+/** Paths a workspace member must not carry: the root owns exactly these. */
+function rootOwnedPath(path: string): boolean {
+  return (
+    path === ".gitignore" ||
+    path === ".oxfmtignore" ||
+    path === "lefthook.yml" ||
+    path === "toolu.scaffold.json" ||
+    path === ".claude/settings.json" ||
+    path.startsWith(".github/") ||
+    path.startsWith("scripts/")
+  );
+}
+
+function appManifest(manifest: MonorepoManifest, app: ManifestApp): StandaloneManifest {
+  return {
+    schemaVersion: 1,
+    generatorVersion: manifest.generatorVersion,
+    layout: "standalone",
+    project: manifest.project,
+    stack: app.stack,
+    integrations: app.integrations,
+    operations: manifest.operations,
+    environments: manifest.environments,
+    staging: manifest.staging,
+    theme: visualStack(app.stack.id) ? manifest.theme : { kind: "none" },
+    runtime: {
+      port: app.port,
+      ...(manifest.runtime.domain === undefined ? {} : { domain: manifest.runtime.domain }),
+      ...(manifest.runtime.consoleUrl === undefined
+        ? {}
+        : { consoleUrl: manifest.runtime.consoleUrl }),
+    },
+    recipes: manifest.recipes,
+  };
+}
+
+function appPackageName(manifest: MonorepoManifest, app: ManifestApp): string {
+  return workspacePackageName(manifest.project.name, app.id);
+}
+
+function appWorkerName(manifest: MonorepoManifest, app: ManifestApp): string {
+  return `${projectSlug(manifest.project.name)}-${app.id}`;
+}
+
+function appDevCommand(manifest: MonorepoManifest, app: ManifestApp): string {
+  if (app.stack.id === "rust") return `cargo run --manifest-path apps/${app.id}/Cargo.toml`;
+  const script = app.stack.id === "expo" ? "start" : "dev";
+  return `bun run --filter ${appPackageName(manifest, app)} ${script}`;
+}
+
+/** Re-points one member's configs at the workspace root two levels above it. */
+function applyWorkspaceMemberPaths(
+  files: Map<string, PlannedFile>,
+  directory: string,
+  packageName: string | undefined,
+): void {
+  for (const name of ["base.oxlintrc.json", "base-react.oxlintrc.json"]) {
+    const path = `${directory}/${name}`;
+    if (!files.has(path)) continue;
+    const config = parsePlannedJson(files, path);
+    config.jsPlugins = ["./../../scripts/guardrails/oxlint-plugin/index.js"];
+    setPlannedJson(files, path, config);
+  }
+  const guardrailsPath = `${directory}/guardrails.config.json`;
+  if (files.has(guardrailsPath)) {
+    const config = parsePlannedJson(files, guardrailsPath);
+    config.$schema = "./../../scripts/guardrails/schema.json";
+    setPlannedJson(files, guardrailsPath, config);
+  }
+  const packagePath = `${directory}/package.json`;
+  if (packageName === undefined || !files.has(packagePath)) return;
+  const packageFile = parsePlannedJson(files, packagePath);
+  packageFile.name = packageName;
+  const scripts = stringRecordProperty(packageFile, "scripts");
+  scripts["check:structure"] = "bash ../../scripts/guardrails/run.sh";
+  // knip is configured once at the workspace root (CORE, monorepos rule 6): it
+  // needs the whole graph to see that one member importing another is a real
+  // use of its exports. A member running its own config calls those dead.
+  delete scripts["check:unused"];
+  if (scripts.check !== undefined) {
+    scripts.check = scripts.check
+      .split(" && ")
+      .filter((step) => step !== "bun run check:unused")
+      .join(" && ");
+  }
+  if (scripts.fmt !== undefined) scripts.fmt = "oxfmt --ignore-path ../../.oxfmtignore";
+  if (scripts["fmt:check"] !== undefined) {
+    scripts["fmt:check"] = "oxfmt --check --ignore-path ../../.oxfmtignore";
+  }
+  // The workspace root installs the hooks once; a member that also ran
+  // `lefthook install` would fight it over .git/hooks on every install — and a
+  // member that kept the dependency without the script fails knip.
+  delete scripts.prepare;
+  const devDependencies = stringRecordProperty(packageFile, "devDependencies");
+  // The root owns both binaries now: lefthook installs the hooks once, and knip
+  // runs once over the whole graph. A member that kept either dependency
+  // without the script that uses it fails the root's own knip run.
+  delete devDependencies.lefthook;
+  delete devDependencies.knip;
+  setPlannedJson(files, packagePath, packageFile);
+}
+
+function applyWorkspaceWorkerNames(
+  files: Map<string, PlannedFile>,
+  directory: string,
+  workerName: string,
+): void {
+  const path = `${directory}/wrangler.jsonc`;
+  if (!files.has(path)) return;
+  const config = parsePlannedJson(files, path);
+  config.name = workerName;
+  const environments = config.env;
+  if (isJsonObject(environments)) {
+    for (const [environment, value] of Object.entries(environments)) {
+      if (!isJsonObject(value)) continue;
+      value.name = `${workerName}-${environment === "development" ? "dev" : environment}`;
+    }
+    config.env = environments;
+  }
+  setPlannedJson(files, path, config);
+}
+
+function applyRustCrateName(
+  files: Map<string, PlannedFile>,
+  directory: string,
+  crateName: string,
+): void {
+  const path = `${directory}/Cargo.toml`;
+  const file = files.get(path);
+  if (file === undefined) return;
+  // Anchored to the [package] table: a bare `^name = ` would also match a
+  // `name` key in any other table a future manifest grows.
+  const content = file.content.replace(
+    /(\[package\]\n(?:[^[]*\n)?)name = ".*"/,
+    (_match, header: string) => `${header}name = "${crateName}"`,
+  );
+  if (content === file.content) {
+    throw new Error(`Cargo.toml has no [package] name to rewrite: ${path}`);
+  }
+  files.set(path, { ...file, content });
+}
+
+interface SharedPackageShape {
+  dependencies: KnownDependency[];
+  devDependencies: KnownDependency[];
+  exports: Record<string, string>;
+}
+
+const SHARED_PACKAGES = {
+  ui: {
+    dependencies: ["react"],
+    devDependencies: [
+      "@testing-library/jest-dom",
+      "@testing-library/react",
+      "@types/react",
+      "@types/react-dom",
+      "jscpd",
+      "jsdom",
+      "oxfmt",
+      "oxlint",
+      "oxlint-tsgolint",
+      "react-dom",
+      "typescript",
+      "vitest",
+    ],
+    exports: {
+      "./components/surface": "./src/components/surface.tsx",
+      "./utilities/class-names": "./src/utilities/class-names.ts",
+    },
+  },
+  types: {
+    dependencies: ["zod"],
+    devDependencies: ["jscpd", "oxfmt", "oxlint", "oxlint-tsgolint", "typescript", "vitest"],
+    exports: { "./contracts/health-response": "./src/contracts/health-response.ts" },
+  },
+} as const satisfies Record<"ui" | "types", SharedPackageShape>;
+
+async function addPackageTemplates(
+  files: Map<string, PlannedFile>,
+  manifest: ScaffoldManifest,
+  assetRoot: string,
+  entry: string,
+  directory: string,
+): Promise<void> {
+  const templateRoot = resolve(assetRoot, `shared/packages/${entry}/templates`);
+  const values = placeholderValues(manifest);
+  await addTree(
+    files,
+    templateRoot,
+    (source) => {
+      const path = portableRelative(templateRoot, source);
+      return `${directory}/${path === "AGENTS.md.template" ? "AGENTS.md" : path}`;
+    },
+    values,
+  );
+}
+
+/** A source-carrying shared package: ui or types. */
+async function planSharedPackage(
+  entry: "ui" | "types",
+  manifest: ScaffoldManifest,
+  assetRoot: string,
+  files: Map<string, PlannedFile>,
+): Promise<void> {
+  const directory = `packages/${entry}`;
+  await addPackageTemplates(files, manifest, assetRoot, entry, directory);
+  const shape: SharedPackageShape = SHARED_PACKAGES[entry];
+  setPlannedJson(files, `${directory}/package.json`, {
+    name: workspacePackageName(manifest.project.name, entry),
+    version: "0.1.0",
+    private: true,
+    type: "module",
+    exports: shape.exports,
+    scripts: {
+      check:
+        "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run check:dupes && bun run test",
+      "type-check": "tsc --noEmit",
+      lint: "oxlint --type-aware --deny-warnings",
+      "lint:fix": "oxlint --fix --type-aware --deny-warnings",
+      fmt: "oxfmt --ignore-path ../../.oxfmtignore",
+      "fmt:check": "oxfmt --check --ignore-path ../../.oxfmtignore",
+      "check:structure": "bash ../../scripts/guardrails/run.sh",
+      "check:dupes": "jscpd",
+      test: "vitest run",
+      "test:watch": "vitest",
+    },
+    dependencies: pinned(shape.dependencies),
+    devDependencies: pinned(shape.devDependencies),
+  });
+  applyWorkspaceMemberPaths(files, directory, workspacePackageName(manifest.project.name, entry));
+}
+
+/**
+ * The config package is lint bases and nothing else. It is still a workspace
+ * member — every directory under packages/ is one — so it carries an exports
+ * map for its two files (CORE, monorepos rule 5) and the scripts the root
+ * fan-out calls. The members that extend it resolve the bases by path, because
+ * oxlint reads `extends` as a path rather than through Node resolution.
+ */
+async function planConfigPackage(
+  manifest: ScaffoldManifest,
+  assetRoot: string,
+  files: Map<string, PlannedFile>,
+  members: readonly string[],
+): Promise<void> {
+  await addPackageTemplates(files, manifest, assetRoot, "config", "packages/config");
+  setPlannedJson(files, "packages/config/package.json", {
+    name: workspacePackageName(manifest.project.name, "config"),
+    version: "0.1.0",
+    private: true,
+    type: "module",
+    exports: {
+      "./base": "./base.oxlintrc.json",
+      "./base-react": "./base-react.oxlintrc.json",
+    },
+    scripts: {
+      check: "bun run fmt:check",
+      fmt: "oxfmt --ignore-path ../../.oxfmtignore",
+      "fmt:check": "oxfmt --check --ignore-path ../../.oxfmtignore",
+    },
+    devDependencies: pinned(["oxfmt"]),
+  });
+  for (const name of ["base.oxlintrc.json", "base-react.oxlintrc.json"]) {
+    const path = `packages/config/${name}`;
+    const config = parsePlannedJson(files, path);
+    config.jsPlugins = ["./../../scripts/guardrails/oxlint-plugin/index.js"];
+    // The config package does not install oxlint. The schema resolves from the
+    // workspace root, where the members that extend these bases hoist it.
+    config.$schema = "../../node_modules/oxlint/configuration_schema.json";
+    setPlannedJson(files, path, config);
+  }
+  for (const directory of members) {
+    const path = `${directory}/.oxlintrc.json`;
+    if (!files.has(path)) continue;
+    const config = parsePlannedJson(files, path);
+    const extended = optionalStringArrayProperty(config, "extends");
+    if (extended.length === 0) continue;
+    config.extends = extended.map((base) => base.replace(/^\.\//, "../../packages/config/"));
+    setPlannedJson(files, path, config);
+    for (const name of ["base.oxlintrc.json", "base-react.oxlintrc.json"]) {
+      files.delete(`${directory}/${name}`);
+    }
+  }
+}
+
+async function planMonorepoApp(
+  manifest: MonorepoManifest,
+  app: ManifestApp,
+  assetRoot: string,
+  files: Map<string, PlannedFile>,
+): Promise<void> {
+  const appFiles = new Map<string, PlannedFile>();
+  await planAppTree(appManifest(manifest, app), assetRoot, appFiles);
+  const directory = `apps/${app.id}`;
+  for (const file of appFiles.values()) {
+    if (rootOwnedPath(file.path)) continue;
+    const destination = `${directory}/${file.path}`;
+    files.set(destination, { ...file, path: destination });
+  }
+  const rust = app.stack.id === "rust";
+  applyWorkspaceMemberPaths(files, directory, rust ? undefined : appPackageName(manifest, app));
+  applyWorkspaceWorkerNames(files, directory, appWorkerName(manifest, app));
+  if (rust) applyRustCrateName(files, directory, appWorkerName(manifest, app));
+}
+
+async function addMonorepoOperations(
+  files: Map<string, PlannedFile>,
+  manifest: MonorepoManifest,
+  assetRoot: string,
+): Promise<void> {
+  if (manifest.operations.length === 0) return;
+  await addOperationTemplates(files, manifest, assetRoot);
+  const domain = manifest.runtime.domain ?? defaultDomain(manifest.project.name);
+  const services = manifest.apps.map((app) => {
+    const runtime = runtimeFor(app.stack.id, app.integrations);
+    // Only the modules this app can actually host: a static site has no
+    // Infisical target and a Rust crate has no Worker hostname, and writing
+    // either would point the dev tooling at a file that is never generated.
+    const hosted = manifest.operations.filter(
+      (operation) => operationBlocker(app, operation) === undefined,
+    );
+    return serviceEntry({
+      name: app.id,
+      runtime: runtime === "mixed" ? "server" : runtime,
+      command: appDevCommand(manifest, app),
+      port: app.port,
+      healthPath: app.stack.id === "console" ? "/api/health" : "/health",
+      operations: hosted,
+      domain,
+      // A member keeps its own .dev.vars beside its wrangler config.
+      secretsTarget: `apps/${app.id}/.dev.vars`,
+    });
+  });
+  const runtimes = new Set(services.map((service) => service.runtime));
+  const operations: Record<string, unknown> = {
+    $schema: "./scripts/operations/schema.json",
+    version: 1,
+    stack: "workspace",
+    runtime: runtimes.size === 1 ? [...runtimes][0] : "mixed",
+    environments: ["local", "development", "production"],
+    services,
+  };
+  if (manifest.operations.includes("cloudflare")) {
+    const deployable = cloudflareDeployable(manifest);
+    if (deployable !== undefined) {
+      const worker = appWorkerName(manifest, deployable);
+      const filter = appPackageName(manifest, deployable);
+      operations.cloudflare = cloudflareSection(
+        manifest,
+        domain,
+        { worker: `${worker}-dev`, command: `bun run --filter ${filter} deploy --env development` },
+        { worker, command: `bun run --filter ${filter} deploy` },
+      );
+    }
+  }
+  if (manifest.operations.includes("infisical")) operations.infisical = { secretPath: "/" };
+  files.set("operations.config.json", {
+    path: "operations.config.json",
+    content: jsonContent(operations),
+  });
+}
+
+function workspaceSecretPaths(
+  files: Map<string, PlannedFile>,
+  directories: readonly string[],
+): string[] {
+  const secrets: string[] = [];
+  for (const directory of directories) {
+    if (files.has(`${directory}/.dev.vars.example`)) secrets.push(`${directory}/.dev.vars`);
+    if (files.has(`${directory}/.env.example`)) secrets.push(`${directory}/.env`);
+  }
+  return secrets;
+}
+
+function monorepoWorkflow(manifest: MonorepoManifest): string {
+  const backends = manifest.apps.filter((app) => app.stack.id === "backend-ts");
+  const rustApps = manifest.apps.filter((app) => app.stack.id === "rust");
+  const typegenSteps = backends
+    .map(
+      (app) => `
+      - name: Check generated Worker types are current (apps/${app.id})
+        working-directory: apps/${app.id}
+        run: |
+          bun run cf-typegen
+          git diff --exit-code -- worker-configuration.d.ts
+`,
+    )
+    .join("");
+  const deploySteps = backends
+    .map(
+      (app) => `
+      - name: Build (dry-run deploy, apps/${app.id})
+        working-directory: apps/${app.id}
+        run: bunx wrangler deploy --dry-run --outdir dist
+`,
+    )
+    .join("");
+  const rustSetup =
+    rustApps.length === 0
+      ? ""
+      : `
+      - name: Setup Rust
+        run: rustup component add clippy rustfmt
+`;
+  const rustSteps = rustApps
+    .map(
+      (app) => `
+      - name: Cargo checks (apps/${app.id})
+        run: |
+          cargo fmt --manifest-path apps/${app.id}/Cargo.toml --check
+          cargo clippy --manifest-path apps/${app.id}/Cargo.toml --all-targets --all-features -- -D warnings
+          cargo test --manifest-path apps/${app.id}/Cargo.toml --all-features
+`,
+    )
+    .join("");
+  return `# GitHub Actions — the quality gate for every PR (and pushes to main).
+#
+# The WORKSPACE variant. Each member owns its own gate, so almost everything
+# here fans out with \`bun --filter\` rather than running once at the root.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-\${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: types · lint · format · structure · unused · dupes · test · build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+${rustSetup}
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+${typegenSteps}
+      - name: Type-check
+        run: bun --filter '*' run type-check
+
+      # The guardrails oxlint plugin resolves guardrails.config.json from the
+      # working directory, so lint runs inside each member, never at the root.
+      - name: Lint
+        run: bun --filter '*' run lint
+
+      - name: Format check
+        run: bun --filter '*' run fmt:check
+
+      - name: Structure check
+        run: bash scripts/guardrails/run.sh
+
+      - name: Unused files, exports, dependencies (knip)
+        run: bunx knip
+
+      - name: Copy-paste detection (jscpd)
+        run: bun --filter '*' run check:dupes
+
+      - name: Test
+        run: bun --filter '*' run test
+${deploySteps}${rustSteps}`;
+}
+
+function cloudflareDeployable(manifest: MonorepoManifest): ManifestApp | undefined {
+  return (
+    manifest.apps.find((app) => app.stack.id === "backend-ts") ??
+    manifest.apps.find((app) => app.stack.id === "console") ??
+    manifest.apps.find((app) => app.stack.id === "marketing")
+  );
+}
+
+function monorepoReadme(manifest: MonorepoManifest): string {
+  const apps = manifest.apps
+    .map((app) => `- \`apps/${app.id}\` — ${app.stack.id} (port ${app.port})`)
+    .join("\n");
+  const packages =
+    manifest.packages.length === 0
+      ? "None yet."
+      : manifest.packages.map((entry) => `- \`packages/${entry}\``).join("\n");
+  // operations.config.json names ONE worker pair — the schema allows no more —
+  // so say which app it is rather than leaving the other deployables to be
+  // discovered as missing.
+  const deployable = manifest.operations.includes("cloudflare")
+    ? cloudflareDeployable(manifest)
+    : undefined;
+  const others =
+    deployable === undefined
+      ? []
+      : manifest.apps.filter(
+          (app) =>
+            app.id !== deployable.id &&
+            (app.stack.id === "backend-ts" ||
+              app.stack.id === "console" ||
+              app.stack.id === "marketing"),
+        );
+  const deploySection =
+    deployable === undefined
+      ? ""
+      : `\n## Deploys\n\n\`operations.config.json\` carries one Cloudflare worker pair, and it is\n\`apps/${deployable.id}\`. ${
+          others.length === 0
+            ? "It is the only app here that deploys to a Worker."
+            : `The other deployable app${
+                others.length === 1
+                  ? " deploys with its own script"
+                  : "s deploy with their own scripts"
+              }: ${others
+                .map((app) => `\`bun run --filter ${appPackageName(manifest, app)} deploy\``)
+                .join(", ")}.`
+        }\n`;
+  return `# ${manifest.project.displayName}
+
+A Bun workspace. Every app and package owns its own quality gate; the root fans
+them out.
+
+## Apps
+
+${apps}
+
+## Shared packages
+
+${packages}
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| \`bun install\` | Install every workspace member |
+| \`bun run check\` | The full gate: structure, unused, then each member's own check |
+| \`bun run test\` | Every member's tests |
+| \`bun run --filter <package> dev\` | Run one app |
+${deploySection}`;
+}
+
+async function planMonorepoRoot(
+  manifest: MonorepoManifest,
+  assetRoot: string,
+  files: Map<string, PlannedFile>,
+): Promise<void> {
+  const appDirectories = manifest.apps.map((app) => `apps/${app.id}`);
+  const packageDirectories = manifest.packages.map((entry) => `packages/${entry}`);
+  const bunApps = manifest.apps.filter((app) => app.stack.id !== "rust");
+  const rustApps = manifest.apps.filter((app) => app.stack.id === "rust");
+
+  const workspaceRoot = resolve(assetRoot, "shared/workspace");
+  const lefthook = await readFile(resolve(workspaceRoot, "lefthook.yml"), "utf8");
+  const rustJobs = rustApps
+    .map(
+      (app) =>
+        `    - name: cargo-fmt-${app.id}\n      run: cargo fmt --manifest-path apps/${app.id}/Cargo.toml --check\n    - name: cargo-clippy-${app.id}\n      run: cargo clippy --manifest-path apps/${app.id}/Cargo.toml --all-targets --all-features -- -D warnings\n`,
+    )
+    .join("");
+  files.set("lefthook.yml", { path: "lefthook.yml", content: `${lefthook}${rustJobs}` });
+  files.set(".github/workflows/code-review.yml", {
+    path: ".github/workflows/code-review.yml",
+    content: await readFile(resolve(workspaceRoot, "code-review.yml"), "utf8"),
+  });
+  files.set(".github/workflows/ci.yml", {
+    path: ".github/workflows/ci.yml",
+    content: monorepoWorkflow(manifest),
+  });
+  files.set("README.md", { path: "README.md", content: monorepoReadme(manifest) });
+
+  // Only members with a source tree carry a guardrails.config.json, and the
+  // manifest must name exactly those: run.sh exits 3 on one that has none.
+  const guarded = [...appDirectories, ...packageDirectories].filter((directory) =>
+    files.has(`${directory}/guardrails.config.json`),
+  );
+  setPlannedJson(files, "guardrails.workspace.json", {
+    $schema: "./scripts/guardrails/workspace.schema.json",
+    version: 2,
+    packages: guarded,
+    bannedDeps: ["axios", "yup", "joi", "valibot", "superstruct", "ajv"],
+    secrets: {
+      neverTracked: [
+        ".dev.vars",
+        ".env",
+        ...workspaceSecretPaths(files, [...appDirectories, ...packageDirectories]),
+      ],
+    },
+    shadowConfigs: [
+      {
+        found: "lefthook.yaml",
+        use: "lefthook.yml",
+        why: "the lefthook 2.x installer shadows a .yaml, so the hooks never run",
+      },
+      {
+        found: "guardrails.config.json",
+        use: "guardrails.workspace.json",
+        why: "the oxlint plugin resolves guardrails.config.json from the working directory, so one at the workspace root lints every package against it and silently disables whatever each package declares ownedByLinter",
+      },
+    ],
+  });
+
+  const knipWorkspaces: Record<string, unknown> = { ".": { entry: [], project: [] } };
+  for (const directory of [...bunApps.map((app) => `apps/${app.id}`), ...packageDirectories]) {
+    const path = `${directory}/knip.json`;
+    if (!files.has(path)) continue;
+    const config = parsePlannedJson(files, path);
+    // Root-only keys are rejected inside a workspaces entry.
+    delete config.$schema;
+    delete config.ignoreExportsUsedInFile;
+    knipWorkspaces[directory] = config;
+  }
+  setPlannedJson(files, "knip.json", {
+    $schema: "./node_modules/knip/schema.json",
+    ignoreExportsUsedInFile: true,
+    workspaces: knipWorkspaces,
+  });
+
+  const rustCheck = rustApps
+    .map(
+      (app) =>
+        `cargo fmt --manifest-path apps/${app.id}/Cargo.toml --check && cargo clippy --manifest-path apps/${app.id}/Cargo.toml --all-targets --all-features -- -D warnings && cargo test --manifest-path apps/${app.id}/Cargo.toml --all-features`,
+    )
+    .join(" && ");
+  setPlannedJson(files, "package.json", {
+    name: projectSlug(manifest.project.name),
+    private: true,
+    type: "module",
+    // A rust app has no package.json, so an apps/* glob would ask Bun to read
+    // one that is not there; list the Bun members explicitly in that case.
+    workspaces: [
+      ...(rustApps.length === 0 ? ["apps/*"] : bunApps.map((app) => `apps/${app.id}`)),
+      ...(packageDirectories.length === 0 ? [] : ["packages/*"]),
+    ],
+    scripts: {
+      check: `bun run check:structure && bun run check:unused && bun run --filter '*' check${rustApps.length === 0 ? "" : " && bun run check:rust"}`,
+      "type-check": "bun run --filter '*' type-check",
+      lint: "bun run --filter '*' lint",
+      "fmt:check": "bun run --filter '*' fmt:check",
+      fmt: "oxfmt --ignore-path .oxfmtignore",
+      "check:structure": "bash scripts/guardrails/run.sh",
+      "check:unused": "knip --no-config-hints",
+      "check:dupes": "bun run --filter '*' check:dupes",
+      ...(rustApps.length === 0 ? {} : { "check:rust": rustCheck }),
+      test: "bun run --filter '*' test",
+      prepare: "lefthook install --force || true",
+    },
+    devDependencies: pinned(["knip", "lefthook", "oxfmt"]),
+  });
+}
+
+async function planMonorepo(
+  manifest: MonorepoManifest,
+  assetRoot: string,
+  files: Map<string, PlannedFile>,
+): Promise<void> {
+  for (const app of manifest.apps) await planMonorepoApp(manifest, app, assetRoot, files);
+  for (const entry of manifest.packages) {
+    if (entry === "database") {
+      await planDatabasePackage(manifest, assetRoot, files, "packages/database");
+    } else if (entry === "ui" || entry === "types") {
+      await planSharedPackage(entry, manifest, assetRoot, files);
+    }
+  }
+  if (manifest.packages.includes("config")) {
+    await planConfigPackage(manifest, assetRoot, files, [
+      ...manifest.apps.map((app) => `apps/${app.id}`),
+      ...manifest.packages
+        .filter((entry) => entry !== "config")
+        .map((entry) => `packages/${entry}`),
+    ]);
+  }
+  await addMonorepoOperations(files, manifest, assetRoot);
+  await planMonorepoRoot(manifest, assetRoot, files);
 }
 
 export async function planRecipe(
@@ -1520,17 +2313,12 @@ export async function planRecipe(
   assetRoot: string,
 ): Promise<PlannedFile[]> {
   const files = new Map<string, PlannedFile>();
-  if (manifest.stack.id === "console") await planConsole(manifest, assetRoot, files);
-  else if (manifest.stack.id === "marketing") await planMarketing(manifest, assetRoot, files);
-  else if (manifest.stack.id === "backend-ts" && manifest.stack.workspace) {
-    await planBackendWorkspace(manifest, assetRoot, files);
-  } else if (manifest.stack.id === "backend-ts") await planBackend(manifest, assetRoot, files);
-  else if (manifest.stack.id === "expo") await planExpo(manifest, assetRoot, files);
-  else if (manifest.stack.id === "rust") await planRust(manifest, assetRoot, files);
-  else throw new Error("recipe not implemented");
-  applyDeploymentConfiguration(files, manifest);
-  await applyImportedTheme(files, manifest);
-  await addOperations(files, manifest, assetRoot);
+  if (isMonorepo(manifest)) {
+    await planMonorepo(manifest, assetRoot, files);
+  } else {
+    await planStandalone(manifest, assetRoot, files);
+    await addOperations(files, manifest, assetRoot);
+  }
   await addGuardrails(files, assetRoot);
 
   const hooksPath = resolve(assetRoot, "shared/.claude/settings.json");
@@ -1538,17 +2326,20 @@ export async function planRecipe(
     path: ".claude/settings.json",
     content: await readFile(hooksPath, "utf8"),
   });
+  const rustOnly = !isMonorepo(manifest) && manifest.stack.id === "rust";
+  const anyRust = isMonorepo(manifest) && manifest.apps.some((app) => app.stack.id === "rust");
   files.set(".gitignore", {
     path: ".gitignore",
-    content:
-      manifest.stack.id === "rust"
-        ? "/target/\n.env\n.tooling/\n"
-        : "node_modules/\ndist/\n.env*\n!.env.example\n.dev.vars\n.tooling/\n",
+    content: rustOnly
+      ? "/target/\n.env\n.tooling/\n"
+      : `node_modules/\ndist/\n.env*\n!.env.example\n.dev.vars\n.tooling/\n${anyRust ? "target/\n" : ""}`,
   });
-  if (manifest.stack.id !== "rust") {
+  if (!rustOnly) {
     files.set(".oxfmtignore", {
       path: ".oxfmtignore",
-      content: "*.md\n.astro/**\n.wrangler/**\nscripts/guardrails/**\nsrc/ui/theme/**\n",
+      content: isMonorepo(manifest)
+        ? "*.md\n**/.astro/**\n**/.wrangler/**\nscripts/guardrails/**\n**/src/ui/theme/**\n"
+        : "*.md\n.astro/**\n.wrangler/**\nscripts/guardrails/**\nsrc/ui/theme/**\n",
     });
   }
   files.set("toolu.scaffold.json", {

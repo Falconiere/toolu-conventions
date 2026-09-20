@@ -3,7 +3,7 @@
 {{TOOLU_DESCRIPTION}} — the public marketing site, built with Astro and
 deployed as static assets on Cloudflare Workers.
 
-> **New here (human or agent)?** Read [`CLAUDE.md`](./CLAUDE.md) first — it's the
+> **New here (human or agent)?** Read [`AGENTS.md`](./AGENTS.md) first — it's the
 > repo map + conventions. This README is the orientation + run/build guide.
 
 ## Quick start
@@ -86,4 +86,4 @@ Both should be required checks on `main`.
 Static output, zero JavaScript unless a section earns it, thin pages composing
 sections, tokens through `--tone-*` (never a literal hex), no barrel files,
 kebab-case filenames, co-located real-data tests. Full rules in
-[`CLAUDE.md`](./CLAUDE.md).
+[`AGENTS.md`](./AGENTS.md).

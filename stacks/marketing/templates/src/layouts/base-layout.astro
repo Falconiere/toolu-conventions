@@ -1,16 +1,16 @@
 ---
 /** The one page shell — every page renders inside it. */
-import '@fontsource-variable/archivo';
-import '@fontsource-variable/jetbrains-mono';
-import '@/ui/globals.css';
+import "@fontsource-variable/archivo";
+import "@fontsource-variable/jetbrains-mono";
+import "@/ui/globals.css";
 
 interface Props {
   /** Browser tab + og:title. Keep it under ~60 characters. */
   readonly title: string;
   /** Meta description + og:description. One sentence, ~155 characters. */
   readonly description: string;
-  /** Omit for the house default (Jade): 'blueprint' | 'ion' | 'chalk'. */
-  readonly signal?: 'blueprint' | 'ion' | 'chalk';
+  /** Omit for the house default (Jade): "blueprint" | "ion" | "chalk". */
+  readonly signal?: "blueprint" | "ion" | "chalk";
 }
 
 const { title, description, signal } = Astro.props;
@@ -21,7 +21,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 ---
 
 <!doctype html>
-<html lang="en" data-signal={signal ?? '{{TOOLU_THEME_PRESET}}'}>
+<html lang="en" data-signal={signal ?? "{{TOOLU_THEME_PRESET}}"}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

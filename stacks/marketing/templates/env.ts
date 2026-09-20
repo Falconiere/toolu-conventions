@@ -1,5 +1,5 @@
 /** Runtime-validated public environment — one typed source of truth for config. */
-import * as z from 'zod';
+import * as z from "zod";
 
 // All public config flows through here so the site validates env in ONE place,
 // with a schema rather than a pile of hand-written guards: one place to read the
@@ -22,14 +22,14 @@ function optional(value: string | undefined): string | undefined {
 
 const EnvSchema = z.object({
   PUBLIC_ENV: z
-    .enum(['development', 'staging', 'production'])
-    .default(import.meta.env.PROD ? 'production' : 'development'),
+    .enum(["development", "staging", "production"])
+    .default(import.meta.env.PROD ? "production" : "development"),
   /** Where every "Log in" / "Get started" link points — the console app. */
-  PUBLIC_CONSOLE_URL: z.url().default('http://localhost:5173'),
+  PUBLIC_CONSOLE_URL: z.url().default("http://localhost:5173"),
 });
 
 /** The logical environment this build targets. */
-export type AppEnv = z.infer<typeof EnvSchema>['PUBLIC_ENV'];
+export type AppEnv = z.infer<typeof EnvSchema>["PUBLIC_ENV"];
 
 const parsed = EnvSchema.safeParse({
   PUBLIC_ENV: optional(import.meta.env.PUBLIC_ENV),
@@ -43,5 +43,5 @@ if (!parsed.success) {
 }
 
 export const APP_ENV: AppEnv = parsed.data.PUBLIC_ENV;
-export const IS_PROD: boolean = APP_ENV === 'production';
+export const IS_PROD: boolean = APP_ENV === "production";
 export const CONSOLE_URL: string = parsed.data.PUBLIC_CONSOLE_URL;

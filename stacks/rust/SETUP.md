@@ -74,8 +74,8 @@ kit's templates.
 
 ## 2. Copy templates
 
-Copy each template to its destination (source → destination). `CLAUDE.md.template`
-is renamed to `CLAUDE.md`; everything else keeps its name. `src/` is copied
+Copy each template to its destination (source → destination). `AGENTS.md.template`
+is renamed to `AGENTS.md`; everything else keeps its name. `src/` is copied
 **whole**, not file by file: `main.rs` declares `mod domains;`, `domains.rs` declares `mod greeting;`, and
 `domains/greeting.rs` points its test module at `domains/tests/greeting.rs`, so
 copying only `main.rs` leaves `cargo build` failing with a missing module.
@@ -86,7 +86,7 @@ cp "$KIT/stacks/rust/templates/rustfmt.toml"          rustfmt.toml
 cp "$KIT/stacks/rust/templates/lefthook.yml"          lefthook.yml
 cp -R "$KIT/stacks/rust/templates/src/."              src/
 cp "$KIT/stacks/rust/templates/README.md"             README.md
-cp "$KIT/stacks/rust/templates/CLAUDE.md.template"    CLAUDE.md
+cp "$KIT/stacks/rust/templates/AGENTS.md.template"    AGENTS.md
 
 mkdir -p scripts/guardrails
 for item in run.sh lib checks patterns schema.json oxlint-plugin; do
@@ -108,13 +108,13 @@ every PR against this repo's own convention files, read from the base ref, and
 needs an `OPENROUTER_API_KEY` repository secret (human checklist). See
 [`../../CORE.md`](../../CORE.md) → "Quality gates & guardrails".
 
-Then set the crate name in the copied manifest and `CLAUDE.md` (the templates
+Then set the crate name in the copied manifest and `AGENTS.md` (the templates
 ship the literal placeholder `project-name`):
 
 ```bash
 # macOS / BSD sed. On Linux or CI, drop the '' after -i.
 sed -i '' "s|^name = .*|name = \"$PROJECT\"|" Cargo.toml
-sed -i '' "s|project-name|$PROJECT|g" src/main.rs CLAUDE.md README.md
+sed -i '' "s|project-name|$PROJECT|g" src/main.rs AGENTS.md README.md
 ```
 
 `templates/folder-README.md` is a template you copy **into a `src/` submodule

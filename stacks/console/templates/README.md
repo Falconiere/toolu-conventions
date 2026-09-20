@@ -3,7 +3,7 @@
 {{TOOLU_DESCRIPTION}} — a React + Vite console app with TanStack Router,
 deployed to Cloudflare Workers.
 
-> **New here (human or agent)?** Read [`CLAUDE.md`](./CLAUDE.md) first — it's the
+> **New here (human or agent)?** Read [`AGENTS.md`](./AGENTS.md) first — it's the
 > repo map + conventions. This README is the orientation + run/build guide.
 
 ## Quick start
@@ -88,4 +88,4 @@ Both should be required checks on `main`.
 Strict TypeScript, no barrel files, no default exports, kebab-case filenames,
 co-located real-data tests, thin routes, Zod at every boundary with types from
 `z.infer`, oRPC + TanStack Query for our own API and `@/utilities/http` for
-everything else (no axios). Full rules in [`CLAUDE.md`](./CLAUDE.md).
+everything else (no axios). Full rules in [`AGENTS.md`](./AGENTS.md).

@@ -44,21 +44,44 @@ def main() -> int:
     if mode == "cancel":
         send(b"\x03")
         wait_for("Project creation cancelled.")
-    else:
-        send(b"pty-eval\r")
-        wait_for("Choose a stack")
+    elif mode == "monorepo":
+        send(b"pty-eval-workspace\r")
+        wait_for("How should the project be laid out?")
         send(b"\x1b[B\r")
         wait_for("Package/project name")
+        send(b"agavus.io\r")
+        wait_for("Which apps should the workspace contain?")
+        send(b" \r")
+        wait_for("Directory for the console app")
+        send(b"\r")
+        wait_for("Select integrations")
+        send(b"\r")
+        wait_for("Select shared packages")
+        # Space selects the first option (database) so the run really exercises
+        # a package choice made through the prompt, not just the prompt itself.
+        send(b" \r")
+        wait_for("Select operations modules")
+        send(b"\r")
+        wait_for("Choose a theme preset")
+        send(b"\r")
+        wait_for("Create this project?")
+        send(b"\r")
+        wait_for("Created", timeout=40.0)
+    else:
+        send(b"pty-eval\r")
+        wait_for("How should the project be laid out?")
+        send(b"\r")
+        wait_for("Package/project name")
+        send(b"\x1b[B\r")
         if mode == "validation":
             send(b"Bad Name\r")
-            wait_for("Use lowercase letters, numbers, and single hyphens.")
+            wait_for("single hyphens or dots")
             send(b"\x03")
             wait_for("Project creation cancelled.")
         else:
             send(b"pty-eval\r")
-        if mode == "validation":
-            pass
-        else:
+            wait_for("Choose a stack")
+            send(b"\x1b[B\r")
             wait_for("Select integrations")
             send(b" \r")
             wait_for("Routes (comma separated)")

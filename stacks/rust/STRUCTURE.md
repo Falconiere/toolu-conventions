@@ -42,7 +42,7 @@ project-name/
 ├── scripts/
 │   └── guardrails/       # the structure gate, copied from the kit; never hand-edited
 ├── .github/workflows/ci.yml
-├── CLAUDE.md             # agent rules + repo map (read first)
+├── AGENTS.md             # agent rules + repo map (read first)
 └── README.md             # human + agent entry point
 ```
 
@@ -164,7 +164,7 @@ Inherited from CORE, stated here in Rust terms — enforced by the `[lints]` tab
    `TryFrom`/`try_into` and handle the error (pedantic clippy flags the risky
    casts).
 8. **Docs in sync.** Touch a user-facing surface (CLI flags, public API, config),
-   update the prose describing it (`README.md`, `CLAUDE.md`) in the same change.
+   update the prose describing it (`README.md`, `AGENTS.md`) in the same change.
 
 ## LLM-indexability strategy
 
@@ -173,7 +173,7 @@ without reading the whole tree. That comes from:
 
 - **No barrels + filename ↔ content** — grep/`ast-grep` for a symbol lands on its
   one definition immediately.
-- **`CLAUDE.md` at the root** — the map + rulebook, read first.
+- **`AGENTS.md` at the root** — the map + rulebook, read first.
 - **A `README.md` in any `src/` submodule folder that grows** (use
   [`templates/folder-README.md`](./templates/folder-README.md)): what belongs
   there, what's inside (one line each), and where NOT to put things. Add a line

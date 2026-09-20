@@ -332,7 +332,7 @@ Faint ink and the signal are the two places this system can hurt a reader.
    (console/marketing: `data-signal` on `<html>`; expo: `defaultSignal`).
 3. A **different brand** replaces values but keeps the *structure*: alternating
    bands, one signal with four steps, fixed status, mono meta layer, hairline
-   depth, glyphs over icons. Record the deviation in the project's `CLAUDE.md`.
+   depth, glyphs over icons. Record the deviation in the project's `AGENTS.md`.
 4. Build `src/ui/*` from tokens — utilities on web, `StyleSheet.create` on
    native; screens compose primitives.
 

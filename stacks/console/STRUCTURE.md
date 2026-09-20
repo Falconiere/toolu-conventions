@@ -56,7 +56,7 @@ that holds the thing), and thin route files.
 ├── .oxlintrc.json · .oxfmtrc.json · lefthook.yml · .gitattributes
 ├── .env.example
 ├── .github/workflows/        # ci.yml (the gate) + code-review.yml (AI review)
-├── CLAUDE.md                 # agent rules + repo map (read first)
+├── AGENTS.md                 # agent rules + repo map (read first)
 └── README.md                 # human + agent entry point
 ```
 
@@ -98,7 +98,7 @@ the conventional shape, not separate config entries. Parent-relative imports
 These extend the CORE rules and are **machine-enforced** by `.oxlintrc.json` and
 `scripts/guardrails/run.sh` (both run by `bun run check`; Lefthook runs the
 lint/format subset on staged files). Each convention below names its enforcer.
-See [`templates/CLAUDE.md.template`](./templates/CLAUDE.md.template) for the full
+See [`templates/AGENTS.md.template`](./templates/AGENTS.md.template) for the full
 blocked-patterns list.
 
 1. **`src/app/` is routes only, and thin.** A file under `src/app/` declares a
@@ -340,7 +340,7 @@ without reading the whole tree. We get that from:
   `src/api`, `src/utilities`, `src/providers`). Each lists what belongs there,
   what's currently inside (one line each), and where NOT to put things. Use
   [`templates/folder-README.md`](./templates/folder-README.md).
-- **`CLAUDE.md` at the root** as the map + rulebook, read first by agents.
+- **`AGENTS.md` at the root** as the map + rulebook, read first by agents.
 - **No barrels + filename ↔ content** means grep for a symbol lands on its
   definition immediately.
 - **The `@/` path alias** makes import sites self-describing

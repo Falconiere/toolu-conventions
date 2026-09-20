@@ -24,35 +24,35 @@ interface TypeToken {
   lineHeight: number;
   /** px, not em — RN has no relative tracking. Negative on display, positive on mono meta. */
   letterSpacing: number;
-  textTransform?: 'uppercase';
+  textTransform?: "uppercase";
   /** Numbers are readings, not words — tabular figures wherever digits render. */
-  fontVariant?: ['tabular-nums'];
+  fontVariant?: ["tabular-nums"];
 }
 
 export const fontFamily = {
-  regular: 'Archivo-Regular',
-  medium: 'Archivo-Medium',
-  semibold: 'Archivo-SemiBold',
-  mono: 'JetBrainsMono-Regular',
-  monoMedium: 'JetBrainsMono-Medium',
+  regular: "Archivo-Regular",
+  medium: "Archivo-Medium",
+  semibold: "Archivo-SemiBold",
+  mono: "JetBrainsMono-Regular",
+  monoMedium: "JetBrainsMono-Medium",
 } as const;
 
 type Variant =
-  | 'displayLg'
-  | 'display'
-  | 'statLg'
-  | 'stat'
-  | 'quote'
-  | 'subhead'
-  | 'body'
-  | 'bodySm'
-  | 'marker'
-  | 'label'
-  | 'tag'
-  | 'data'
-  | 'meta'
-  | 'code'
-  | 'button';
+  | "displayLg"
+  | "display"
+  | "statLg"
+  | "stat"
+  | "quote"
+  | "subhead"
+  | "body"
+  | "bodySm"
+  | "marker"
+  | "label"
+  | "tag"
+  | "data"
+  | "meta"
+  | "code"
+  | "button";
 
 export const typography: Record<Variant, TypeToken> = {
   // Display — Archivo 600, tight tracking, near-solid leading. Headings break in
@@ -71,14 +71,14 @@ export const typography: Record<Variant, TypeToken> = {
     fontSize: 44,
     lineHeight: 40,
     letterSpacing: -1.98,
-    fontVariant: ['tabular-nums'],
+    fontVariant: ["tabular-nums"],
   },
   stat: {
     fontFamily: fontFamily.semibold,
     fontSize: 32,
     lineHeight: 32,
     letterSpacing: -1.28,
-    fontVariant: ['tabular-nums'],
+    fontVariant: ["tabular-nums"],
   },
 
   // Titles. No quotation marks on a quote, no photo beside it.
@@ -95,50 +95,50 @@ export const typography: Record<Variant, TypeToken> = {
     fontSize: 9.5,
     lineHeight: 14,
     letterSpacing: 2.28, // 0.24em — section markers, once per section
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   label: {
     fontFamily: fontFamily.mono,
     fontSize: 9.5,
     lineHeight: 14,
     letterSpacing: 1.9, // 0.2em — panel and field labels
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   tag: {
     fontFamily: fontFamily.mono,
     fontSize: 9,
     lineHeight: 14,
     letterSpacing: 1.44, // 0.16em
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   data: {
     fontFamily: fontFamily.mono,
     fontSize: 10.5,
     lineHeight: 16,
     letterSpacing: 1.68, // 0.16em — `FROM $40K · 6–12 WEEKS`
-    textTransform: 'uppercase',
-    fontVariant: ['tabular-nums'],
+    textTransform: "uppercase",
+    fontVariant: ["tabular-nums"],
   },
   meta: {
     fontFamily: fontFamily.mono,
     fontSize: 10,
     lineHeight: 16,
     letterSpacing: 0.6, // 0.06em — rail lines `├─ … ─┤`. Not uppercase.
-    fontVariant: ['tabular-nums'],
+    fontVariant: ["tabular-nums"],
   },
   code: {
     fontFamily: fontFamily.mono,
     fontSize: 12,
     lineHeight: 21,
     letterSpacing: 0,
-    fontVariant: ['tabular-nums'],
+    fontVariant: ["tabular-nums"],
   },
   button: {
     fontFamily: fontFamily.mono,
     fontSize: 9.5,
     lineHeight: 12,
     letterSpacing: 1.71, // 0.18em
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
 };
 

@@ -23,6 +23,7 @@ while IFS= read -r entry; do
     package/stacks/*/*.md) ;;
     package/guardrails/README.md|package/guardrails/run.sh|package/guardrails/lib/*|package/guardrails/checks/*|package/guardrails/patterns/*|package/guardrails/schema.json|package/guardrails/workspace.schema.json|package/guardrails/oxlint-plugin/*) ;;
     package/shared/.claude/settings.json|package/shared/README.md|package/shared/workspace/*) ;;
+    package/shared/packages/*/templates/*) ;;
     package/conventions/shared/templates/*|package/conventions/cloudflare-infra/templates/*|package/conventions/infisical-secrets/templates/*|package/conventions/local-dev/templates/*) ;;
     package/conventions/SETUP.md|package/conventions/*/SETUP.md) ;;
     *) printf 'unexpected package entry: %s\n' "$entry" >&2; exit 1 ;;

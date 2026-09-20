@@ -90,7 +90,7 @@ git --version
 - **Analytics?** Which product, if any.
 - **Interactive island?** A section that genuinely needs client-side state.
 
-**Design context** (optional — feeds the theme tokens + `CLAUDE.md`):
+**Design context** (optional — feeds the theme tokens + `AGENTS.md`):
 - Audience, tone, palette direction, reference sites.
 - Signal temperature: Jade (default) · Blueprint · Ion · Chalk.
 
@@ -260,7 +260,7 @@ Then:
    `src/content` the moment Phase 5 creates it for a blog or changelog:
    `content` is in this stack's `requireReadme`, so the gate goes red on a
    content collection without one.
-7. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the specifics.
+7. Copy `templates/AGENTS.md.template` → `AGENTS.md` and fill in the specifics.
 
 **Conventions reminder while you build:** pages compose sections and hold no
 markup of their own; one section per file; Tailwind utilities only — no `<style>`
@@ -305,7 +305,7 @@ and switch the pages that must stay static to `export const prerender = true`.
 In `wrangler.jsonc`, point `"main"` at the adapter's Worker entry, add
 `"binding": "ASSETS"` to `assets`, and add `"compatibility_flags":
 ["nodejs_compat"]`. This changes the cost and failure model of the whole site —
-record *which page* forced it, and why, in `CLAUDE.md`.
+record *which page* forced it, and why, in `AGENTS.md`.
 
 **Interactive island** — `bunx astro add react --yes`, build the component under
 `src/ui/`, and hydrate it from a section with the narrowest directive that works
@@ -313,7 +313,7 @@ record *which page* forced it, and why, in `CLAUDE.md`.
 saying why it can't be static.
 
 **Analytics** — add the tag in `base-layout.astro`, deferred, and note the
-product in `CLAUDE.md`. Never a blocking script in `<head>`.
+product in `AGENTS.md`. Never a blocking script in `<head>`.
 
 ---
 
@@ -360,7 +360,7 @@ five layers fit together.
 ## Phase 9 — Top-level README
 
 Generate the project `README.md` from `templates/README.md`: description, layout
-table, environments, scripts, deploy, CI. Cross-link `CLAUDE.md`.
+table, environments, scripts, deploy, CI. Cross-link `AGENTS.md`.
 
 ---
 

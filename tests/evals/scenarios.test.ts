@@ -115,6 +115,48 @@ const scenarios: Scenario[] = [
     requiredFiles: ["src/ui/theme/palette.css"],
   })),
   {
+    id: "monorepo-web-platform",
+    flags: {
+      targetDirectory: "eval-workspace",
+      name: "agavus.io",
+      layout: "monorepo",
+      apps: [
+        { id: "console", stack: "console", integrations: ["api"] },
+        { id: "api", stack: "backend-ts", integrations: ["drizzle", "database-package"] },
+        { id: "marketing", stack: "marketing", integrations: [], pages: ["home", "pricing"] },
+      ],
+      packages: ["database", "ui", "types", "config"],
+      operations: ["local-dev"],
+    },
+    requiredFiles: [
+      "apps/console/src/main.tsx",
+      "apps/api/src/app.ts",
+      "apps/marketing/src/pages/index.astro",
+      "packages/database/package.json",
+      "packages/ui/src/components/surface.tsx",
+      "packages/types/src/contracts/health-response.ts",
+      "packages/config/base.oxlintrc.json",
+      "guardrails.workspace.json",
+      "operations.config.json",
+    ],
+  },
+  {
+    id: "monorepo-mobile-and-cli",
+    flags: {
+      targetDirectory: "eval-workspace-native",
+      name: "example.app",
+      layout: "monorepo",
+      apps: [
+        { id: "mobile", stack: "expo", integrations: ["api"] },
+        { id: "cli", stack: "rust", integrations: ["clap"] },
+      ],
+      packages: [],
+      operations: [],
+      theme: "chalk",
+    },
+    requiredFiles: ["apps/mobile/app/_layout.tsx", "apps/cli/src/main.rs", "package.json"],
+  },
+  {
     id: "console-staging",
     flags: { ...baseFlags("eval-console-staging", "console"), staging: true },
     requiredFiles: ["wrangler.jsonc"],

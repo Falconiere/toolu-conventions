@@ -40,7 +40,7 @@ copied in Phase 3 already implement.
 fun aside, a cheeky sign-off, the occasional joke. Never at the expense of the
 work: configs, code, and honest status reports stay rock-solid, and if something
 fails you say so straight. This same house style is baked into the app's
-`CLAUDE.md` (`templates/CLAUDE.md.template`). Welcome to the bit. 🎬
+`AGENTS.md` (`templates/AGENTS.md.template`). Welcome to the bit. 🎬
 
 ---
 
@@ -100,7 +100,7 @@ Collect all of these up front; use the noted defaults.
   + Turso (Phase 6c). Default **no** — the console talks to a separate
   `backend-ts` service.
 
-**Design context** (optional — feeds the theme tokens + `CLAUDE.md`):
+**Design context** (optional — feeds the theme tokens + `AGENTS.md`):
 - Who are the **target users** and in what context? What **jobs** are they doing?
 - **Brand personality / tone**, any **palette** direction, reference sites.
 (Styling is **not** an intake question: every web surface in this kit is
@@ -261,7 +261,7 @@ Then:
 3. Copy `$KIT/DESIGN.md` ([view](../../DESIGN.md)) → `docs/design-language.md`
    (`mkdir -p docs` first) **verbatim**. The kit is not on disk once this project
    is scaffolded, so without this copy the design rules — which the token files
-   only carry values for — never reach the agents who build here. `CLAUDE.md`
+   only carry values for — never reach the agents who build here. `AGENTS.md`
    points at it for UI work; keep it out of the always-loaded context.
 4. Copy `templates/env.ts` → `src/constants/env.ts`. It validates `VITE_*` vars
    with a Zod schema. **Keep the static member-access pattern** — Vite
@@ -275,7 +275,7 @@ Then:
    `providers`, this stack's `requireReadme` — and `scripts/guardrails/run.sh`
    fails without those. `constants` and `types` get one by house convention
    rather than by the gate; `src/app` gets none.
-6. Copy `templates/CLAUDE.md.template` → `CLAUDE.md` and fill in the app name +
+6. Copy `templates/AGENTS.md.template` → `AGENTS.md` and fill in the app name +
    specifics. This is the rulebook + repo map agents read first.
 
 **Conventions reminder while you build:** no barrel files, kebab-case filenames
@@ -458,7 +458,7 @@ whole product; omit the attribute for Jade.
 3. If it did neither, keep the house tokens as shipped and say so in the design
    notes.
 4. Record the direction (audience, jobs, tone, palette, and any deviation from
-   `DESIGN.md`) in the `## Design notes` section of `CLAUDE.md` so future agents
+   `DESIGN.md`) in the `## Design notes` section of `AGENTS.md` so future agents
    inherit the "why".
 
 **7.3 Understand the seam before writing a component.** The page alternates dark
@@ -544,7 +544,7 @@ checklist).
 Generate the project `README.md` from `templates/README.md`: description, the
 project layout table, environments, scripts, deploy, and CI. Fill the
 `{{STAGING_ROW}}` (a staging row if requested, else remove the line). Cross-link
-`CLAUDE.md`.
+`AGENTS.md`.
 
 ---
 

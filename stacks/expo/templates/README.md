@@ -3,7 +3,7 @@
 <one-paragraph-description> — a React Native app built with Expo, Expo Router,
 and TypeScript.
 
-> **New here (human or agent)?** Read [`CLAUDE.md`](./CLAUDE.md) first — it's the
+> **New here (human or agent)?** Read [`AGENTS.md`](./AGENTS.md) first — it's the
 > repo map + conventions. This README is the orientation + run/build guide.
 
 ## Quick start
@@ -67,7 +67,7 @@ eas build --profile production    # store build
 ```
 
 Profiles are defined in `eas.json`. The design direction captured during setup
-lives in the **Design notes** section of [`CLAUDE.md`](./CLAUDE.md).
+lives in the **Design notes** section of [`AGENTS.md`](./AGENTS.md).
 
 ## CI/CD
 
@@ -86,4 +86,4 @@ lives in the **Design notes** section of [`CLAUDE.md`](./CLAUDE.md).
 
 Strict TypeScript, no barrel files, kebab-case filenames, co-located real-data
 tests, `StyleSheet` + theme tokens (no styling library), React Query for server
-state. Full rules in [`CLAUDE.md`](./CLAUDE.md).
+state. Full rules in [`AGENTS.md`](./AGENTS.md).

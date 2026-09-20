@@ -1,6 +1,6 @@
 /** CSS entrypoints exported by the self-hosted variable font packages. */
-declare module '@fontsource-variable/archivo';
-declare module '@fontsource-variable/jetbrains-mono';
+declare module "@fontsource-variable/archivo";
+declare module "@fontsource-variable/jetbrains-mono";
 
 interface ImportMetaEnv {
   readonly PROD: boolean;

@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
 import { chmod, mkdir, rename, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, normalize, resolve, sep } from "node:path";
-import type { ScaffoldManifest } from "./manifest";
+import { isMonorepo, type ScaffoldManifest } from "./manifest";
+import { workspacePackageName } from "./identity";
 import { resolveSafeTarget } from "./path-safety";
 import { assertPrerequisites } from "./prerequisites";
 import { planRecipe } from "./recipes";
@@ -71,7 +72,74 @@ function operationCommands(manifest: ScaffoldManifest): PlannedCommand[] {
   ];
 }
 
+function rustCommands(manifestPath: string): PlannedCommand[] {
+  const scope = ["--manifest-path", manifestPath];
+  return [
+    { phase: "verify", command: "cargo", args: ["fmt", ...scope, "--check"] },
+    {
+      phase: "verify",
+      command: "cargo",
+      args: ["clippy", ...scope, "--all-targets", "--all-features", "--", "-D", "warnings"],
+    },
+    { phase: "verify", command: "cargo", args: ["test", ...scope, "--all-features"] },
+  ];
+}
+
+function monorepoCommands(
+  manifest: Extract<ScaffoldManifest, { layout: "monorepo" }>,
+): PlannedCommand[] {
+  const rustApps = manifest.apps.filter((app) => app.stack.id === "rust");
+  const bunApps = manifest.apps.filter((app) => app.stack.id !== "rust");
+  return [
+    ...(bunApps.length > 0
+      ? [
+          {
+            phase: "install" as const,
+            command: "bun",
+            args: ["install", "--network-concurrency=8"],
+          },
+        ]
+      : []),
+    ...rustApps.map((app) => ({
+      phase: "install" as const,
+      command: "cargo",
+      args: ["fetch", "--manifest-path", `apps/${app.id}/Cargo.toml`],
+    })),
+    ...manifest.apps
+      .filter((app) => app.stack.id === "backend-ts")
+      .map((app) => ({
+        phase: "generate" as const,
+        command: "bun",
+        args: [
+          "run",
+          "--filter",
+          workspacePackageName(manifest.project.name, app.id),
+          "cf-typegen",
+        ],
+      })),
+    ...(bunApps.length > 0
+      ? [{ phase: "format" as const, command: "bun", args: ["run", "fmt"] }]
+      : []),
+    { phase: "git", command: "git", args: ["init", "--initial-branch=main"] },
+    { phase: "hooks", command: "bunx", args: ["lefthook@2.1.10", "install", "--force"] },
+    ...(bunApps.length > 0
+      ? [{ phase: "verify" as const, command: "bun", args: ["run", "check"] }]
+      : [{ phase: "verify" as const, command: "bash", args: ["scripts/guardrails/run.sh"] }]),
+    // A workspace has no root build; the apps that produce one build themselves.
+    ...manifest.apps
+      .filter((app) => app.stack.id === "console" || app.stack.id === "marketing")
+      .map((app) => ({
+        phase: "verify" as const,
+        command: "bun",
+        args: ["run", "--filter", workspacePackageName(manifest.project.name, app.id), "build"],
+      })),
+    ...rustApps.flatMap((app) => rustCommands(`apps/${app.id}/Cargo.toml`)),
+    ...operationCommands(manifest),
+  ];
+}
+
 export function planCommands(manifest: ScaffoldManifest): PlannedCommand[] {
+  if (isMonorepo(manifest)) return monorepoCommands(manifest);
   if (manifest.stack.id === "rust") {
     return [
       { phase: "install", command: "cargo", args: ["fetch"] },
@@ -100,7 +168,12 @@ export function planCommands(manifest: ScaffoldManifest): PlannedCommand[] {
             ? {
                 phase: "generate" as const,
                 command: "bun",
-                args: ["run", "--filter", `@${manifest.project.name}/api`, "cf-typegen"],
+                args: [
+                  "run",
+                  "--filter",
+                  workspacePackageName(manifest.project.name, "api"),
+                  "cf-typegen",
+                ],
               }
             : { phase: "generate" as const, command: "bun", args: ["run", "cf-typegen"] },
         ]

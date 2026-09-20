@@ -1,6 +1,11 @@
+import type { AppFlags } from "./contracts";
+
 export interface ParsedArgs {
   targetDirectory?: string;
   config?: string;
+  layout?: string;
+  apps?: AppFlags[];
+  packages?: string[];
   stack?: string;
   name?: string;
   displayName?: string;
@@ -19,6 +24,7 @@ export interface ParsedArgs {
 
 const valueOptions = new Map<string, keyof ParsedArgs>([
   ["--config", "config"],
+  ["--layout", "layout"],
   ["--stack", "stack"],
   ["--name", "name"],
   ["--display-name", "displayName"],
@@ -28,11 +34,29 @@ const valueOptions = new Map<string, keyof ParsedArgs>([
   ["--console-url", "consoleUrl"],
 ]);
 
-const repeatableOptions = new Map<string, "integrations" | "operations" | "pages">([
+const repeatableOptions = new Map<string, "integrations" | "operations" | "pages" | "packages">([
   ["--integration", "integrations"],
   ["--operation", "operations"],
   ["--page", "pages"],
+  ["--package", "packages"],
 ]);
+
+/** `--app web=console` and its scoped companions all take `<app>=<value>`. */
+function splitScoped(option: string, value: string): { app: string; value: string } {
+  const separator = value.indexOf("=");
+  if (separator <= 0 || separator === value.length - 1) {
+    throw new InvalidArgumentsError(`${option} expects <app>=<value>, received: ${value}`);
+  }
+  return { app: value.slice(0, separator), value: value.slice(separator + 1) };
+}
+
+function findApp(parsed: ParsedArgs, option: string, id: string): AppFlags {
+  const app = parsed.apps?.find((candidate) => candidate.id === id);
+  if (app === undefined) {
+    throw new InvalidArgumentsError(`${option} names an app that no --app declared: ${id}`);
+  }
+  return app;
+}
 
 export class InvalidArgumentsError extends Error {
   override name = "InvalidArgumentsError";
@@ -100,6 +124,41 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
         throw new InvalidArgumentsError("--port must be between 1 and 65535");
       }
       parsed.port = port;
+      index += consumed;
+      continue;
+    }
+
+    if (option === "--app") {
+      const { value, consumed } = takeValue(argv, index, inlineValue, option);
+      const scoped = splitScoped(option, value);
+      if (parsed.apps?.some((app) => app.id === scoped.app)) {
+        throw new InvalidArgumentsError(`--app declared twice: ${scoped.app}`);
+      }
+      (parsed.apps ??= []).push({ id: scoped.app, stack: scoped.value });
+      index += consumed;
+      continue;
+    }
+    if (option === "--app-integration" || option === "--app-page") {
+      const { value, consumed } = takeValue(argv, index, inlineValue, option);
+      const scoped = splitScoped(option, value);
+      const app = findApp(parsed, option, scoped.app);
+      if (option === "--app-integration") (app.integrations ??= []).push(scoped.value);
+      else (app.pages ??= []).push(scoped.value);
+      index += consumed;
+      continue;
+    }
+    if (option === "--app-port") {
+      const { value, consumed } = takeValue(argv, index, inlineValue, option);
+      const scoped = splitScoped(option, value);
+      const app = findApp(parsed, option, scoped.app);
+      if (!/^\d+$/.test(scoped.value)) {
+        throw new InvalidArgumentsError("--app-port must be an integer");
+      }
+      const port = Number(scoped.value);
+      if (port < 1 || port > 65535) {
+        throw new InvalidArgumentsError("--app-port must be between 1 and 65535");
+      }
+      app.port = port;
       index += consumed;
       continue;
     }

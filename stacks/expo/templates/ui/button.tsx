@@ -1,14 +1,14 @@
 // Button primitive — variants + sizes, theme-token styled, accessible by default.
-import { ActivityIndicator, Pressable, type PressableProps, StyleSheet, View } from 'react-native';
-import { Text } from '@/ui/text';
-import { colors, type ColorToken } from '@/ui/theme/colors';
-import { pressedOpacity } from '@/ui/theme/motion';
-import { borderWidth, layout, radii, spacing } from '@/ui/theme/spacing';
+import { ActivityIndicator, Pressable, type PressableProps, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/text";
+import { colors, type ColorToken } from "@/ui/theme/colors";
+import { pressedOpacity } from "@/ui/theme/motion";
+import { borderWidth, layout, radii, spacing } from "@/ui/theme/spacing";
 
-type Variant = 'primary' | 'secondary' | 'destructive' | 'bracket';
-type Size = 'sm' | 'md' | 'lg';
+type Variant = "primary" | "secondary" | "destructive" | "bracket";
+type Size = "sm" | "md" | "lg";
 
-interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
+interface ButtonProps extends Omit<PressableProps, "children" | "style"> {
   label: string;
   variant?: Variant;
   size?: Size;
@@ -21,9 +21,9 @@ interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
 // a red block. `bracket` is the quietest step — render its label as `[ Label ]`.
 const FILL: Record<Variant, string> = {
   primary: colors.primary,
-  secondary: 'transparent',
-  destructive: 'transparent',
-  bracket: 'transparent',
+  secondary: "transparent",
+  destructive: "transparent",
+  bracket: "transparent",
 };
 
 const BORDER: Record<Variant, string | undefined> = {
@@ -34,17 +34,17 @@ const BORDER: Record<Variant, string | undefined> = {
 };
 
 const LABEL_COLOR: Record<Variant, ColorToken> = {
-  primary: 'onPrimary',
-  secondary: 'text',
-  destructive: 'danger',
-  bracket: 'textMuted',
+  primary: "onPrimary",
+  secondary: "text",
+  destructive: "danger",
+  bracket: "textMuted",
 };
 
 // Press is a colour move — never a shadow, never a scale. The filled variant dips
 // its fill; the outlined ones lift a border or tint the row behind them.
 const PRESSED_FILL: Record<Variant, string> = {
   primary: colors.primaryPressed,
-  secondary: 'transparent',
+  secondary: "transparent",
   destructive: colors.surfaceHover,
   bracket: colors.surfaceHover,
 };
@@ -82,8 +82,8 @@ function hitSlopFor(size: Size): { top: number; bottom: number } {
  */
 export function Button({
   label,
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   loading = false,
   fullWidth = false,
   disabled,
@@ -93,7 +93,7 @@ export function Button({
   const border = BORDER[variant];
   // Disabled is a real fill and a real ink, not a dimmed copy of the enabled
   // state — a washed-out control reads as "still loading" on a dark band.
-  const labelColor: ColorToken = isDisabled ? 'disabledText' : LABEL_COLOR[variant];
+  const labelColor: ColorToken = isDisabled ? "disabledText" : LABEL_COLOR[variant];
 
   return (
     <Pressable
@@ -131,10 +131,10 @@ const styles = StyleSheet.create({
     // 3pt — the button radius. Never a pill.
     borderRadius: radii.xs,
     paddingHorizontal: spacing.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
-  content: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  fullWidth: { alignSelf: 'stretch' },
+  content: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  fullWidth: { alignSelf: "stretch" },
   disabled: { backgroundColor: colors.disabledFill, borderColor: colors.disabledFill },
 });

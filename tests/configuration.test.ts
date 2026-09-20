@@ -35,6 +35,7 @@ describe("resolveConfiguration", () => {
       displayName: "Configured Name",
       targetDirectory: "flag-target",
     });
+    if (resolved.layout !== "standalone") throw new Error("expected a standalone manifest");
     expect(resolved.stack).toEqual({ id: "marketing", pages: ["pricing"] });
     expect(resolved.integrations).toEqual(["changelog"]);
     expect(resolved.theme).toEqual({ kind: "preset", preset: "ion" });

@@ -1,0 +1,34 @@
+{
+  "$schema": "./scripts/guardrails/schema.json",
+  "version": 2,
+  "srcRoot": "src",
+  "src": {
+    "topLevel": ["contracts"],
+    "nested": {
+      "contracts": ["__tests__"]
+    },
+    "requireReadme": ["contracts"]
+  },
+  "fileSize": {
+    "max": 300,
+    "skipExtensions": [".ts"]
+  },
+  "functionSize": {
+    "max": 50
+  },
+  "testDir": "__tests__",
+  "testGlob": "*.test.ts",
+  "barrelNames": ["index.ts"],
+  "bannedDeps": ["axios", "yup", "joi", "valibot", "superstruct", "ajv"],
+  "secrets": {
+    "neverTracked": [".env"]
+  },
+  "shadowConfigs": [
+    {
+      "found": "lefthook.yaml",
+      "use": "lefthook.yml",
+      "why": "the lefthook 2.x installer shadows a .yaml, so the hooks never run"
+    }
+  ],
+  "ownedByLinter": ["folder-tree", "colocated-tests", "no-barrels", "filename-case", "patterns"]
+}

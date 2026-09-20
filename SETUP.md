@@ -28,8 +28,15 @@ human explicitly runs those scripts later; scaffolding never authenticates.
 create-toolu <target> [options]
 
 --config <path>          Replay or extend a toolu.scaffold.json manifest
---stack <id>             console | marketing | backend-ts | expo | rust
---name <name>            Lowercase kebab-case package/project name
+--layout <id>            standalone (default) | monorepo
+--stack <id>             console | marketing | backend-ts | expo | rust (standalone)
+--app <dir>=<stack>      Add a workspace app under apps/<dir> (monorepo, repeatable)
+--app-integration <dir>=<id>
+                         Add an integration to one app (repeatable)
+--app-page <dir>=<slug>  Add a marketing route to one app (repeatable)
+--app-port <dir>=<port>  Local port for one app (repeatable)
+--package <id>           Add a shared package: database | ui | config | types (repeatable)
+--name <name>            Lowercase project name; dots are allowed (agavus.io)
 --display-name <name>    Human-readable product name
 --integration <id>       Add an integration (repeatable)
 --operation <id>         Add an operations module (repeatable)
@@ -43,12 +50,50 @@ create-toolu <target> [options]
 --port <number>          Local service port
 ```
 
-`--integration`, `--operation`, and `--page` preserve command-line order and may
-be repeated. Flags override config values. Optional values not supplied by either
-source receive stable defaults. An interactive terminal asks for any missing
-required values and presents a review confirmation; non-TTY execution fails once
-with the complete missing list (`<target>, --stack, --name`). Ctrl+C exits without
-creating a target.
+`--integration`, `--operation`, `--page`, `--app`, and `--package` preserve
+command-line order and may be repeated. Scoped options (`--app-integration`,
+`--app-page`, `--app-port`) name an app that an earlier `--app` declared. Flags
+override config values. Optional values not supplied by either source receive
+stable defaults. An interactive terminal asks for any missing required values and
+presents a review confirmation; non-TTY execution fails once with the complete
+missing list (`<target>, --stack, --name`, or `<target>, --app, --name` for a
+monorepo). Ctrl+C exits without creating a target.
+
+## Layouts
+
+`--layout standalone` (the default) puts one stack at the repository root, exactly
+as before.
+
+`--layout monorepo` creates a Bun workspace: every app lands in `apps/<dir>` and
+every shared package in `packages/<name>`. The root owns the Lefthook hooks, the
+formatter ignore list, `guardrails.workspace.json`, the knip workspace graph, and
+the CI workflow; each member keeps its own gate and runs it through
+`bun run --filter`. Default directories are `apps/console`, `apps/marketing`,
+`apps/api`, `apps/mobile`, and `apps/cli` — one app per stack, each on its own
+port.
+
+Shared packages:
+
+| Package | What it is |
+| --- | --- |
+| `database` | The Turso + Drizzle package (`stacks/database-ts`). Selecting it wires a `backend-ts` app to it, and a `backend-ts` app that asks for it selects it. |
+| `ui` | A React component library consumed through its workspace exports. |
+| `types` | Zod contracts shared between apps. |
+| `config` | The shared oxlint bases. It is not a workspace member: it has no source tree and no gate, and the members that extend it reach it by path. |
+
+A Rust app is not a Bun workspace member either, so a workspace that contains one
+lists its Bun members explicitly instead of globbing `apps/*`, and its cargo
+checks run from the root through `bun run check:rust`.
+
+## Project names
+
+A name may contain dots, so `agavus.io` is a valid project name. The dotted name
+stays the identity — the display name (`Agavus`), the default production domain
+(`agavus.io`) — while every identifier that cannot hold a dot is derived from a
+slug: npm names and workspace scopes (`@agavus-io/api`), Cloudflare Worker and
+Cargo names (`agavus-io-api`), the mobile URL scheme (`agavusio`), and the bundle
+identifier, which reads a dotted name as a domain and reverses it
+(`io.agavus.app`).
 
 ## Stable defaults
 

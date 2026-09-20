@@ -1,7 +1,7 @@
 # GitHub Actions — automated AI code review on every pull request.
 #
 # The third guard rail, after the agent's own `cargo` gate and the CI job.
-# It reads the repo's own convention files (CLAUDE.md and friends) from the BASE
+# It reads the repo's own convention files (AGENTS.md and friends) from the BASE
 # ref and reviews the diff against them, so the rules this kit installs are the
 # rules the bot enforces — and a PR cannot rewrite the rules it is judged by.
 #
@@ -47,4 +47,4 @@ jobs:
             enforced, so style findings are already covered — focus on
             correctness, error handling, and API design. `unwrap()`/`expect()`
             outside tests and the main bootstrap is a defect: errors propagate.
-            See CLAUDE.md.
+            See AGENTS.md.

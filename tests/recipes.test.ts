@@ -125,7 +125,7 @@ describe("planRecipe", () => {
         ),
         slug,
       ).toEqual([]);
-      const sectionImport = /from '@\/sections\/([^']+)'/.exec(frontmatter)![1]!;
+      const sectionImport = /from "@\/sections\/([^"]+)"/.exec(frontmatter)![1]!;
       expect(sectionImport).toEqual(expectedSections[slug]);
       sections.add(sectionImport);
       const section = files.find((file) => file.path === `src/sections/${sectionImport}`)!.content;
@@ -188,7 +188,7 @@ describe("planRecipe", () => {
       private: true,
       dependencies: { react: "19.1.1", zod: "4.4.3" },
     });
-    expect(homeScreen?.content).toContain("Hello from {'Acme Console'}");
+    expect(homeScreen?.content).toContain('Hello from {"Acme Console"}');
     expect(files.some((file) => file.content.includes("{{TOOLU_"))).toBe(false);
   });
 
@@ -382,7 +382,7 @@ describe("planRecipe", () => {
       react: "19.0.0",
       "react-native": "0.79.6",
     });
-    expect(appConfig?.content).toContain("const IOS_BUNDLE = IS_PROD ? 'com.acmemobile.app'");
+    expect(appConfig?.content).toContain('const IOS_BUNDLE = IS_PROD ? "com.acmemobile.app"');
     expect(appConfig?.content).not.toContain("<project-");
   });
 
@@ -409,7 +409,7 @@ describe("planRecipe", () => {
     expect(paths).toContain("src/domains/home/screens/integration-status.ts");
     expect(
       files.find((file) => file.path === "src/domains/home/screens/integration-status.ts")?.content,
-    ).toContain("import { storage } from '@/utilities/storage'");
+    ).toContain('import { storage } from "@/utilities/storage"');
     expect(
       files.find((file) => file.path === "src/domains/home/screens/home-screen.tsx")?.content,
     ).toContain("integrationCount");

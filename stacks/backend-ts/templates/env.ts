@@ -14,11 +14,11 @@
 // Add a var by declaring it in `wrangler.jsonc` (or `.dev.vars` if it is a
 // secret), running `bun run cf-typegen`, and adding it to a schema here.
 
-import { env } from 'cloudflare:workers';
-import * as z from 'zod';
+import { env } from "cloudflare:workers";
+import * as z from "zod";
 
 const AppSchema = z.object({
-  APP_ENV: z.enum(['development', 'staging', 'production']).default('development'),
+  APP_ENV: z.enum(["development", "staging", "production"]).default("development"),
 });
 
 // Kept separate from AppSchema so a service with no database still boots. A
@@ -30,7 +30,7 @@ const TursoSchema = z.object({
 });
 
 /** The logical environment this deploy targets. */
-export type AppEnv = z.infer<typeof AppSchema>['APP_ENV'];
+export type AppEnv = z.infer<typeof AppSchema>["APP_ENV"];
 
 function parseOnce<T>(schema: z.ZodType<T>, cache: { value?: T }): T {
   if (cache.value === undefined) {
@@ -56,7 +56,7 @@ export function appEnv(): AppEnv {
 
 /** True only in the production deploy — never gate a security check on this alone. */
 export function isProd(): boolean {
-  return appEnv() === 'production';
+  return appEnv() === "production";
 }
 
 /** Turso connection config. Throws with a fixable message when a value is missing. */

@@ -1,0 +1,43 @@
+# AGENTS.md — @{{TOOLU_PROJECT_SLUG}}/ui
+
+Read this first. This package is shared React components and nothing else.
+
+## What this package is
+
+Plain React 19 components, bundler-free. It has **no build step and no
+`index.ts`** — its public surface is the `exports` map in `package.json`,
+which points at concrete files that consumers import directly.
+
+## Repo map
+
+| Path | Holds |
+| --- | --- |
+| `src/components/` | Shared components. `surface.tsx` is the example — a div that forwards `className` and `children`, no styling of its own. |
+| `src/utilities/` | Shared pure helpers, like `class-names.ts`. |
+
+## Hard rules
+
+1. **No colour, spacing, or typography baked into a component.** Those are the
+   consuming app's Tailwind utilities, passed in through `className`.
+   `house/no-hardcoded-hex` fails the lint on a literal hex value.
+2. **No barrels.** No `index.ts`. Add a public entry by adding a subpath to the
+   `exports` map, pointing at the concrete file.
+3. **No bundler dependency.** This package ships no build; consumers resolve
+   the TS/TSX source directly. Do not add a dependency that only works after a
+   bundler transform runs.
+4. **Named exports only.** `import/no-default-export` fails the lint.
+5. **Tests render real components.** `@testing-library/react`, jsdom, and
+   assertions on what a user would see — never a mocked render.
+6. **Nothing unused.** TypeScript/oxlint rejects unused locals and parameters,
+   including `_name`; knip rejects unused files, exports, and dependencies.
+   Delete or wire the code; never add an ignore pattern.
+7. **`max-lines: 300`**, code lines only.
+
+## Gate
+
+`bun run check` — typecheck, lint, format-check, guardrails, knip, jscpd, and
+tests. From the workspace root, `bun --filter '*' run check` runs it for every
+package.
+
+Never run oxlint from the workspace root: it resolves `guardrails.config.json`
+from the working directory, and there is deliberately none there.

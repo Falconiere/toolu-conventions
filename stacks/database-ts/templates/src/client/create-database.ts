@@ -1,8 +1,8 @@
 /** Build a database handle for one request. Never call this at module scope. */
-import { createClient } from '@libsql/client/web';
-import { drizzle } from 'drizzle-orm/libsql/web';
-import { parseDatabaseConfig } from '../constants/env';
-import { tables } from '../schema/tables';
+import { createClient } from "@libsql/client/web";
+import { drizzle } from "drizzle-orm/libsql/web";
+import { parseDatabaseConfig } from "../constants/env";
+import { tables } from "../schema/tables";
 
 // Per request, not per isolate. A Worker evaluates a module once and shares
 // that isolate across every request it serves, so a handle built at module

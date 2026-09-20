@@ -296,7 +296,7 @@ console_vite=stacks/console/templates/vite.config.ts
 astro_cfg=stacks/marketing/templates/astro.config.mjs
 for f in "$console_vite" "$astro_cfg"; do
   [ -f "$f" ] || { bad "build config missing: $f"; continue; }
-  grep -q "from '@tailwindcss/vite'" "$f" \
+  grep -qE "from [\"']@tailwindcss/vite[\"']" "$f" \
     || bad "does not import @tailwindcss/vite — globals.css would compile to inert CSS and the app would render unstyled: $f"
   grep -q 'tailwindcss()' "$f" \
     || bad "imports @tailwindcss/vite but never adds tailwindcss() to the plugin list: $f"
@@ -345,7 +345,7 @@ else
     "$http_client" || bad "tsc --strict on $http_client"
   # Enforced by lint in a scaffold, but the templates lint non-type-aware here,
   # so check the two bans that make this file worth having.
-  grep -q "from 'axios'" "$http_client" && bad "http client must not import axios: $http_client"
+  grep -qE "from [\"']axios[\"']" "$http_client" && bad "http client must not import axios: $http_client"
   grep -qE '\bas [A-Z]' "$http_client" && bad "http client must not use type assertions: $http_client"
 fi
 
@@ -834,7 +834,7 @@ exec </dev/null
 tmpcrate="$(mktemp -d)/skel"
 mkdir -p "$tmpcrate"
 cp -R stacks/rust/templates/src "$tmpcrate/src"
-sed 's/name = "{{TOOLU_PROJECT_NAME}}"/name = "skel-check"/' stacks/rust/templates/Cargo.toml > "$tmpcrate/Cargo.toml"
+sed 's/name = "{{TOOLU_PROJECT_SLUG}}"/name = "skel-check"/' stacks/rust/templates/Cargo.toml > "$tmpcrate/Cargo.toml"
 cp stacks/rust/templates/rustfmt.toml "$tmpcrate/rustfmt.toml"
 ( cd "$tmpcrate" \
   && CARGO_NET_OFFLINE=true cargo fmt --check \

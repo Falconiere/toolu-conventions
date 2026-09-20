@@ -1,9 +1,9 @@
 /** The Hono application — the oRPC handler and every plain route are mounted here. */
 
-import { RPCHandler } from '@orpc/server/fetch';
-import { Hono } from 'hono';
-import { router } from '@/rpc/router';
-import { createDatabase } from '@/utilities/database-service';
+import { RPCHandler } from "@orpc/server/fetch";
+import { Hono } from "hono";
+import { router } from "@/rpc/router";
+import { createDatabase } from "@/utilities/database-service";
 
 // The handler is stateless and holds no config, so building it once per isolate
 // is correct — the per-request values go in `context` below, never in here.
@@ -24,20 +24,20 @@ export const app = new Hono<{ Bindings: Env }>();
 // Liveness probe — returns 200 while the Worker is serving. Plain routes like
 // this one, webhooks, and auth callbacks stay in src/routes/; everything the
 // product's own clients call goes through oRPC.
-app.get('/health', (c) => c.json({ status: 'ok' }));
+app.get("/health", (c) => c.json({ status: "ok" }));
 
-app.get('/database/health', async (c) => {
-  await (await createDatabase().prepare('select 1')).get();
-  return c.json({ status: 'ok' });
+app.get("/database/health", async (c) => {
+  await (await createDatabase().prepare("select 1")).get();
+  return c.json({ status: "ok" });
 });
 
 // The typed API surface. Everything under /rpc is an oRPC procedure from
 // src/rpc/router.ts, validated in and out by its Zod schemas. `matched` is false
 // when the path is not a procedure — fall through to a real 404 rather than
 // returning an empty 200.
-app.all('/rpc/*', async (c) => {
+app.all("/rpc/*", async (c) => {
   const { matched, response } = await rpc.handle(c.req.raw, {
-    prefix: '/rpc',
+    prefix: "/rpc",
     context: { env: c.env, headers: c.req.raw.headers },
   });
 

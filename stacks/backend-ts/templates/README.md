@@ -3,7 +3,7 @@
 {{TOOLU_DESCRIPTION}} — a Hono HTTP service on Cloudflare Workers,
 written in strict TypeScript, with Turso for persistence.
 
-> **New here (human or agent)?** Read [`CLAUDE.md`](./CLAUDE.md) first — it's the
+> **New here (human or agent)?** Read [`AGENTS.md`](./AGENTS.md) first — it's the
 > repo map + conventions. This README is the orientation + run guide.
 
 ## Quick start
@@ -95,4 +95,4 @@ Both should be required checks on `main`.
 Strict TypeScript, no barrel files, named exports (except the Worker entry),
 kebab-case filenames, thin routes + domains for logic, colocated real-data
 tests, Zod at every boundary with types from `z.infer`. Full rules in
-[`CLAUDE.md`](./CLAUDE.md).
+[`AGENTS.md`](./AGENTS.md).
