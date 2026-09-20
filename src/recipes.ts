@@ -595,6 +595,8 @@ interface ServiceOptions {
   healthPath: string;
   operations: readonly string[];
   domain: string;
+  /** Where Infisical writes this service's secrets, relative to the repo root. */
+  secretsTarget?: string;
 }
 
 /**
@@ -616,7 +618,9 @@ function serviceEntry(options: ServiceOptions): Record<string, unknown> {
             : {}),
         }
       : {}),
-    ...(options.operations.includes("infisical") ? { secretsTarget: ".dev.vars" } : {}),
+    ...(options.operations.includes("infisical")
+      ? { secretsTarget: options.secretsTarget ?? ".dev.vars" }
+      : {}),
   };
 }
 
@@ -1943,7 +1947,7 @@ async function addMonorepoOperations(
     const hosted = manifest.operations.filter(
       (operation) => operationBlocker(app, operation) === undefined,
     );
-    const entry = serviceEntry({
+    return serviceEntry({
       name: app.id,
       runtime: runtime === "mixed" ? "server" : runtime,
       command: appDevCommand(manifest, app),
@@ -1951,10 +1955,9 @@ async function addMonorepoOperations(
       healthPath: app.stack.id === "console" ? "/api/health" : "/health",
       operations: hosted,
       domain,
+      // A member keeps its own .dev.vars beside its wrangler config.
+      secretsTarget: `apps/${app.id}/.dev.vars`,
     });
-    return hosted.includes("infisical")
-      ? { ...entry, secretsTarget: `apps/${app.id}/.dev.vars` }
-      : entry;
   });
   const runtimes = new Set(services.map((service) => service.runtime));
   const operations: Record<string, unknown> = {
