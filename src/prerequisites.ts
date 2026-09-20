@@ -28,6 +28,12 @@ async function commandExists(
   return false;
 }
 
+function needsCargo(manifest: ScaffoldManifest): boolean {
+  return manifest.layout === "monorepo"
+    ? manifest.apps.some((app) => app.stack.id === "rust")
+    : manifest.stack.id === "rust";
+}
+
 function nodeSupported(version = process.versions.node): boolean {
   const [major = 0, minor = 0] = version.split(".").map(Number);
   return major > 20 || (major === 20 && minor >= 12);
@@ -55,7 +61,7 @@ export async function checkPrerequisites(
     { command: "git", label: "git" },
     { command: "jq", label: "jq" },
     { command: "ast-grep", label: "ast-grep" },
-    ...(manifest.stack.id === "rust"
+    ...(needsCargo(manifest)
       ? [
           { command: "cargo", label: "cargo" },
           { command: "rustfmt", label: "rustfmt" },

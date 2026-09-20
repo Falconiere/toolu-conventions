@@ -3,3 +3,4 @@ node_modules/
 dist/
 .claude/tmp/
 .worktrees/
+.claude/settings.local.json

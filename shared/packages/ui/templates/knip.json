@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  "entry": [
+    "src/components/surface.tsx",
+    "src/utilities/class-names.ts",
+    "vitest.config.ts",
+    "vitest.setup.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignoreExportsUsedInFile": true
+}

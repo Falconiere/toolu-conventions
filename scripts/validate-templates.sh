@@ -834,7 +834,7 @@ exec </dev/null
 tmpcrate="$(mktemp -d)/skel"
 mkdir -p "$tmpcrate"
 cp -R stacks/rust/templates/src "$tmpcrate/src"
-sed 's/name = "{{TOOLU_PROJECT_NAME}}"/name = "skel-check"/' stacks/rust/templates/Cargo.toml > "$tmpcrate/Cargo.toml"
+sed 's/name = "{{TOOLU_PROJECT_SLUG}}"/name = "skel-check"/' stacks/rust/templates/Cargo.toml > "$tmpcrate/Cargo.toml"
 cp stacks/rust/templates/rustfmt.toml "$tmpcrate/rustfmt.toml"
 ( cd "$tmpcrate" \
   && CARGO_NET_OFFLINE=true cargo fmt --check \

@@ -1,0 +1,40 @@
+# CLAUDE.md — @{{TOOLU_PROJECT_SLUG}}/types
+
+Read this first. This package is the shared contracts and nothing else.
+
+## What this package is
+
+Zod schemas that cross a boundary between two workspace packages or apps, each
+with its type inferred rather than hand-written beside it. It has **no
+`index.ts`** — its public surface is the `exports` map in `package.json`,
+which points at concrete files.
+
+## Repo map
+
+| Path | Holds |
+| --- | --- |
+| `src/contracts/` | One file per contract: a zod schema, its inferred type, and a `parse*` function. |
+
+## Hard rules
+
+1. **One schema per file**, named after what it exports, with its type
+   inferred via `z.infer` — never a hand-written interface beside it.
+2. **No barrels.** No `index.ts`. Add a public entry by adding a subpath to the
+   `exports` map, pointing at the concrete file.
+3. **Every contract ships a `parse*` function.** A schema nobody calls `.parse`
+   on is not enforcing anything at the boundary.
+4. **No I/O.** This package validates shapes; it does not fetch, read files, or
+   read `process.env`. That belongs to the caller.
+5. **Nothing unused.** TypeScript/oxlint rejects unused locals and parameters,
+   including `_name`; knip rejects unused files, exports, and dependencies.
+   Delete or wire the code; never add an ignore pattern.
+6. **`max-lines: 300`**, code lines only.
+
+## Gate
+
+`bun run check` — typecheck, lint, format-check, guardrails, knip, jscpd, and
+tests. From the workspace root, `bun --filter '*' run check` runs it for every
+package.
+
+Never run oxlint from the workspace root: it resolves `guardrails.config.json`
+from the working directory, and there is deliberately none there.

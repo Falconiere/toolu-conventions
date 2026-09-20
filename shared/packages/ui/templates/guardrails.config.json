@@ -1,0 +1,48 @@
+{
+  "$schema": "./scripts/guardrails/schema.json",
+  "version": 2,
+  "srcRoot": "src",
+  "src": {
+    "topLevel": ["components", "utilities"],
+    "nested": {
+      "components": ["__tests__"],
+      "utilities": ["__tests__"]
+    },
+    "requireReadme": ["components", "utilities"]
+  },
+  "fileSize": {
+    "max": 300,
+    "skipExtensions": [".ts", ".tsx"]
+  },
+  "functionSize": {
+    "max": 50,
+    "overrides": {
+      "**/*.tsx": 80
+    }
+  },
+  "testDir": "__tests__",
+  "testGlob": "*.test.ts *.test.tsx",
+  "barrelNames": ["index.ts", "index.tsx"],
+  "bannedDeps": [
+    "axios",
+    "yup",
+    "joi",
+    "valibot",
+    "superstruct",
+    "ajv",
+    "styled-components",
+    "@emotion/react",
+    "@emotion/styled"
+  ],
+  "secrets": {
+    "neverTracked": [".env"]
+  },
+  "shadowConfigs": [
+    {
+      "found": "lefthook.yaml",
+      "use": "lefthook.yml",
+      "why": "the lefthook 2.x installer shadows a .yaml, so the hooks never run"
+    }
+  ],
+  "ownedByLinter": ["folder-tree", "colocated-tests", "no-barrels", "filename-case", "patterns"]
+}

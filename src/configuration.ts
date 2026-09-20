@@ -1,6 +1,22 @@
-import { THEME_PRESETS, type ResolutionFlags, type StackId } from "./contracts";
+import {
+  DEFAULT_APP_DIRECTORIES,
+  LAYOUTS,
+  THEME_PRESETS,
+  WORKSPACE_PACKAGES,
+  type AppFlags,
+  type LayoutId,
+  type ResolutionFlags,
+  type StackId,
+  type WorkspacePackageId,
+} from "./contracts";
 import { isStackId, validateCompatibility } from "./compatibility";
-import { parseManifest, type ScaffoldConfiguration, type ScaffoldManifest } from "./manifest";
+import { titleCaseProjectName } from "./identity";
+import {
+  parseManifest,
+  type ManifestApp,
+  type ScaffoldConfiguration,
+  type ScaffoldManifest,
+} from "./manifest";
 
 export class MissingInputsError extends Error {
   override name = "MissingInputsError";
@@ -16,6 +32,13 @@ export interface ResolveConfigurationOptions {
   config?: ScaffoldConfiguration;
 }
 
+export function resolveLayout(flags: ResolutionFlags, config?: ScaffoldConfiguration): LayoutId {
+  const value = flags.layout ?? config?.layout ?? "standalone";
+  const layout = LAYOUTS.find((candidate) => candidate === value);
+  if (layout === undefined) throw new Error(`Unsupported layout: ${value}`);
+  return layout;
+}
+
 export function missingRequiredInputs(
   flags: ResolutionFlags,
   config?: ScaffoldConfiguration,
@@ -23,17 +46,14 @@ export function missingRequiredInputs(
   const missing: string[] = [];
   if (flags.targetDirectory === undefined && config?.project?.targetDirectory === undefined)
     missing.push("<target>");
-  if (flags.stack === undefined && config?.stack?.id === undefined) missing.push("--stack");
+  if (resolveLayout(flags, config) === "monorepo") {
+    const apps = flags.apps ?? config?.apps ?? [];
+    if (apps.length === 0) missing.push("--app");
+  } else if (flags.stack === undefined && config?.stack?.id === undefined) {
+    missing.push("--stack");
+  }
   if (flags.name === undefined && config?.project?.name === undefined) missing.push("--name");
   return missing;
-}
-
-function titleCaseProjectName(name: string): string {
-  return name
-    .split("-")
-    .filter(Boolean)
-    .map((part) => `${part[0]?.toUpperCase() ?? ""}${part.slice(1)}`)
-    .join(" ");
 }
 
 function defaultPort(stack: StackId): number {
@@ -51,6 +71,23 @@ function defaultPort(stack: StackId): number {
   }
 }
 
+function stackFor(
+  stack: StackId,
+  integrations: readonly string[],
+  pages: readonly string[],
+  workspace: boolean,
+): ManifestApp["stack"] {
+  if (stack === "marketing") return { id: stack, pages: [...pages] };
+  if (stack === "backend-ts") return { id: stack, persistence: "turso", workspace };
+  if (stack === "rust")
+    return { id: stack, mode: integrations.includes("axum") ? "service" : "cli" };
+  return { id: stack };
+}
+
+function visualStack(stack: StackId): boolean {
+  return stack === "console" || stack === "marketing" || stack === "expo";
+}
+
 function recipesFor(
   stack: StackId,
   integrations: readonly string[],
@@ -63,21 +100,43 @@ function recipesFor(
     ...(workspace ? ["stack/database-ts", "workspace/bun"] : []),
     ...integrations.map((integration) => `integration/${stack}/${integration}`),
     ...operations.map((operation) => `operation/${operation}`),
-    ...(theme.kind === "preset"
-      ? [`theme/preset/${theme.preset}`]
-      : theme.kind === "import"
-        ? [...new Set(theme.files.map((file) => `theme/import/${file.target}`))]
-        : []),
+    ...themeRecipes(theme),
+  ];
+}
+
+function themeRecipes(theme: ScaffoldManifest["theme"]): string[] {
+  if (theme.kind === "preset") return [`theme/preset/${theme.preset}`];
+  if (theme.kind === "import") {
+    return [...new Set(theme.files.map((file) => `theme/import/${file.target}`))];
+  }
+  return [];
+}
+
+function monorepoRecipes(
+  apps: readonly ManifestApp[],
+  packages: readonly WorkspacePackageId[],
+  operations: readonly string[],
+  theme: ScaffoldManifest["theme"],
+): string[] {
+  return [
+    "layout/monorepo",
+    "workspace/bun",
+    ...apps.flatMap((app) => [
+      `app/${app.id}/stack/${app.stack.id}`,
+      ...app.integrations.map((integration) => `app/${app.id}/integration/${integration}`),
+    ]),
+    ...packages.map((entry) => `package/${entry}`),
+    ...operations.map((operation) => `operation/${operation}`),
+    ...themeRecipes(theme),
   ];
 }
 
 function themeFor(
-  stack: StackId,
+  visual: boolean,
   flags: ResolutionFlags,
   config?: ScaffoldConfiguration,
 ): ScaffoldManifest["theme"] {
-  const visualStack = stack === "console" || stack === "marketing" || stack === "expo";
-  if (!visualStack) return { kind: "none" };
+  if (!visual) return { kind: "none" };
   if (flags.themeFrom !== undefined) {
     throw new CompatibilityErrorForSyncTheme();
   }
@@ -96,9 +155,137 @@ class CompatibilityErrorForSyncTheme extends Error {
   }
 }
 
+function environmentsFor(
+  operations: readonly string[],
+  staging: boolean,
+): ScaffoldManifest["environments"] {
+  const providerOperations = operations.some(
+    (operation) => operation === "cloudflare" || operation === "infisical",
+  );
+  if (providerOperations) return ["local", "development", "production"];
+  return staging ? ["development", "staging", "production"] : ["development", "production"];
+}
+
+function resolvePackages(
+  flags: ResolutionFlags,
+  config: ScaffoldConfiguration | undefined,
+  apps: readonly AppFlags[],
+): WorkspacePackageId[] {
+  const requested = flags.packages ?? config?.packages ?? [];
+  const packages: WorkspacePackageId[] = [];
+  for (const entry of requested) {
+    const known = WORKSPACE_PACKAGES.find((candidate) => candidate === entry);
+    if (known === undefined) throw new Error(`Unsupported package: ${entry}`);
+    if (!packages.includes(known)) packages.push(known);
+  }
+  // A backend app that asks for the database package implies the package, and a
+  // selected database package implies the wiring on the backend app. Keeping
+  // both directions here means neither prompt order can produce a dangling half.
+  const wiredBackend = apps.some(
+    (app) => app.stack === "backend-ts" && (app.integrations ?? []).includes("database-package"),
+  );
+  if (wiredBackend && !packages.includes("database")) packages.push("database");
+  return packages;
+}
+
+function requestedApps(
+  flags: ResolutionFlags,
+  config: ScaffoldConfiguration | undefined,
+): AppFlags[] {
+  if (flags.apps !== undefined) return flags.apps;
+  return (config?.apps ?? []).map((app) => ({
+    id: app.id,
+    stack: app.stack.id,
+    integrations: app.integrations,
+    ...(app.stack.id === "marketing" ? { pages: app.stack.pages } : {}),
+    port: app.port,
+  }));
+}
+
+function resolveApps(
+  requested: readonly AppFlags[],
+  packages: readonly WorkspacePackageId[],
+): ManifestApp[] {
+  const usedPorts = new Set<number>();
+  const apps: ManifestApp[] = [];
+  for (const app of requested) {
+    if (!isStackId(app.stack)) throw new Error(`Unsupported stack: ${app.stack}`);
+    const integrations = [...(app.integrations ?? [])];
+    if (
+      app.stack === "backend-ts" &&
+      packages.includes("database") &&
+      !integrations.includes("database-package")
+    ) {
+      integrations.push("drizzle", "database-package");
+    }
+    const id = app.id === "" ? DEFAULT_APP_DIRECTORIES[app.stack] : app.id;
+    if (apps.some((existing) => existing.id === id)) {
+      throw new Error(`Duplicate app directory: ${id}`);
+    }
+    let port = app.port ?? defaultPort(app.stack);
+    while (usedPorts.has(port)) port += 1;
+    usedPorts.add(port);
+    apps.push({
+      id,
+      stack: stackFor(
+        app.stack,
+        integrations,
+        app.pages ?? ["home"],
+        app.stack === "backend-ts" && integrations.includes("database-package"),
+      ),
+      integrations: [...new Set(integrations)],
+      port,
+    });
+  }
+  return apps;
+}
+
+function resolveMonorepo(options: ResolveConfigurationOptions): ScaffoldManifest {
+  const { flags, config } = options;
+  const targetDirectory = flags.targetDirectory ?? config?.project?.targetDirectory ?? "";
+  const name = flags.name ?? config?.project?.name ?? "";
+  const displayName =
+    flags.displayName ?? config?.project?.displayName ?? titleCaseProjectName(name);
+  const requested = requestedApps(flags, config);
+  const packages = resolvePackages(flags, config, requested);
+  const apps = resolveApps(requested, packages);
+  const operations = flags.operations ?? config?.operations ?? [];
+  const staging = flags.staging ?? config?.staging ?? false;
+  const theme = themeFor(
+    apps.some((app) => visualStack(app.stack.id)),
+    flags,
+    config,
+  );
+  const domain = flags.domain ?? config?.runtime?.domain;
+  const consoleUrl = flags.consoleUrl ?? config?.runtime?.consoleUrl;
+
+  const manifest = parseManifest({
+    schemaVersion: 1,
+    generatorVersion: options.generatorVersion,
+    layout: "monorepo",
+    project: { name, displayName, targetDirectory },
+    apps,
+    packages,
+    operations,
+    environments: environmentsFor(operations, staging),
+    staging,
+    theme,
+    runtime: {
+      ...(domain === undefined ? {} : { domain }),
+      ...(consoleUrl === undefined ? {} : { consoleUrl }),
+    },
+    recipes: monorepoRecipes(apps, packages, operations, theme),
+  });
+  validateCompatibility(manifest);
+  return manifest;
+}
+
 export function resolveConfiguration(options: ResolveConfigurationOptions): ScaffoldManifest {
   const missing = missingRequiredInputs(options.flags, options.config);
   if (missing.length > 0) throw new MissingInputsError(missing);
+  if (resolveLayout(options.flags, options.config) === "monorepo") {
+    return resolveMonorepo(options);
+  }
 
   const targetDirectory =
     options.flags.targetDirectory ?? options.config?.project?.targetDirectory ?? "";
@@ -120,33 +307,18 @@ export function resolveConfiguration(options: ResolveConfigurationOptions): Scaf
     (integrations.includes("database-package") ||
       (options.config?.stack?.id === "backend-ts" && options.config.stack.workspace));
 
-  const stack: ScaffoldManifest["stack"] =
-    stackValue === "marketing"
-      ? { id: stackValue, pages }
-      : stackValue === "backend-ts"
-        ? { id: stackValue, persistence: "turso", workspace }
-        : stackValue === "rust"
-          ? { id: stackValue, mode: integrations.includes("axum") ? "service" : "cli" }
-          : { id: stackValue };
-
-  const providerOperations = operations.some(
-    (operation) => operation === "cloudflare" || operation === "infisical",
-  );
-  const environments: ScaffoldManifest["environments"] = providerOperations
-    ? ["local", "development", "production"]
-    : staging
-      ? ["development", "staging", "production"]
-      : ["development", "production"];
-  const theme = themeFor(stackValue, options.flags, options.config);
+  const stack = stackFor(stackValue, integrations, pages, workspace);
+  const theme = themeFor(visualStack(stackValue), options.flags, options.config);
 
   const rawManifest = {
     schemaVersion: 1,
     generatorVersion: options.generatorVersion,
+    layout: "standalone",
     project: { name, displayName, targetDirectory },
     stack,
     integrations,
     operations,
-    environments,
+    environments: environmentsFor(operations, staging),
     staging,
     theme,
     runtime: {

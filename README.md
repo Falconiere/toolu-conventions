@@ -72,6 +72,25 @@ The target must not exist. Failed output stays in `.<target>.toolu-staging` with
 diagnostic log and rerun guidance. The initializer never authenticates, deploys, creates a
 remote, pushes, or makes an initial commit.
 
+A monorepo is one flag away. Apps land in `apps/<dir>`, shared packages in
+`packages/<name>`, and the workspace root owns the hooks, guardrails manifest, and
+CI:
+
+```bash
+npx @toolu/create@latest agavus.io \
+  --layout monorepo \
+  --name agavus.io \
+  --app console=console \
+  --app api=backend-ts \
+  --app marketing=marketing \
+  --app-integration console=api \
+  --package database \
+  --package ui
+```
+
+A dotted name stays the product identity; npm scopes, Worker names, and bundle
+identifiers are derived from a dot-free slug (`@agavus-io/api`, `io.agavus.app`).
+
 For repeatable scaffolds, keep the generated manifest and replay it:
 
 ```bash
@@ -102,9 +121,12 @@ a Bun workspace (`packages/api` + `packages/database`). A database package with 
 consumer has no gate and nothing to be typed against, so the kit will not scaffold one
 alone.
 
-A full product is usually **three repos** from this kit — `marketing` (the public site),
+A full product is usually **three apps** from this kit — `marketing` (the public site),
 `console` (the app behind the login), and `backend-ts` (the API they both talk to). They
 share one design language and one token set, so a visitor who signs up feels no seam.
+Put them in three repos, or in one with `--layout monorepo`: `apps/marketing`,
+`apps/console`, `apps/api`, plus any of the shared `packages/*` (`database`, `ui`,
+`types`, `config`).
 
 Every `stacks/<stack>/` holds the same four things:
 

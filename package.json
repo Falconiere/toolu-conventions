@@ -41,6 +41,7 @@
     "shared/.claude/settings.json",
     "shared/README.md",
     "shared/workspace",
+    "shared/packages",
     "conventions/shared/templates",
     "conventions/SETUP.md",
     "conventions/*/SETUP.md",
@@ -61,7 +62,7 @@
     "test": "bun run test:unit && bun run test:integration && bun run evals",
     "test:unit": "bun test tests/*.test.ts",
     "test:integration": "bun test tests/integration/*.test.ts",
-    "evals": "bun test tests/evals/scenarios.test.ts tests/evals/theme-imports.test.ts && bun test tests/evals/typescript-e2e.test.ts --test-name-pattern 'real console' && bun test tests/evals/typescript-e2e.test.ts --test-name-pattern 'real marketing' && bun test tests/evals/typescript-e2e.test.ts --test-name-pattern 'real backend-ts' && bun run build:cli && bash tests/evals/expo-cli-e2e.sh && bun test tests/evals/rust-e2e.test.ts && bun test tests/evals/maximal-e2e.test.ts --test-name-pattern 'maximal console' && bun test tests/evals/maximal-e2e.test.ts --test-name-pattern 'maximal marketing' && bun test tests/evals/maximal-e2e.test.ts --test-name-pattern 'maximal backend-workspace'",
+    "evals": "bun test tests/evals/scenarios.test.ts tests/evals/theme-imports.test.ts && bun test tests/evals/typescript-e2e.test.ts --test-name-pattern 'real console' && bun test tests/evals/typescript-e2e.test.ts --test-name-pattern 'real marketing' && bun test tests/evals/typescript-e2e.test.ts --test-name-pattern 'real backend-ts' && bun run build:cli && bash tests/evals/expo-cli-e2e.sh && bun test tests/evals/rust-e2e.test.ts && bun test tests/evals/maximal-e2e.test.ts --test-name-pattern 'maximal console' && bun test tests/evals/maximal-e2e.test.ts --test-name-pattern 'maximal marketing' && bun test tests/evals/maximal-e2e.test.ts --test-name-pattern 'maximal backend-workspace' && bun test tests/evals/monorepo-e2e.test.ts",
     "package:inspect": "bash scripts/inspect-package.sh",
     "quality": "bun run type-check && bun run format:check && bun run test && bun run build && bash guardrails/__tests__/run-fixtures.sh && bash guardrails/__tests__/run-plugin.sh && bash guardrails/__tests__/run-latency.sh && bash conventions/__tests__/run.sh && bash scripts/validate-templates.sh && bun run package:inspect",
     "release": "semantic-release"

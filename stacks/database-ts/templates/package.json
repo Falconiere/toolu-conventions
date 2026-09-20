@@ -1,5 +1,5 @@
 {
-  "name": "@{{TOOLU_PROJECT_NAME}}/database",
+  "name": "@{{TOOLU_PROJECT_SLUG}}/database",
   "private": true,
   "type": "module",
   "exports": {

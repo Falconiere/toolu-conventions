@@ -9,10 +9,12 @@ import {
   resolveConfiguration,
   withResolvedTheme,
 } from "./configuration";
+import { visualStack } from "./compatibility";
 import type { ResolutionFlags } from "./contracts";
 import { generateProject, GenerationFailure, redactDiagnostic } from "./engine";
 import {
   assertGeneratorCompatibility,
+  isMonorepo,
   parseScaffoldConfiguration,
   type ScaffoldConfiguration,
   type ScaffoldManifest,
@@ -34,8 +36,14 @@ Create a deterministic Toolu project in a new directory.
 
 Options:
   --config <path>          Replay or extend a toolu.scaffold.json manifest
-  --stack <id>             console | marketing | backend-ts | expo | rust
-  --name <name>            Lowercase package/project name
+  --layout <id>            standalone (default) | monorepo
+  --stack <id>             console | marketing | backend-ts | expo | rust (standalone)
+  --app <dir>=<stack>      Add a workspace app under apps/<dir> (monorepo, repeatable)
+  --app-integration <dir>=<id>  Add an integration to one app (repeatable)
+  --app-page <dir>=<slug>  Add a marketing route to one app (repeatable)
+  --app-port <dir>=<port>  Local port for one app (repeatable)
+  --package <id>           Add a shared package: database | ui | config | types (repeatable)
+  --name <name>            Lowercase project name; dots are allowed (agavus.io)
   --display-name <name>    Human-readable product name
   --integration <id>       Add an integration (repeatable)
   --operation <id>         Add an operations module (repeatable)
@@ -76,6 +84,9 @@ async function loadConfiguration(
 function resolutionFlags(parsed: ReturnType<typeof parseArgs>): ResolutionFlags {
   return {
     ...(parsed.targetDirectory !== undefined ? { targetDirectory: parsed.targetDirectory } : {}),
+    ...(parsed.layout !== undefined ? { layout: parsed.layout } : {}),
+    ...(parsed.apps !== undefined ? { apps: parsed.apps } : {}),
+    ...(parsed.packages !== undefined ? { packages: parsed.packages } : {}),
     ...(parsed.stack !== undefined ? { stack: parsed.stack } : {}),
     ...(parsed.name !== undefined ? { name: parsed.name } : {}),
     ...(parsed.displayName !== undefined ? { displayName: parsed.displayName } : {}),
@@ -107,7 +118,13 @@ async function resolveManifest(
     ...(config === undefined ? {} : { config }),
   });
   if (flags.themeFrom === undefined) return manifest;
-  const imported = await resolveImportedTheme(flags.themeFrom, manifest.stack.id);
+  const themedStack = isMonorepo(manifest)
+    ? manifest.apps.find((app) => visualStack(app.stack.id))?.stack.id
+    : manifest.stack.id;
+  if (themedStack === undefined) {
+    throw new Error("--theme-from requires an app that supports themes");
+  }
+  const imported = await resolveImportedTheme(flags.themeFrom, themedStack);
   return withResolvedTheme(manifest, imported);
 }
 
