@@ -1284,12 +1284,11 @@ async function planDatabasePackage(
     },
     scripts: {
       check:
-        "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run check:unused && bun run check:dupes && bun run test",
+        "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run check:dupes && bun run test",
       "type-check": "tsc --noEmit",
       lint: "oxlint --type-aware --deny-warnings",
       "fmt:check": "oxfmt --check . --ignore-path ../../.oxfmtignore",
       "check:structure": "bash ../../scripts/guardrails/run.sh",
-      "check:unused": "knip --no-config-hints",
       "check:dupes": "jscpd",
       test: "vitest run",
       "db:generate": "drizzle-kit generate",
@@ -1300,7 +1299,6 @@ async function planDatabasePackage(
       "@cloudflare/vitest-pool-workers",
       "drizzle-kit",
       "jscpd",
-      "knip",
       "oxfmt",
       "oxlint",
       "oxlint-tsgolint",
@@ -1702,6 +1700,16 @@ function applyWorkspaceMemberPaths(
   packageFile.name = packageName;
   const scripts = stringRecordProperty(packageFile, "scripts");
   scripts["check:structure"] = "bash ../../scripts/guardrails/run.sh";
+  // knip is configured once at the workspace root (CORE, monorepos rule 6): it
+  // needs the whole graph to see that one member importing another is a real
+  // use of its exports. A member running its own config calls those dead.
+  delete scripts["check:unused"];
+  if (scripts.check !== undefined) {
+    scripts.check = scripts.check
+      .split(" && ")
+      .filter((step) => step !== "bun run check:unused")
+      .join(" && ");
+  }
   if (scripts.fmt !== undefined) scripts.fmt = "oxfmt --ignore-path ../../.oxfmtignore";
   if (scripts["fmt:check"] !== undefined) {
     scripts["fmt:check"] = "oxfmt --check --ignore-path ../../.oxfmtignore";
@@ -1711,7 +1719,11 @@ function applyWorkspaceMemberPaths(
   // member that kept the dependency without the script fails knip.
   delete scripts.prepare;
   const devDependencies = stringRecordProperty(packageFile, "devDependencies");
+  // The root owns both binaries now: lefthook installs the hooks once, and knip
+  // runs once over the whole graph. A member that kept either dependency
+  // without the script that uses it fails the root's own knip run.
   delete devDependencies.lefthook;
+  delete devDependencies.knip;
   setPlannedJson(files, packagePath, packageFile);
 }
 
@@ -1771,7 +1783,6 @@ const SHARED_PACKAGES = {
       "@types/react-dom",
       "jscpd",
       "jsdom",
-      "knip",
       "oxfmt",
       "oxlint",
       "oxlint-tsgolint",
@@ -1786,15 +1797,7 @@ const SHARED_PACKAGES = {
   },
   types: {
     dependencies: ["zod"],
-    devDependencies: [
-      "jscpd",
-      "knip",
-      "oxfmt",
-      "oxlint",
-      "oxlint-tsgolint",
-      "typescript",
-      "vitest",
-    ],
+    devDependencies: ["jscpd", "oxfmt", "oxlint", "oxlint-tsgolint", "typescript", "vitest"],
     exports: { "./contracts/health-response": "./src/contracts/health-response.ts" },
   },
 } as const satisfies Record<"ui" | "types", SharedPackageShape>;
@@ -1837,14 +1840,13 @@ async function planSharedPackage(
     exports: shape.exports,
     scripts: {
       check:
-        "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run check:unused && bun run check:dupes && bun run test",
+        "bun run type-check && bun run lint && bun run fmt:check && bun run check:structure && bun run check:dupes && bun run test",
       "type-check": "tsc --noEmit",
       lint: "oxlint --type-aware --deny-warnings",
       "lint:fix": "oxlint --fix --type-aware --deny-warnings",
       fmt: "oxfmt --ignore-path ../../.oxfmtignore",
       "fmt:check": "oxfmt --check --ignore-path ../../.oxfmtignore",
       "check:structure": "bash ../../scripts/guardrails/run.sh",
-      "check:unused": "knip --no-config-hints",
       "check:dupes": "jscpd",
       test: "vitest run",
       "test:watch": "vitest",
