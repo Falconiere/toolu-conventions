@@ -2331,8 +2331,28 @@ export async function planRecipe(
   files.set(".gitignore", {
     path: ".gitignore",
     content: rustOnly
-      ? "/target/\n.env\n.tooling/\n"
-      : `node_modules/\ndist/\n.astro/\n.env*\n!.env.example\n.dev.vars\n.tooling/\n.claude/settings.local.json\n${anyRust ? "target/\n" : ""}`,
+      ? "/target/\n.env\n.tooling/\n.claude/tmp/\n.DS_Store\n"
+      : [
+          "node_modules/",
+          "dist/",
+          ".astro/",
+          ".wrangler/",
+          ".expo/",
+          "android/",
+          "ios/",
+          "coverage/",
+          "*.log",
+          "*.tsbuildinfo",
+          ".DS_Store",
+          ".env*",
+          "!.env.example",
+          ".dev.vars",
+          ".tooling/",
+          ".claude/tmp/",
+          ".claude/settings.local.json",
+          ...(anyRust ? ["target/"] : []),
+          "",
+        ].join("\n"),
   });
   if (!rustOnly) {
     files.set(".oxfmtignore", {

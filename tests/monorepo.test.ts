@@ -325,6 +325,11 @@ describe("monorepo plan", () => {
 
     const gitignore = plannedContent(files, ".gitignore");
     expect(gitignore).toContain(".astro/");
+    expect(gitignore).toContain(".wrangler/");
+    expect(gitignore).toContain(".expo/");
+    expect(gitignore).toContain("coverage/");
+    expect(gitignore).toContain("*.tsbuildinfo");
+    expect(gitignore).toContain(".claude/tmp/");
     expect(gitignore).toContain(".claude/settings.local.json");
     const oxfmtignore = plannedContent(files, ".oxfmtignore");
     expect(oxfmtignore).toContain("**/*.gen.ts");
