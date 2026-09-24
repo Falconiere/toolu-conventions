@@ -1,3 +1,10 @@
+## [0.9.3](https://github.com/Falconiere/toolu-conventions/compare/v0.9.2...v0.9.3) (2026-09-24)
+
+
+### Bug Fixes
+
+* **scaffold:** expand project gitignore for wrangler, expo, and local junk ([ca614cb](https://github.com/Falconiere/toolu-conventions/commit/ca614cb8f5dd0bf54189097ab769d71ee55c66f1))
+
 ## [0.9.2](https://github.com/Falconiere/toolu-conventions/compare/v0.9.1...v0.9.2) (2026-09-20)
 
 
