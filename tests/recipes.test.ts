@@ -185,6 +185,15 @@ describe("planRecipe", () => {
     expect(paths).toContain("toolu.scaffold.json");
     const gitignore = files.find((file) => file.path === ".gitignore")?.content ?? "";
     expect(gitignore).toContain(".astro/");
+    expect(gitignore).toContain(".wrangler/");
+    expect(gitignore).toContain(".expo/");
+    expect(gitignore).toContain("android/");
+    expect(gitignore).toContain("ios/");
+    expect(gitignore).toContain("coverage/");
+    expect(gitignore).toContain("*.log");
+    expect(gitignore).toContain("*.tsbuildinfo");
+    expect(gitignore).toContain(".DS_Store");
+    expect(gitignore).toContain(".claude/tmp/");
     expect(gitignore).toContain(".claude/settings.local.json");
     const oxfmtignore = files.find((file) => file.path === ".oxfmtignore")?.content ?? "";
     expect(oxfmtignore).toContain("*.gen.ts");
