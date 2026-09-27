@@ -7,7 +7,7 @@ import ts from "typescript";
 import { CompatibilityError } from "../src/compatibility";
 import { resolveConfiguration } from "../src/configuration";
 import type { ResolutionFlags } from "../src/contracts";
-import { isMonorepo, parseManifest } from "../src/manifest";
+import { isMonorepo, parseManifest, parseScaffoldConfiguration } from "../src/manifest";
 import { planRecipe } from "../src/recipes";
 import { resolveImportedTheme } from "../src/theme";
 
@@ -785,6 +785,17 @@ describe("release targets", () => {
     expect(() => parseManifest({ ...manifest, releases: ["npm"] })).toThrow(
       "releases must include github",
     );
+  });
+
+  test("reject a --config file that lists npm without github", () => {
+    // Flags are normalized; a written configuration is taken as written.
+    expect(() => parseScaffoldConfiguration({ releases: ["npm"] })).toThrow(
+      "releases must include github",
+    );
+    expect(parseScaffoldConfiguration({ releases: ["github", "npm"] }).releases).toEqual([
+      "github",
+      "npm",
+    ]);
   });
 
   test("replay a manifest written before release targets existed as github", () => {
