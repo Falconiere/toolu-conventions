@@ -287,7 +287,7 @@ function resolveMonorepo(options: ResolveConfigurationOptions): ScaffoldManifest
     operations,
     environments: environmentsFor(operations, staging),
     staging,
-    releases: flags.releases ?? config?.releases ?? ["github"],
+    releases: releaseTargets(flags, config),
     theme,
     runtime: {
       ...(domain === undefined ? {} : { domain }),
@@ -297,6 +297,15 @@ function resolveMonorepo(options: ResolveConfigurationOptions): ScaffoldManifest
   });
   validateCompatibility(manifest);
   return manifest;
+}
+
+/**
+ * github cuts every release, so `--release npm` means github + npm. A replayed
+ * manifest is taken as written and must already list github.
+ */
+function releaseTargets(flags: ResolutionFlags, config?: ScaffoldConfiguration): string[] {
+  if (flags.releases === undefined) return config?.releases ?? ["github"];
+  return flags.releases.includes("github") ? flags.releases : ["github", ...flags.releases];
 }
 
 export function resolveConfiguration(options: ResolveConfigurationOptions): ScaffoldManifest {
@@ -339,7 +348,7 @@ export function resolveConfiguration(options: ResolveConfigurationOptions): Scaf
     operations,
     environments: environmentsFor(operations, staging),
     staging,
-    releases: options.flags.releases ?? options.config?.releases ?? ["github"],
+    releases: releaseTargets(options.flags, options.config),
     theme,
     runtime: {
       port: options.flags.port ?? options.config?.runtime?.port ?? defaultPort(stackValue),

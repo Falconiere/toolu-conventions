@@ -769,6 +769,24 @@ describe("release targets", () => {
     expect(manifest.releases).toEqual(["github", "npm"]);
   });
 
+  test("always keep github when the flags name only npm", () => {
+    const manifest = resolveConfiguration({
+      generatorVersion: "0.9.3",
+      flags: { targetDirectory: "acme", name: "acme", stack: "console", releases: ["npm"] },
+    });
+    expect(manifest.releases).toEqual(["github", "npm"]);
+  });
+
+  test("reject a replayed manifest that drops github", () => {
+    const manifest = resolveConfiguration({
+      generatorVersion: "0.9.3",
+      flags: { targetDirectory: "acme", name: "acme", stack: "console" },
+    });
+    expect(() => parseManifest({ ...manifest, releases: ["npm"] })).toThrow(
+      "releases must include github",
+    );
+  });
+
   test("replay a manifest written before release targets existed as github", () => {
     const manifest = parseManifest({
       schemaVersion: 1,
@@ -808,9 +826,7 @@ describe("release targets", () => {
 
   test.each<{ label: string; releases: string[] }>([
     { label: "an unknown target", releases: ["pypi"] },
-    { label: "no target", releases: [] },
     { label: "a repeated target", releases: ["github", "github"] },
-    { label: "npm without github", releases: ["npm"] },
   ])("reject $label", ({ releases }) => {
     expect(() =>
       resolveConfiguration({
