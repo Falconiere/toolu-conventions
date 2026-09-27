@@ -1,3 +1,17 @@
+# [0.10.0](https://github.com/Falconiere/toolu-conventions/compare/v0.9.3...v0.10.0) (2026-09-27)
+
+
+### Bug Fixes
+
+* **guardrails:** use portable grep --null in batched scans ([60c2a82](https://github.com/Falconiere/toolu-conventions/commit/60c2a825453ff96c5659fb1ab39d01e763835cda))
+* **scaffold:** --release npm keeps the github target ([75cbdb9](https://github.com/Falconiere/toolu-conventions/commit/75cbdb993433f32bff1c4d2409c55137e90df95f))
+* **scaffold:** address PR review feedback ([7bbdd53](https://github.com/Falconiere/toolu-conventions/commit/7bbdd53bd1eb95f6ae15b7efc020f4e39478bcc5))
+
+
+### Features
+
+* **scaffold:** release PR workflow with github and npm targets ([a3968ed](https://github.com/Falconiere/toolu-conventions/commit/a3968ed31f2f7410e9365a52c05152838cb6e17d))
+
 ## [0.9.3](https://github.com/Falconiere/toolu-conventions/compare/v0.9.2...v0.9.3) (2026-09-24)
 
 
