@@ -51,7 +51,18 @@ describe("Clack wizard PTY eval", () => {
     expect(output).toContain("Review");
     expect(output).toContain("Installing dependencies");
     expect(output).toContain("Created");
-    expect(await Bun.file(join(temporary, "pty-eval", "toolu.scaffold.json")).exists()).toBe(true);
+    expect(output).toContain("Select release targets");
+    expect(output).toContain("Releases: github + npm");
+    const manifest = JSON.parse(
+      await readFile(join(temporary, "pty-eval", "toolu.scaffold.json"), "utf8"),
+    );
+    expect(manifest.releases).toEqual(["github", "npm"]);
+    const release = await readFile(
+      join(temporary, "pty-eval", ".github/workflows/release.yml"),
+      "utf8",
+    );
+    expect(release).toContain("googleapis/release-please-action@");
+    expect(release).toContain("npm publish --provenance --access public");
   }, 60_000);
 
   test("renders validation feedback inside the live prompt", () => {

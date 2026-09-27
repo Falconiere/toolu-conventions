@@ -526,7 +526,7 @@ mkdir -p .github/workflows
 1. Copy `templates/.github/workflows/ci.yml` → `.github/workflows/ci.yml`. It
    runs type-check + lint + fmt:check + check:structure + knip + jscpd + test —
    the same checks as `bun run check`, each as its own named step — and then a
-   real production build, on every PR and push to `main`. Keep its `bun-version`
+   real production build, on every PR into `main`. Keep its `bun-version`
    current.
 2. Copy `templates/.github/workflows/code-review.yml` →
    `.github/workflows/code-review.yml`. It reviews every PR against the repo's

@@ -15,10 +15,11 @@
 # the rust skeleton into a temp crate for fmt + clippy.
 name: CI
 
+# Pull requests are the gate. main only receives merges that already passed it,
+# so a push to main does not run the same checks a second time — release.yml
+# publishes from main without repeating them.
 on:
   pull_request:
-    branches: [main]
-  push:
     branches: [main]
 
 concurrency:

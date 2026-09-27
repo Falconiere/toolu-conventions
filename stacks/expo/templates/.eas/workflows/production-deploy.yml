@@ -1,7 +1,11 @@
 # EAS Workflow — Production build + submit
 # Builds store binaries for both platforms (the `production` profile in eas.json)
-# and submits each to its store. Triggered by pushing a release tag (e.g. v1.2.0),
-# or run manually from the dashboard / `eas workflow:run production-deploy.yml`.
+# and submits each to its store.
+#
+# Manual on purpose. Merging the release pull request tags vX.Y.Z, and a store
+# submission is a separate decision from cutting a release. Check out the
+# release tag, then run it from the dashboard or with
+#   eas workflow:run production-deploy.yml
 #
 # Requires the store credentials in eas.json `submit.production` to be filled in
 # (Apple ascAppId / appleTeamId, Google service account). Copy to
@@ -9,9 +13,6 @@
 name: Production deploy
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch: {}
 
 jobs:

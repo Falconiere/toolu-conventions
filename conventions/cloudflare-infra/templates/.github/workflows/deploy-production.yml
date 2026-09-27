@@ -1,8 +1,12 @@
+# Deploys a chosen ref to production. This is always a deliberate, manual step.
+#
+# Merging the release pull request (release.yml) tags vX.Y.Z. A tag does not
+# deploy production by itself: run this workflow and pick the release tag in
+# the "Use workflow from" menu (or `gh workflow run deploy-production.yml
+# --ref vX.Y.Z`).
 name: Deploy production
 
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
 
 permissions:

@@ -90,6 +90,9 @@ def main() -> int:
             send(b"\r")
             wait_for("Choose a theme preset")
             send(b"\x1b[B\r")
+            # github comes preselected; Down + Space adds npm as well.
+            wait_for("Select release targets")
+            send(b"\x1b[B \r")
             wait_for("Create this project?")
             send(b"\r")
             wait_for("Created", timeout=40.0)

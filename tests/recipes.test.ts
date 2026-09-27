@@ -4,8 +4,10 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
+import { CompatibilityError } from "../src/compatibility";
 import { resolveConfiguration } from "../src/configuration";
-import { parseManifest } from "../src/manifest";
+import type { ResolutionFlags } from "../src/contracts";
+import { isMonorepo, parseManifest } from "../src/manifest";
 import { planRecipe } from "../src/recipes";
 import { resolveImportedTheme } from "../src/theme";
 
@@ -614,5 +616,207 @@ describe("planRecipe", () => {
     const router = files.find((file) => file.path === "src/http/router.rs")?.content ?? "";
 
     expect(router).toContain("async fn health() -> &'static str");
+  });
+});
+
+describe("generated release workflows", () => {
+  type Step = { name?: string; uses?: string; run?: string; if?: string };
+  type Workflow = {
+    on: Record<string, { branches?: string[]; tags?: string[] } | null>;
+    concurrency?: { "cancel-in-progress"?: boolean };
+    jobs: Record<string, { permissions?: Record<string, string>; steps?: Step[] }>;
+  };
+
+  const projects: { label: string; flags: ResolutionFlags }[] = [
+    ...["console", "marketing", "backend-ts", "expo", "rust"].map((stack) => ({
+      label: stack,
+      flags: { targetDirectory: `acme-${stack}`, name: `acme-${stack}`, stack },
+    })),
+    ...["console", "marketing", "backend-ts"].map((stack) => ({
+      label: `${stack} released to github + npm`,
+      flags: {
+        targetDirectory: `acme-${stack}`,
+        name: `acme-${stack}`,
+        stack,
+        releases: ["github", "npm"],
+      },
+    })),
+    {
+      label: "backend-ts workspace with cloudflare",
+      flags: {
+        targetDirectory: "acme-api",
+        name: "acme-api",
+        stack: "backend-ts",
+        integrations: ["drizzle", "database-package"],
+        operations: ["cloudflare"],
+      },
+    },
+    {
+      label: "monorepo with cloudflare",
+      flags: {
+        targetDirectory: "acme.io",
+        name: "acme.io",
+        layout: "monorepo",
+        apps: [
+          { id: "console", stack: "console", integrations: ["api"] },
+          { id: "api", stack: "backend-ts", integrations: ["drizzle", "database-package"] },
+        ],
+        packages: ["database"],
+        operations: ["cloudflare"],
+      },
+    },
+  ];
+
+  test.each(projects)("$label keeps one release PR and never repeats CI", async ({ flags }) => {
+    const manifest = resolveConfiguration({ generatorVersion: "0.9.3", flags });
+    const files = await planRecipe(manifest, resolve("."));
+    const content = (path: string) => {
+      const file = files.find((candidate) => candidate.path === path);
+      if (file === undefined) throw new Error(`planned file is missing: ${path}`);
+      return file.content;
+    };
+    const workflows = new Map(
+      files
+        .filter((file) => /^\.(github|eas)\/workflows\/[^/]+\.yml$/.test(file.path))
+        .map((file) => [file.path, Bun.YAML.parse(file.content) as Workflow]),
+    );
+    const rust = !isMonorepo(manifest) && manifest.stack.id === "rust";
+    const npm = manifest.releases.includes("npm");
+
+    // One release configuration, owned by the repository root only.
+    const releaseFiles = files
+      .map((file) => file.path)
+      .filter((path) => /(^|\/)(release-please-config|\.release-please-manifest)\.json$/.test(path))
+      .sort();
+    expect(releaseFiles).toEqual([".release-please-manifest.json", "release-please-config.json"]);
+    const config = JSON.parse(content("release-please-config.json"));
+    expect(config).toMatchObject({
+      "release-type": rust ? "rust" : "node",
+      "include-component-in-tag": false,
+      packages: { ".": {} },
+    });
+
+    // The release starts from the version the repository already declares.
+    const declared = rust
+      ? /^version\s*=\s*"([^"]+)"/m.exec(content("Cargo.toml"))?.[1]
+      : JSON.parse(content("package.json")).version;
+    expect(JSON.parse(content(".release-please-manifest.json"))).toEqual({ ".": declared });
+    expect(declared).toMatch(/^\d+\.\d+\.\d+$/);
+
+    // CI gates pull requests; a merge to main does not run it a second time.
+    expect(Object.keys(workflows.get(".github/workflows/ci.yml")!.on)).toEqual(["pull_request"]);
+
+    // Release runs on main, never cancels mid-flight, and installs, tests, and
+    // builds nothing. Only an npm release runs commands, and only to publish.
+    const release = workflows.get(".github/workflows/release.yml")!;
+    expect(release.on).toEqual({ push: { branches: ["main"] } });
+    expect(release.concurrency?.["cancel-in-progress"]).toBe(false);
+    const job = release.jobs.release!;
+    const steps = job.steps ?? [];
+    expect(
+      steps.filter((step) => step.uses?.startsWith("googleapis/release-please-action@")),
+    ).toHaveLength(1);
+    expect(steps.flatMap((step) => (step.run === undefined ? [] : [step.run.trim()]))).toEqual(
+      npm ? ["npm install --global npm@11.5.1", "npm publish --provenance --access public"] : [],
+    );
+    for (const step of steps.filter((candidate) => candidate.run !== undefined)) {
+      expect(step.if).toContain("steps.release.outputs.release_created");
+    }
+    expect(job.permissions?.["id-token"]).toBe(npm ? "write" : undefined);
+    expect(job.permissions?.["pull-requests"]).toBe("write");
+
+    if (!isMonorepo(manifest) && !rust) {
+      const pkg = JSON.parse(content("package.json"));
+      expect(pkg.private).toBe(npm ? undefined : true);
+      expect(pkg.publishConfig).toEqual(npm ? { access: "public", provenance: true } : undefined);
+    }
+
+    // A release tag never deploys production on its own.
+    for (const [path, workflow] of workflows) {
+      expect({ path, tags: workflow.on.push?.tags }).toEqual({ path, tags: undefined });
+    }
+    const pushedToMain = [...workflows]
+      .filter(([, workflow]) => workflow.on.push?.branches?.includes("main"))
+      .map(([path]) => path)
+      .sort();
+    expect(pushedToMain).toEqual(
+      manifest.operations.includes("cloudflare")
+        ? [".github/workflows/deploy-development.yml", ".github/workflows/release.yml"]
+        : [".github/workflows/release.yml"],
+    );
+  });
+});
+
+describe("release targets", () => {
+  test("default to github and are recorded in the manifest", () => {
+    const manifest = resolveConfiguration({
+      generatorVersion: "0.9.3",
+      flags: { targetDirectory: "acme-console", name: "acme-console", stack: "console" },
+    });
+    expect(manifest.releases).toEqual(["github"]);
+  });
+
+  test("keep github and npm together", () => {
+    const manifest = resolveConfiguration({
+      generatorVersion: "0.9.3",
+      flags: {
+        targetDirectory: "acme-console",
+        name: "acme-console",
+        stack: "console",
+        releases: ["github", "npm"],
+      },
+    });
+    expect(manifest.releases).toEqual(["github", "npm"]);
+  });
+
+  test("replay a manifest written before release targets existed as github", () => {
+    const manifest = parseManifest({
+      schemaVersion: 1,
+      generatorVersion: "0.9.3",
+      project: { name: "acme-console", displayName: "Acme", targetDirectory: "acme-console" },
+      stack: { id: "console" },
+      integrations: [],
+      operations: [],
+      environments: ["development", "production"],
+      staging: false,
+      theme: { kind: "none" },
+      runtime: { port: 5173 },
+      recipes: ["stack/console"],
+    });
+    expect(manifest.releases).toEqual(["github"]);
+  });
+
+  test.each<{ label: string; flags: ResolutionFlags }>([
+    { label: "rust", flags: { stack: "rust" } },
+    { label: "expo", flags: { stack: "expo" } },
+    {
+      label: "a backend-ts workspace",
+      flags: { stack: "backend-ts", integrations: ["drizzle", "database-package"] },
+    },
+    {
+      label: "a monorepo",
+      flags: { layout: "monorepo", apps: [{ id: "console", stack: "console" }] },
+    },
+  ])("reject npm for $label", ({ flags }) => {
+    expect(() =>
+      resolveConfiguration({
+        generatorVersion: "0.9.3",
+        flags: { targetDirectory: "acme", name: "acme", releases: ["github", "npm"], ...flags },
+      }),
+    ).toThrow(CompatibilityError);
+  });
+
+  test.each<{ label: string; releases: string[] }>([
+    { label: "an unknown target", releases: ["pypi"] },
+    { label: "no target", releases: [] },
+    { label: "a repeated target", releases: ["github", "github"] },
+    { label: "npm without github", releases: ["npm"] },
+  ])("reject $label", ({ releases }) => {
+    expect(() =>
+      resolveConfiguration({
+        generatorVersion: "0.9.3",
+        flags: { targetDirectory: "acme", name: "acme", stack: "console", releases },
+      }),
+    ).toThrow();
   });
 });

@@ -1,9 +1,12 @@
+# Deploys every merge to main to the development environment.
+#
+# Pull request CI is the gate, so main only receives merges that already passed
+# it. This workflow does not wait for a second CI run on main; it deploys the
+# merged commit directly.
 name: Deploy development
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  push:
     branches: [main]
   workflow_dispatch:
 
@@ -16,12 +19,9 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2

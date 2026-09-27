@@ -42,6 +42,7 @@ create-toolu <target> [options]
 --operation <id>         Add an operations module (repeatable)
 --staging                Include a staging environment
 --no-staging             Explicitly omit staging
+--release <target>       github (always) | npm (also publish) — repeatable, see "Release targets"
 --theme <preset>         jade | blueprint | ion | chalk
 --theme-from <path>      Import compatible tokens and record SHA-256 hashes
 --page <slug>            Add a marketing route (repeatable)
@@ -144,6 +145,65 @@ Provider operations (`cloudflare` or `infisical`) use exactly `local`,
 `development`, and `production`; they cannot be combined with `--staging`.
 Without provider operations, `--staging` adds a real Wrangler or EAS staging
 profile as appropriate. Local-dev remains independently selectable.
+
+## Release targets
+
+Every generated repository releases through one standing release pull request,
+maintained by [release-please](https://github.com/googleapis/release-please)
+in `.github/workflows/release.yml`:
+
+1. A merge to `main` that carries a releasable Conventional Commit (`feat`,
+   `fix`, `BREAKING CHANGE`) opens the release pull request on the
+   `release-please--branches--main` branch.
+2. While developers keep merging to `main`, that same pull request stays open
+   and is updated on every merge: `CHANGELOG.md`, the version bump, and a
+   description listing every change since the last release. No second release
+   branch is ever opened.
+3. Merging the release pull request tags `vX.Y.Z` and runs the release targets.
+
+`toolu.scaffold.json` records the targets as `releases`:
+
+| `--release` | Adds | Allowed for |
+| --- | --- | --- |
+| `github` (always on) | the release pull request, the `vX.Y.Z` tag, and a GitHub Release | every stack and layout |
+| `npm` | the root package published to npm with provenance, in the same run | standalone `console`, `marketing`, and `backend-ts` without `database-package` |
+
+Pass `--release npm` (or `--release github --release npm`) to publish to npm as
+well; the interactive prompt is a multi-select with `github` always kept. `npm`
+publishes one package from the repository root, so it is rejected for `rust`
+(crates and binaries), `expo` (app stores), a `backend-ts` workspace, and a
+monorepo. Manifests written before this field existed replay as `["github"]`.
+
+The version starts from the one the repository already declares
+(`package.json`, or `Cargo.toml` for Rust; a workspace root gets `0.1.0`), and
+`.release-please-manifest.json` tracks it from there. Before `1.0.0`, a `feat`
+or breaking change bumps the minor version.
+
+The rules every repository shares:
+
+- **The pull request is the only full gate.** `ci.yml` runs on pull requests
+  into `main` and not on pushes to `main`. `release.yml` installs, tests, and
+  builds nothing. The release pull request passes the same required checks as
+  any other pull request.
+- **No bot pushes to `main`.** The changelog and version reach `main` only by
+  merging the release pull request, so nothing bypasses branch protection.
+- **Required checks on the release pull request.** GitHub does not start
+  workflows for pull requests opened with the default `GITHUB_TOKEN`. Install a
+  GitHub App with Contents and Pull requests write, then set the
+  `RELEASE_APP_ID` repository variable and the `RELEASE_APP_PRIVATE_KEY`
+  secret so CI runs on it automatically. Without them, close and reopen the
+  release pull request to start CI.
+- **A release is never cancelled in flight.** Merges queue behind a running
+  release instead of cancelling it.
+- **A tag never deploys production.** Development deploys on every merge to
+  `main` (`cloudflare`). Production stays a manual `workflow_dispatch` (or
+  `eas workflow:run production-deploy.yml`) against the tag you choose.
+
+For `npm`, the generated `package.json` drops `private` and sets
+`publishConfig` to `{ "access": "public", "provenance": true }`. Before the
+first release, a human adds the repository as the package's npm trusted
+publisher. Until the package exists on the registry, the first publish needs an
+`NPM_TOKEN` repository secret.
 
 Marketing page values are `home` or deterministic lowercase route slugs such as
 `pricing` and `about/team`. Traversal, empty segments, uppercase characters, and

@@ -297,6 +297,15 @@ Specs, plans, and decision records live in [`docs/toolu/`](./docs/toolu/).
 
 ### Releases
 
+This kit releases to both `github` and `npm`: every version gets a GitHub
+Release and is published to npm. The kit still cuts releases directly on merge
+with semantic-release. Generated projects use a standing release pull request
+instead, and pick their targets with `--release`; see
+[Release targets](./SETUP.md#release-targets).
+
+Pull requests are the only full gate. `ci.yml` runs `bun run quality` on each PR
+into `main`, so the release job does not run it again after the merge.
+
 Merges to `main` cut a release automatically via [`.github/workflows/release.yml`](./.github/workflows/release.yml)
 ([semantic-release](https://semantic-release.gitbook.io/)). Version bumps follow Conventional
 Commits (`feat` → minor, `fix` / `perf` → patch, `BREAKING CHANGE` / `type!:` → major). Other

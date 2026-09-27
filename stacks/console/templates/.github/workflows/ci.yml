@@ -1,4 +1,4 @@
-# GitHub Actions — the quality gate for every PR (and pushes to main).
+# GitHub Actions — the quality gate for every PR into main.
 # Mirrors `bun run check` step for step, then proves the production build.
 #
 # Copy to `.github/workflows/ci.yml`. Keep the Bun version in sync with the Bun
@@ -8,10 +8,10 @@
 # job summary instead of burying it inside one aggregate command.
 name: CI
 
+# Pull requests are the gate. main only receives merges that already passed it,
+# so a push to main does not run the same checks a second time.
 on:
   pull_request:
-    branches: [main]
-  push:
     branches: [main]
 
 # A newer push to the same ref cancels the older in-flight run.
