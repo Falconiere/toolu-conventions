@@ -256,7 +256,7 @@ gr_ls_scan_batch() {
   hitfile=$(mktemp)
   errfile=$(mktemp)
   [ "$kind" = 'script' ] && pattern=$GR_LS_SCRIPT_CANDIDATE || pattern=$GR_LS_RUST_CANDIDATE
-  xargs -0 sh -c 'p1=$1; shift; grep -E -I -l -Z -e "$p1" -- "$@" || [ $? -eq 1 ]' \
+  xargs -0 sh -c 'p1=$1; shift; grep -E -I -l --null -e "$p1" -- "$@" || [ $? -eq 1 ]' \
     sh "$pattern" < "$list" > "$hitfile" 2>"$errfile"
   status=$?
   errtext=$(cat "$errfile")

@@ -120,13 +120,14 @@ gr_sc_repo_list() {
 # grep fork per tracked file was the one thing left paying per-file process
 # overhead in this check.
 #
-#   xargs -0 grep -E -I -l -Z -e "$PATTERN" --
+#   xargs -0 grep -E -I -l --null -e "$PATTERN" --
 #
-# -l -Z, not -n -H: the batch pass only asks WHICH files leak, as a
+# -l --null, not -n -H: the batch pass only asks WHICH files leak, as a
 # NUL-delimited filename list. Parsing "path:line:content" text back apart is
 # unfixably ambiguous — a colon is legal in both the filename and the matched
-# content, so no split direction is safe — while -Z terminates each filename
-# with a NUL that no filename can contain. The one thing the text output
+# content, so no split direction is safe — while --null terminates each filename
+# with a NUL that no filename can contain. Spelled --null, never -Z: macOS/BSD
+# grep reads -Z as --decompress and silently matches nothing. The one thing the text output
 # carried that violations actually use, the matched text behind the kind
 # label, comes from re-running gr_sc_scan on just the offending files below:
 # leaks are the rare case (normally zero files), so the second pass is one
@@ -159,10 +160,10 @@ gr_sc_scan_batch() {
   local list errfile hitfile status path errtext
   list=$1
   errfile=$(mktemp)
-  # stdout goes to a file, not $(...): the -Z output is NUL-delimited and
+  # stdout goes to a file, not $(...): the --null output is NUL-delimited and
   # command substitution silently drops NUL bytes.
   hitfile=$(mktemp)
-  xargs -0 sh -c 'pat=$1; shift; grep -E -I -l -Z -e "$pat" -- "$@" || [ $? -eq 1 ]' sh "$GR_SC_PATTERN" \
+  xargs -0 sh -c 'pat=$1; shift; grep -E -I -l --null -e "$pat" -- "$@" || [ $? -eq 1 ]' sh "$GR_SC_PATTERN" \
     < "$list" > "$hitfile" 2>"$errfile"
   status=$?
   errtext=$(cat "$errfile")
