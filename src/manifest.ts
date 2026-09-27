@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { INTEGRATIONS, OPERATIONS, STACKS, THEME_PRESETS, WORKSPACE_PACKAGES } from "./contracts";
+import {
+  INTEGRATIONS,
+  OPERATIONS,
+  RELEASE_TARGETS,
+  STACKS,
+  THEME_PRESETS,
+  WORKSPACE_PACKAGES,
+} from "./contracts";
 import { PROJECT_NAME_PATTERN } from "./identity";
 
 const Sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -95,6 +102,14 @@ const commonShape = {
     .min(2)
     .refine(uniqueValues, "environments must be unique"),
   staging: z.boolean(),
+  // Manifests written before release targets existed released through GitHub.
+  releases: z
+    .array(z.enum(RELEASE_TARGETS))
+    .refine(uniqueValues, "releases must be unique")
+    // The release pull request, tag, and GitHub Release are how every release
+    // is cut and versioned; npm is published on top of them.
+    .refine((targets) => targets.includes("github"), "releases must include github")
+    .default(["github"]),
   theme: ThemeSchema,
   recipes: z.array(z.string().min(1)).min(1).refine(uniqueValues, "recipes must be unique"),
 };

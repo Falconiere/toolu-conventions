@@ -287,6 +287,7 @@ function resolveMonorepo(options: ResolveConfigurationOptions): ScaffoldManifest
     operations,
     environments: environmentsFor(operations, staging),
     staging,
+    releases: flags.releases ?? config?.releases ?? ["github"],
     theme,
     runtime: {
       ...(domain === undefined ? {} : { domain }),
@@ -338,6 +339,7 @@ export function resolveConfiguration(options: ResolveConfigurationOptions): Scaf
     operations,
     environments: environmentsFor(operations, staging),
     staging,
+    releases: options.flags.releases ?? options.config?.releases ?? ["github"],
     theme,
     runtime: {
       port: options.flags.port ?? options.config?.runtime?.port ?? defaultPort(stackValue),

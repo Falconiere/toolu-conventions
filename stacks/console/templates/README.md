@@ -76,7 +76,7 @@ Navigate with `<Link to="…">` so a renamed route is a compile error, not a 404
 ## CI and review
 
 - **`ci.yml`** — type-check, lint, format-check, structure check, test, and a
-  production build, each as its own step, on every PR and push to `main`.
+  production build, each as its own step, on every PR into `main`.
 - **`code-review.yml`** — AI review of every PR against this repo's own
   convention files (read from the base branch). Needs an `OPENROUTER_API_KEY`
   repository secret.

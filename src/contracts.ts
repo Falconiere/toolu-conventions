@@ -35,6 +35,14 @@ export const DEFAULT_APP_DIRECTORIES = {
 export const OPERATIONS = ["cloudflare", "infisical", "local-dev"] as const;
 export type OperationId = (typeof OPERATIONS)[number];
 
+/**
+ * Where a release goes. `github` (always on) keeps one release pull request up
+ * to date and, when it merges, tags vX.Y.Z and creates a GitHub Release. `npm`
+ * also publishes the package to the npm registry at that version.
+ */
+export const RELEASE_TARGETS = ["github", "npm"] as const;
+export type ReleaseTarget = (typeof RELEASE_TARGETS)[number];
+
 export const THEME_PRESETS = ["jade", "blueprint", "ion", "chalk"] as const;
 export type ThemePreset = (typeof THEME_PRESETS)[number];
 
@@ -59,6 +67,7 @@ export interface ResolutionFlags {
   integrations?: string[];
   operations?: string[];
   staging?: boolean;
+  releases?: string[];
   theme?: string;
   themeFrom?: string;
   pages?: string[];

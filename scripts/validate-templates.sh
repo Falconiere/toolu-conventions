@@ -135,6 +135,23 @@ grep -q 'HOMEBREW_APP_ID' .github/workflows/release.yml \
   && grep -q 'HOMEBREW_APP_PRIVATE_KEY' .github/workflows/release.yml \
   || bad "release.yml must use HOMEBREW_APP_ID + HOMEBREW_APP_PRIVATE_KEY (all-app-release)"
 
+# --- One gate per change: pull-request CI is the full gate, so neither the kit
+#     nor a generated project re-runs it after the merge. CI triggers only on
+#     pull requests, the kit's release job does not run the quality gate, and
+#     a release tag never deploys production on its own. ---
+for wf in .github/workflows/ci.yml shared/workspace/ci.yml stacks/*/templates/.github/workflows/ci.yml; do
+  [ -f "$wf" ] || continue
+  grep -qE '^  push:' "$wf" \
+    && bad "$wf triggers on push — pull-request CI already gated the merge"
+done
+grep -qE '^[[:space:]]*run:.*bun run quality' .github/workflows/release.yml \
+  && bad "release.yml re-runs bun run quality — ci.yml already ran it on the pull request"
+for wf in conventions/cloudflare-infra/templates/.github/workflows/deploy-production.yml \
+  stacks/expo/templates/.eas/workflows/production-deploy.yml; do
+  grep -qE '^[[:space:]]*tags:' "$wf" \
+    && bad "$wf deploys on a tag — production must stay a manual dispatch"
+done
+
 # --- TOML ---
 while IFS= read -r -d '' f; do
   python3 -c "import tomllib,sys; tomllib.load(open(sys.argv[1],'rb'))" "$f" >/dev/null 2>&1 || bad "toml parse: $f"

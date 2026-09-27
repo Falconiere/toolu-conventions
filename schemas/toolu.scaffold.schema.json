@@ -136,6 +136,13 @@
       "items": { "enum": ["local", "development", "staging", "production"] }
     },
     "staging": { "type": "boolean" },
+    "releases": {
+      "description": "Where releases go. github (required): release pull request, vX.Y.Z tag, GitHub Release. npm: also publish the root package. Omitted means [\"github\"].",
+      "type": "array",
+      "uniqueItems": true,
+      "contains": { "const": "github" },
+      "items": { "enum": ["github", "npm"] }
+    },
     "theme": {
       "oneOf": [
         {

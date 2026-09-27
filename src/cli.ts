@@ -49,6 +49,7 @@ Options:
   --operation <id>         Add an operations module (repeatable)
   --staging                Include a staging environment
   --no-staging             Explicitly omit staging
+  --release <target>       github (always) | npm (also publish) — repeatable
   --theme <preset>         jade | blueprint | ion | chalk
   --theme-from <path>      Import compatible theme tokens with SHA-256 verification
   --page <slug>            Add a marketing route (repeatable)
@@ -93,6 +94,7 @@ function resolutionFlags(parsed: ReturnType<typeof parseArgs>): ResolutionFlags 
     ...(parsed.integrations !== undefined ? { integrations: parsed.integrations } : {}),
     ...(parsed.operations !== undefined ? { operations: parsed.operations } : {}),
     ...(parsed.staging !== undefined ? { staging: parsed.staging } : {}),
+    ...(parsed.releases !== undefined ? { releases: parsed.releases } : {}),
     ...(parsed.theme !== undefined ? { theme: parsed.theme } : {}),
     ...(parsed.themeFrom !== undefined ? { themeFrom: parsed.themeFrom } : {}),
     ...(parsed.pages !== undefined ? { pages: parsed.pages } : {}),

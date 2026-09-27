@@ -1,6 +1,6 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, posix, relative, resolve, sep } from "node:path";
-import type { StackId } from "./contracts";
+import type { ReleaseTarget, StackId } from "./contracts";
 import { operationBlocker, visualStack } from "./compatibility";
 import { pinned, type KnownDependency } from "./dependencies";
 import {
@@ -1653,6 +1653,7 @@ function appManifest(manifest: MonorepoManifest, app: ManifestApp): StandaloneMa
     operations: manifest.operations,
     environments: manifest.environments,
     staging: manifest.staging,
+    releases: manifest.releases,
     theme: visualStack(app.stack.id) ? manifest.theme : { kind: "none" },
     runtime: {
       port: app.port,
@@ -2044,16 +2045,16 @@ function monorepoWorkflow(manifest: MonorepoManifest): string {
 `,
     )
     .join("");
-  return `# GitHub Actions — the quality gate for every PR (and pushes to main).
+  return `# GitHub Actions — the quality gate for every PR into main.
 #
 # The WORKSPACE variant. Each member owns its own gate, so almost everything
 # here fans out with \`bun --filter\` rather than running once at the root.
 name: CI
 
+# Pull requests are the gate. main only receives merges that already passed it,
+# so a push to main does not run the same checks a second time.
 on:
   pull_request:
-    branches: [main]
-  push:
     branches: [main]
 
 concurrency:
@@ -2308,6 +2309,161 @@ async function planMonorepo(
   await planMonorepoRoot(manifest, assetRoot, files);
 }
 
+// ---------------------------------------------------------------------------
+// Release: every repository root owns one release-please workflow and its
+// configuration. Merges to main keep ONE release pull request up to date;
+// merging that pull request tags and releases to the manifest's targets.
+// ---------------------------------------------------------------------------
+
+function releaseWorkflow(targets: readonly ReleaseTarget[]): string {
+  const npm = targets.includes("npm");
+  const npmHeader = npm
+    ? `
+# npm: once the release pull request merges, the same run publishes the
+# package at the released version with provenance. package.json \`files\`
+# (and a \`prepack\` script, if you add one) decide what ships.
+#
+# Setup (human-only): on npmjs.com, add this repository and workflow as a
+# trusted publisher for the package (OIDC, no token). Until the package exists
+# on the registry, set an NPM_TOKEN repository secret for the first publish.
+#`
+    : "";
+  const npmPermission = npm
+    ? "\n      id-token: write # npm trusted-publishing OIDC + provenance"
+    : "";
+  const npmSteps = npm
+    ? `
+      - name: Checkout released commit
+        if: \${{ steps.release.outputs.release_created }}
+        uses: actions/checkout@v4
+
+      # npm trusted publishing needs Node >= 22.14 and npm >= 11.5.1.
+      - name: Setup Node
+        if: \${{ steps.release.outputs.release_created }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.14"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup npm trusted-publishing client
+        if: \${{ steps.release.outputs.release_created }}
+        run: npm install --global npm@11.5.1
+
+      - name: Publish to npm
+        if: \${{ steps.release.outputs.release_created }}
+        env:
+          NODE_AUTH_TOKEN: \${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+`
+    : "";
+  return `# GitHub Actions — one standing release pull request, released on merge.
+#
+# Release targets: ${targets.join(" + ")}. Recorded as \`releases\` in
+# toolu.scaffold.json.
+#
+# Every push to main runs release-please. It keeps exactly ONE release pull
+# request open (branch release-please--branches--main). Each later merge
+# updates that same pull request: CHANGELOG.md, the version bump, and a
+# description listing every change since the last release. It never opens a
+# second release branch. Merging the release pull request tags vX.Y.Z and
+# creates the GitHub Release.
+#${npmHeader}
+# Pull requests are the only full quality gate, so this workflow runs no
+# install, test, or build of its own. The release pull request passes the same
+# required checks as any other pull request before it can merge.
+#
+# Required checks on the release pull request: GitHub does not start workflows
+# for pull requests opened with the default GITHUB_TOKEN. To have CI run on it
+# automatically, install a GitHub App with Contents + Pull requests write, set
+# the RELEASE_APP_ID repository variable and the RELEASE_APP_PRIVATE_KEY
+# secret. Without them, close and reopen the release pull request to run CI.
+#
+# A release tag does not deploy production. Production stays a deliberate step:
+# run the production deploy workflow against the tag you want to ship.
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+# Never cancel a release in flight: a cancelled run can leave a tag without its
+# GitHub Release${npm ? " or npm package" : ""}. Later merges queue behind the running one.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # release branch, tag, GitHub Release
+      pull-requests: write # open and update the release pull request
+      issues: write # label the release pull request${npmPermission}
+    steps:
+      - name: Mint release token
+        id: app-token
+        if: \${{ vars.RELEASE_APP_ID != '' }}
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: \${{ vars.RELEASE_APP_ID }}
+          private-key: \${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Release please
+        id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          token: \${{ steps.app-token.outputs.token || github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+${npmSteps}`;
+}
+
+/** The version the repository starts from, read from the file release-please bumps. */
+function currentVersion(files: Map<string, PlannedFile>, rust: boolean): string {
+  if (rust) {
+    const cargo = files.get("Cargo.toml")?.content ?? "";
+    const version = /^version\s*=\s*"([^"]+)"/m.exec(cargo)?.[1];
+    if (version === undefined) throw new Error("Cargo.toml has no package version to release");
+    return version;
+  }
+  const packageFile = parsePlannedJson(files, "package.json");
+  if (typeof packageFile.version === "string") return packageFile.version;
+  // A workspace root carries no version of its own; releases start it at 0.1.0.
+  setPlannedJson(files, "package.json", { ...packageFile, version: "0.1.0" });
+  return "0.1.0";
+}
+
+function addRelease(files: Map<string, PlannedFile>, manifest: ScaffoldManifest): void {
+  const rust = !isMonorepo(manifest) && manifest.stack.id === "rust";
+  files.set(".github/workflows/release.yml", {
+    path: ".github/workflows/release.yml",
+    content: releaseWorkflow(manifest.releases),
+  });
+  setPlannedJson(files, "release-please-config.json", {
+    $schema: "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+    "release-type": rust ? "rust" : "node",
+    "include-component-in-tag": false,
+    "bump-minor-pre-major": true,
+    "changelog-path": "CHANGELOG.md",
+    packages: { ".": {} },
+  });
+  setPlannedJson(files, ".release-please-manifest.json", {
+    ".": currentVersion(files, rust),
+  });
+  if (manifest.releases.includes("npm")) {
+    // Publishable: no `private` guard, and every publish carries provenance.
+    const { private: _private, ...packageFile } = parsePlannedJson(files, "package.json");
+    setPlannedJson(files, "package.json", {
+      ...packageFile,
+      publishConfig: { access: "public", provenance: true },
+    });
+  }
+}
+
 export async function planRecipe(
   manifest: ScaffoldManifest,
   assetRoot: string,
@@ -2326,6 +2482,7 @@ export async function planRecipe(
     path: ".claude/settings.json",
     content: await readFile(hooksPath, "utf8"),
   });
+  addRelease(files, manifest);
   const rustOnly = !isMonorepo(manifest) && manifest.stack.id === "rust";
   const anyRust = isMonorepo(manifest) && manifest.apps.some((app) => app.stack.id === "rust");
   files.set(".gitignore", {

@@ -16,6 +16,11 @@
 # PRs dry-run with GITHUB_TOKEN (no push) and separately verify the App can
 # mint a token so a missing install/secret fails before merge.
 #
+# Release targets: github + npm (see SETUP.md → Release targets). The quality
+# gate is NOT re-run here: ci.yml runs `bun run quality` on every PR into main,
+# and the protect-main ruleset requires it before merge. A push to main only
+# publishes.
+#
 # semantic-release 25 requires Node ^22.14 || >=24.10 — Bun installs the
 # toolchain, Node runs it (the version check reads process.version).
 name: Release
@@ -26,9 +31,11 @@ on:
   pull_request:
     branches: [main]
 
+# PR dry-runs cancel each other. A release on main never cancels: a cancelled
+# run can publish to npm without pushing the tag or the CHANGELOG commit.
 concurrency:
   group: release-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -37,7 +44,7 @@ jobs:
   release:
     name: release
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
     permissions:
       contents: write # tag + GitHub Release + push CHANGELOG.md
       id-token: write # npm trusted-publisher OIDC assertion
@@ -89,16 +96,6 @@ jobs:
 
       - name: Install release toolchain
         run: bun install --frozen-lockfile
-
-      - name: Install verification toolchain
-        if: github.event_name == 'push'
-        run: |
-          rustup component add rustfmt clippy
-          cargo install ast-grep --version 0.45.0 --locked
-
-      - name: Verify release candidate
-        if: github.event_name == 'push'
-        run: bun run quality
 
       # Invoke via node + the local bin path — not bunx (semantic-release 25
       # reads process.version and rejects Bun's reported runtime).

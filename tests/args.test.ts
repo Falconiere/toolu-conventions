@@ -15,6 +15,9 @@ describe("parseArgs", () => {
       "--page",
       "about/team",
       "--staging",
+      "--release",
+      "github",
+      "--release=npm",
       "--port=4321",
     ]);
 
@@ -25,6 +28,7 @@ describe("parseArgs", () => {
       operations: ["cloudflare"],
       pages: ["pricing", "about/team"],
       staging: true,
+      releases: ["github", "npm"],
       port: 4321,
     });
   });

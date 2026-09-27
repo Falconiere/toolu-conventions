@@ -12,6 +12,7 @@ export interface ParsedArgs {
   integrations?: string[];
   operations?: string[];
   staging?: boolean;
+  releases?: string[];
   theme?: string;
   themeFrom?: string;
   pages?: string[];
@@ -34,9 +35,13 @@ const valueOptions = new Map<string, keyof ParsedArgs>([
   ["--console-url", "consoleUrl"],
 ]);
 
-const repeatableOptions = new Map<string, "integrations" | "operations" | "pages" | "packages">([
+const repeatableOptions = new Map<
+  string,
+  "integrations" | "operations" | "pages" | "packages" | "releases"
+>([
   ["--integration", "integrations"],
   ["--operation", "operations"],
+  ["--release", "releases"],
   ["--page", "pages"],
   ["--package", "packages"],
 ]);

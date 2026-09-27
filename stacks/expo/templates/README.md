@@ -72,13 +72,13 @@ lives in the **Design notes** section of [`AGENTS.md`](./AGENTS.md).
 ## CI/CD
 
 - **GitHub Actions** (`.github/workflows/ci.yml`) — runs type-check + lint +
-  format-check + structure + knip + jscpd + test on every PR and push to `main`
+  format-check + structure + knip + jscpd + test on every PR into `main`
   (same checks as `bun run check`, each as its own named step).
 - **`code-review.yml`** — AI review of every PR against this repo's own
   convention files, read from the base branch. Needs an `OPENROUTER_API_KEY`
   repository secret.
 - **EAS Workflows** (`.eas/workflows/`) — `development-build` (on-demand dev
-  clients), `production-deploy` (build + submit, on a `v*` tag), and
+  clients), `production-deploy` (build + submit, run manually against a release tag), and
   `publish-update` (manual OTA to a channel). Run with `eas workflow:run <file>`
   or from the EAS dashboard.
 

@@ -223,6 +223,32 @@ export async function collectInteractiveFlags(initial: ResolutionFlags): Promise
       }),
     );
   }
+  // Only a single JavaScript package at the root can publish to npm; every
+  // other shape releases through GitHub without asking.
+  const publishable =
+    !monorepo &&
+    (flags.stack === "console" ||
+      flags.stack === "marketing" ||
+      (flags.stack === "backend-ts" && !(flags.integrations ?? []).includes("database-package")));
+  if (flags.releases === undefined && publishable) {
+    flags.releases = accepted<string[]>(
+      await clack.multiselect<string>({
+        message: "Select release targets",
+        options: [
+          {
+            value: "github",
+            label: "github",
+            hint: "always on: release PR, vX.Y.Z tag, GitHub Release",
+          },
+          { value: "npm", label: "npm", hint: "also publish the package to npm" },
+        ],
+        initialValues: ["github"],
+        required: false,
+      }),
+    );
+    // github cuts every release; npm only adds a publish on top of it.
+    if (!flags.releases.includes("github")) flags.releases.unshift("github");
+  }
   flags.staging ??= false;
   return flags;
 }

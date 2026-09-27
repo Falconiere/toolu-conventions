@@ -1,8 +1,8 @@
 name: CI
 
+# Pull requests are the gate. main only receives merges that already passed it,
+# so a push to main does not run the same checks a second time.
 on:
-  push:
-    branches: [main]
   pull_request:
 
 jobs:

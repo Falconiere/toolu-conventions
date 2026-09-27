@@ -132,6 +132,32 @@ function validateStaging(manifest: ScaffoldManifest): void {
   }
 }
 
+/**
+ * The npm target publishes the repository root as one package, so it needs
+ * exactly one JavaScript package at the root. Rust ships crates or binaries,
+ * Expo ships to the app stores, and a workspace holds several packages that
+ * one root publish cannot version. Those release through GitHub only.
+ */
+function validateReleases(manifest: ScaffoldManifest): void {
+  if (!manifest.releases.includes("npm")) return;
+  if (manifest.layout === "monorepo") {
+    throw new CompatibilityError(
+      "the npm release target publishes one package; a monorepo releases through github",
+    );
+  }
+  const { stack } = manifest;
+  if (stack.id === "rust" || stack.id === "expo") {
+    throw new CompatibilityError(
+      `the npm release target does not apply to ${stack.id}; use github`,
+    );
+  }
+  if (stack.id === "backend-ts" && stack.workspace) {
+    throw new CompatibilityError(
+      "the npm release target publishes one package; a backend-ts workspace releases through github",
+    );
+  }
+}
+
 function validateMonorepo(manifest: Extract<ScaffoldManifest, { layout: "monorepo" }>): void {
   assertUnique(
     manifest.apps.map((app) => app.id),
@@ -155,6 +181,7 @@ function validateMonorepo(manifest: Extract<ScaffoldManifest, { layout: "monorep
     }
   }
   validateStaging(manifest);
+  validateReleases(manifest);
 
   const targets = new Set(
     manifest.apps
@@ -184,6 +211,7 @@ export function validateCompatibility(manifest: ScaffoldManifest): void {
     if (blocker !== undefined) throw new CompatibilityError(blocker);
   }
   validateStaging(manifest);
+  validateReleases(manifest);
   validateTheme(
     theme,
     visualStack(stack.id) ? (stack.id === "expo" ? "native" : "web") : "none",

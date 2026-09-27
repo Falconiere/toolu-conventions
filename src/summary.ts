@@ -32,6 +32,7 @@ export function renderSummary(manifest: ScaffoldManifest): string {
     ...header,
     ...body,
     `Operations: ${manifest.operations.join(", ") || "none"}`,
+    `Releases: ${manifest.releases.join(" + ")}`,
     `Theme: ${themeLabel(manifest)}`,
   ].join("\n");
 }
