@@ -2,12 +2,12 @@
   "console-base": "a6f386c7b98a429b1c4269d8a7862d14422873c773039bf419aef250ec473993",
   "marketing-base": "c4fc1b16904e925f83c25d5cd04f5eef1d09c7673a6c0af29fbbb2edfb24c5cd",
   "backend-base": "53d96415b4a7ad8efaef3d71428c038a431cb33b2abd185d9fa65bc9565bfb8d",
-  "expo-base": "1ead0b57504975771247e87781a0604d7eb1a10d7fd1ec951c94a1e5a36419c2",
+  "expo-base": "1ce431ade4c7b0d502b34ea886c68a9581ebdfe80f1660ff41c6b59c6f230726",
   "rust-base": "20cb87eca34c7b91d63b3f29d97fe29cbd275f551a40aaa1801bc8bcb53c3589",
   "console-max": "9bf0fdfd7edf4f6c1d51456740722062d49a4d704656273a5430a44f896b98a3",
   "marketing-max": "2caf9f77862041b14d7e884b78576711dcc21dd905b7793a243c72933b18a300",
   "backend-workspace-max": "58dbb8541311c00df900da6d8b7787a3faf8231a75386ce828964d7c557331e6",
-  "expo-max": "f4e1bf3764862fb7b888cdd749eab1b5b687c4dffedfe243bcee88520df4094a",
+  "expo-max": "30af538d824a863da000176ce397fa28278968771c8203f5d37cd56c24267add",
   "rust-service-max": "bd8a48147e719966044b64168bcec4a720668236abee477f95e73d5696bd9505",
   "analytics-posthog": "cca1a8448cdbdb2ffd5bdcdb8a5bfc904c8f332030f195f8d1207371b6d1d255",
   "analytics-plausible": "80bb165e0bc8f0d220284bff2f7e8593bdbaff70f08e9f7c5127a4d578463a60",
@@ -17,7 +17,7 @@
   "theme-ion": "e5c8ce146810e924418cd5182be96222d6b1560df75e5dbcd0c14b13d66eb3c2",
   "theme-chalk": "a486045da7fac7afe9f0cb2b536886ddf0a2ff08d80b140be061ade78e55ba33",
   "monorepo-web-platform": "834fb4b885bc51230fbe15afb1c6128e2341f32d83e39efd0ed6bee7b9d67e7e",
-  "monorepo-mobile-and-cli": "0957dbc1ef1a9b7b253ecb6634541c96d72dbbaf4b798d9606b7b3cf4f4cab66",
+  "monorepo-mobile-and-cli": "ebb384da742161e3edb284810f29a6dbe9103629a3add630e0c0d84f87a5781f",
   "console-staging": "d052c79f1fc9fc5cd0b2be507d17c8fb9d4be81d16c6b7e283f4e07ef85d960c",
-  "expo-staging": "5fe3832275118c6a5009d02183f0551f576edc2ecef3d2555fa7d5e21315ecc1"
+  "expo-staging": "e99ffdc7391c49cf460006cc5bdcacb3ed6d47732382d198f6356c140100d796"
 }
