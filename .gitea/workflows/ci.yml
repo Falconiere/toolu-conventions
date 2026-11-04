@@ -57,7 +57,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Install Ruby
-        run: command -v ruby || (sudo apt-get update -qq && sudo apt-get install -y -qq ruby)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ruby lsof iproute2  # act image lacks ruby and lsof/ss (operations port probes)
 
       - name: Install ast-grep
         run: cargo install ast-grep --version 0.45.0 --locked
