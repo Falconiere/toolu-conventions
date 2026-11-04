@@ -35,6 +35,7 @@ export const VERSIONS = {
   "drizzle-orm": "0.45.2",
   expo: "53.0.22",
   "expo-constants": "17.1.8",
+  "expo-linking": "7.1.7",
   "expo-router": "5.1.11",
   "expo-secure-store": "14.2.4",
   "expo-system-ui": "5.0.11",

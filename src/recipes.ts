@@ -398,6 +398,9 @@ function expoPackage(manifest: StandaloneManifest): string {
     ...pinned([
       "expo",
       "expo-constants",
+      // expo-router peers on expo-linking "*"; unpinned it resolves to a newer SDK
+      // that imports expo/internal/bundle-origin, which expo 53 does not ship.
+      "expo-linking",
       "expo-router",
       "expo-system-ui",
       "expo-updates",
